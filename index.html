@@ -34,18 +34,33 @@
   .btn.primary:hover{background:var(--red-dark)}
   .editnote{font-size:12px;color:var(--muted);align-self:center}
 
+  .metapanel{display:none;background:#fff;border:1.5px dashed var(--red);border-radius:12px;padding:14px 18px;margin:0 0 16px}
+  .metapanel.show{display:block}
+  .metapanel h4{font-size:13px;font-weight:800;color:var(--red-dark);margin-bottom:10px;letter-spacing:.4px}
+  .metarow{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+  .metarow:last-child{margin-bottom:0}
+  .mfield{display:flex;flex-direction:column;gap:4px}
+  .mfield label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .mfield input{font-family:inherit;font-size:13px;padding:6px 10px;border:1.5px solid #C9C5C1;border-radius:7px;background:#FFFDF5}
+  .mfield input:focus{outline:none;border-color:var(--red);background:#fff}
+  .mfield.wide{flex:1;min-width:320px}
+  .theme-dark .metapanel{background:#171514;border-color:#FF4D6A}
+  .theme-dark .mfield input{background:#221E1B;border-color:#4A443F;color:#F2EFEA}
+  .theme-dark .mfield input:focus{background:#171514;border-color:#FF4D6A}
+
+
   .tablecard{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:auto;box-shadow:0 1px 3px rgba(0,0,0,.05)}
   table{border-collapse:collapse;width:100%;font-size:clamp(11px,0.85vw,13.5px)}
-  thead th{position:sticky;top:0;background:var(--red);color:#fff;font-weight:700;padding:9px 7px;text-align:right;white-space:nowrap;z-index:2}
+  thead th{position:sticky;top:0;background:var(--red);color:#fff;font-weight:700;padding:12px 7px;text-align:right;white-space:nowrap;z-index:2}
   thead th:first-child{text-align:left;padding-left:12px}
   thead th.t8{background:var(--red-dark)}
-  tbody td{padding:8px 7px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  tbody td{padding:13px 7px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   tbody td:first-child{text-align:left;font-weight:600;padding-left:12px}
   tbody tr:nth-child(even) td{background:#FBFAF9}
   td.t8{background:var(--green-tint)!important}
   td.t8.big{font-weight:700}
   tr.sub td{background:var(--red-tint)!important;color:var(--red);font-weight:700;border-top:1.5px solid var(--red)}
-  tr.grand td{background:var(--red)!important;color:#fff;font-weight:800;font-size:1.05em;padding:11px 7px}
+  tr.grand td{background:var(--red)!important;color:#fff;font-weight:800;font-size:1.05em;padding:15px 7px}
   tr.grand td.t8{background:var(--red-dark)!important}
   td.note{white-space:normal;min-width:130px;max-width:180px;font-size:11px;line-height:1.35;color:var(--muted);text-align:left;font-weight:400}
   .tag{display:inline-block;font-size:10.5px;font-weight:700;border-radius:20px;padding:1px 8px;margin-left:6px;vertical-align:1px}
@@ -159,6 +174,20 @@
     <button class="btn" id="btnPaste">📥 Dán dữ liệu tháng trước</button>
     <button class="btn" id="btnTheme">🎨 Giao diện: Executive Dark</button>
     <span class="editnote" id="editHint">Chế độ xem — bấm "Nhập số liệu" để điền số từng shop, mọi dòng tổng / KPI / biểu đồ / xếp hạng tự tính lại.</span>
+  </div>
+  <div class="metapanel" id="metaPanel">
+    <h4>📅 THÔNG TIN KỲ BÁO CÁO — sửa ở đây, mọi tiêu đề trên trang tự đổi theo</h4>
+    <div class="metarow">
+      <div class="mfield"><label>Tháng target (vd: 9/2026)</label><input id="mMonth"></div>
+      <div class="mfield"><label>Tháng vừa chốt (vd: T8)</label><input id="mPrev"></div>
+      <div class="mfield"><label>Tháng trước nữa (vd: T7)</label><input id="mPrev2"></div>
+    </div>
+    <div class="metarow">
+      <div class="mfield wide"><label>Dòng phụ đề (nguồn số liệu, ngày cập nhật)</label><input id="mSub"></div>
+    </div>
+    <div class="metarow">
+      <div class="mfield wide"><label>Dòng chân trang (người lập, ghi chú)</label><input id="mFooter"></div>
+    </div>
   </div>
 
   <div class="tablecard"><table>
@@ -457,8 +486,14 @@ function onCellChange(e){
   render();
 }
 
+
+const META_FIELDS = [['mMonth','month'],['mPrev','prevMonth'],['mPrev2','prev2Month'],['mSub','sub'],['mFooter','footer']];
+function loadMeta(){ META_FIELDS.forEach(([id,key]) => { $(id).value = DATA[key]; }); }
+META_FIELDS.forEach(([id,key]) => $(id).addEventListener('change', e => { DATA[key] = e.target.value.trim(); render(); }));
 $('btnEdit').addEventListener('click', () => {
   editMode = !editMode;
+  $('metaPanel').classList.toggle('show', editMode);
+  if (editMode) loadMeta();
   $('btnEdit').textContent = editMode ? '✅ Xong — về chế độ xem' : '✏️ Nhập số liệu';
   $('editHint').textContent = editMode
     ? 'Đang chỉnh sửa: điền ô nền vàng, bấm ra ngoài ô là toàn trang tự tính lại. LƯU Ý: tải lại trang sẽ mất thay đổi — bấm "Sao chép dữ liệu" để lưu trước khi đóng.'
@@ -473,7 +508,7 @@ $('btnCopy').addEventListener('click', async () => {
 $('btnPaste').addEventListener('click', () => {
   const raw = prompt('Dán chuỗi dữ liệu JSON (đã sao chép từ lần trước):');
   if (!raw) return;
-  try { const d = JSON.parse(raw); if (!d.shops) throw 0; DATA = d; render(); alert('Đã nạp dữ liệu.'); }
+  try { const d = JSON.parse(raw); if (!d.shops) throw 0; DATA = d; if(editMode) loadMeta(); render(); alert('Đã nạp dữ liệu.'); }
   catch(err){ alert('Chuỗi dán vào không đúng định dạng JSON của báo cáo.'); }
 });
 
