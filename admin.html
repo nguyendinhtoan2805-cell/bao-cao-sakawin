@@ -96,7 +96,7 @@
     <a class="navtab" href="/">📈 Doanh số &amp; Target</a>
     <span class="navtab soon">💰 Tài chính &amp; Lãi lỗ <em>sắp có</em></span>
     <a class="navtab active" href="/admin.html">⚙️ Quản trị</a>
-    <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth?action=logout">Đăng xuất</a></span>
+    <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout">Đăng xuất</a></span>
   </nav>
 
   <h1>QUẢN TRỊ <span>TÀI KHOẢN &amp; PHÂN QUYỀN</span></h1>
@@ -249,13 +249,13 @@ async function taiLai(){
 
 (async function khoiDong(){
   let me;
-  try { me = await (await fetch('/api/auth?action=me', {cache:'no-store'})).json(); }
+  try { me = await (await fetch('/api/auth/me', {cache:'no-store'})).json(); }
   catch(err){ return khoa('Không kết nối được máy chủ', 'Thử tải lại trang.'); }
 
   if(!me.dangNhap){
     $('gateTitle').textContent = 'Cần đăng nhập';
     $('gateMsg').textContent = 'Đang chuyển sang trang đăng nhập Lark…';
-    return location.href = '/api/auth?action=login';
+    return location.href = '/api/auth/login';
   }
   if(!me.quyen.quan_tri){
     return khoa('Không đủ quyền', (me.ten || me.email) + ' không có quyền quản trị tài khoản.');

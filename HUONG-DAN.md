@@ -16,7 +16,7 @@ Sau khi làm xong: team nhập số vào Lark như mọi khi → web tự cập 
 
 | Trang | File | API | Nguồn số | Tình trạng |
 |---|---|---|---|---|
-| 🔐 Đăng nhập | — | `/api/auth` | Tài khoản Lark công ty | ✅ đang chạy |
+| 🔐 Đăng nhập | — | `/api/auth/*` | Tài khoản Lark công ty | ✅ đang chạy |
 | ⚙️ Quản trị tài khoản | `admin.html` | `/api/users` | Upstash Redis | ✅ đang chạy |
 | 📈 Doanh số & Target | `index.html` | `/api/doanh-so` | `Báo Cáo Doanh Thu - Kênh Bán Hàng` | ✅ đang chạy |
 | 💰 Tài chính & Lãi lỗ | `tai-chinh.html` | `/api/tai-chinh` | `Báo Cáo Chi Tiết - 2026` (doanh thu thuần, giá vốn, chi phí) | 🔜 làm sau |
@@ -182,7 +182,7 @@ Hai biến `KV_REST_API_URL` và `KV_REST_API_TOKEN` sẽ tự sinh.
 - `ADMIN_EMAILS` — email của bạn. Đây là lối vào lần đầu khi chưa có tài khoản nào.
 
 **3. Khai báo trong Lark App**
-- **Security Settings → Redirect URLs**: thêm `https://<tên-miền>/api/auth?action=callback`
+- **Security Settings → Redirect URLs**: thêm `https://<tên-miền>/api/auth/callback`
 - **Permissions & Scopes**: thêm `contact:user.email:readonly` (web dùng email làm danh tính)
 - Tạo version mới và submit lại
 
@@ -207,5 +207,5 @@ Email nằm trong `ADMIN_EMAILS` luôn toàn quyền, không gỡ được từ 
 | `HTTP 404` khi gọi /api/doanh-so | Thư mục `api/` chưa lên repo | Push lại |
 | `Thiếu SESSION_SECRET` | Chưa khai biến | Khai rồi Redeploy |
 | `Chưa kết nối kho lưu tài khoản` | Chưa tạo Upstash Redis | Xem mục Đăng nhập & phân quyền, bước 1 |
-| Lark báo `redirect_uri mismatch` | Chưa khai Redirect URL trong Lark App | Thêm đúng `https://<tên-miền>/api/auth?action=callback` |
+| Lark báo `redirect_uri mismatch` | Chưa khai Redirect URL trong Lark App | Thêm đúng `https://<tên-miền>/api/auth/callback` |
 | `Tài khoản Lark không có email` | Thiếu scope `contact:user.email:readonly` | Thêm scope, tạo version mới, submit |

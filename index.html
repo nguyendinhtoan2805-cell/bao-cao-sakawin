@@ -233,7 +233,7 @@
   <div class="lg">Sakawin <b>Reports</b></div>
   <h2 id="gateTitle">Đăng nhập để xem báo cáo</h2>
   <p id="gateMsg">Dùng chính tài khoản Lark của bạn — không cần mật khẩu riêng.</p>
-  <button class="go" id="gateBtn" onclick="location.href='/api/auth?action=login'">Đăng nhập bằng Lark</button>
+  <button class="go" id="gateBtn" onclick="location.href='/api/auth/login'">Đăng nhập bằng Lark</button>
   <div class="sub" id="gateSub">Chưa có quyền truy cập? Liên hệ quản trị viên để được cấp.</div>
 </div>
 
@@ -245,7 +245,7 @@
     <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none">⚙️ Quản trị</a>
     <span class="navuser">
       <span class="who" id="navWho"></span>
-      <a href="/api/auth?action=logout">Đăng xuất</a>
+      <a href="/api/auth/logout">Đăng xuất</a>
     </span>
   </nav>
 
@@ -731,7 +731,7 @@ function apDungQuyen(an){
 async function khoiDong(){
   let me;
   try {
-    const r = await fetch('/api/auth?action=me', {cache:'no-store'});
+    const r = await fetch('/api/auth/me', {cache:'no-store'});
     me = await r.json();
   } catch(err){
     return khoaLai('Không kết nối được máy chủ', 'Thử tải lại trang. Nếu vẫn lỗi, báo quản trị viên.', false);

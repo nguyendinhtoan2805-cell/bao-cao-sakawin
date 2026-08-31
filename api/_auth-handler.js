@@ -1,13 +1,17 @@
 /* =====================================================================
-   /api/auth — đăng nhập bằng tài khoản Lark (OAuth)
+   Ruột xử lý đăng nhập bằng tài khoản Lark (OAuth).
+   Bốn file mỏng trong api/auth/ gọi vào đây:
 
-     /api/auth?action=login     → đẩy sang Lark để xác thực
-     /api/auth?action=callback  → Lark gọi về, đổi code lấy thông tin, phát phiên
-     /api/auth?action=logout    → xoá phiên
-     /api/auth?action=me        → ai đang đăng nhập và có quyền gì
+     /api/auth/login     → đẩy sang Lark để xác thực
+     /api/auth/callback  → Lark gọi về, đổi code lấy thông tin, phát phiên
+     /api/auth/logout    → xoá phiên
+     /api/auth/me        → ai đang đăng nhập và có quyền gì
+
+   Cố ý dùng đường dẫn sạch thay vì ?action=... vì ô Redirect URL của Lark
+   khó tính với chuỗi truy vấn.
 
    CẦN KHAI TRONG LARK APP (Security Settings → Redirect URLs):
-     https://<tên-miền>/api/auth?action=callback
+     https://<tên-miền>/api/auth/callback
    và scope: contact:user.email:readonly  (để lấy email làm danh tính)
 ===================================================================== */
 const crypto = require('crypto');
@@ -18,7 +22,7 @@ const ACCOUNTS = HOST.includes('feishu') ? 'https://accounts.feishu.cn' : 'https
 const SCOPE = process.env.LARK_OAUTH_SCOPE || 'contact:user.email:readonly';
 const STATE_COOKIE = 'sakawin_state';
 
-const redirectUri = req => `${A.siteUrl(req)}/api/auth?action=callback`;
+const redirectUri = req => `${A.siteUrl(req)}/api/auth/callback`;
 
 /* Đổi code lấy user_access_token — thử API v2 trước, không được thì lùi về v1 */
 async function doiCodeLayToken(code, uri) {
@@ -74,8 +78,7 @@ white-space:pre-wrap;font-size:13px;color:#78716C}a{color:#C8102E;font-weight:70
 <p><a href="/">← Quay lại trang báo cáo</a></p>`);
 };
 
-module.exports = async (req, res) => {
-  const action = (req.query && req.query.action) || 'me';
+module.exports = action => async (req, res) => {
   try {
     /* ---------- me ---------- */
     if (action === 'me') {
