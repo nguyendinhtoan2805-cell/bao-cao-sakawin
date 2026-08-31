@@ -143,8 +143,14 @@ const pick = (row, ...names) => {
 };
 
 /* ---------- Handler ---------- */
+const A = require('./_auth.js');
+
 module.exports = async (req, res) => {
   try {
+    /* Chặn ngay từ server: chưa đăng nhập hoặc chưa có quyền thì không trả số nào.
+       Ẩn cột ở giao diện là chuyện của con mắt, chặn ở đây mới là phân quyền. */
+    const toi = await A.canhCong(req, res, 'xem_doanh_so');
+    if (!toi) return;
     for (const k of ['LARK_APP_ID', 'LARK_APP_SECRET', 'LARK_APP_TOKEN', 'LARK_TABLE_REVENUE']) {
       if (!process.env[k]) throw new Error(`Thiếu biến môi trường ${k} trên Vercel.`);
     }
@@ -279,8 +285,24 @@ module.exports = async (req, res) => {
       comments,
     };
 
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=900');
-    res.status(200).json({ ok: true, month: M, months, warnings, syncedAt: new Date().toISOString(), data });
+    /* --- Che số nhạy cảm theo quyền: XOÁ HẲN khỏi phản hồi, không chỉ ẩn ở giao diện --- */
+    const an = [];
+    if (!toi.quyen.xem_target) {
+      an.push('target');
+      for (const s of data.shops) { s.tgt7 = null; s.tt = 0; s.don8 = null; }
+    }
+    if (!toi.quyen.xem_ads) {
+      an.push('ads');
+      for (const s of data.shops) { s.ads7 = null; s.adsPct8 = 0; }
+    }
+
+    // Có người dùng riêng nên không dùng cache dùng chung của Vercel
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.status(200).json({
+      ok: true, month: M, months, warnings, an,
+      toi: { email: toi.email, ten: toi.ten, quyen: toi.quyen },
+      syncedAt: new Date().toISOString(), data,
+    });
   } catch (err) {
     // Không cache lỗi — sửa cấu hình xong là thấy kết quả ngay
     res.setHeader('Cache-Control', 'no-store');

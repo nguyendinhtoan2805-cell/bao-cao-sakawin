@@ -27,6 +27,45 @@
   .kpi.hot{background:var(--red);border-color:var(--red)}
   .kpi.hot .v,.kpi.hot .l{color:#fff}
 
+  /* ===== Màn hình đăng nhập / chặn quyền ===== */
+  body.locked .wrap{display:none}
+  #gate{display:none;max-width:460px;margin:12vh auto;padding:34px 32px;background:#fff;
+    border:1px solid var(--line);border-top:4px solid var(--red);border-radius:14px;
+    box-shadow:0 10px 40px rgba(28,25,23,.07);text-align:center}
+  body.locked #gate{display:block}
+  #gate .lg{font-size:12px;font-weight:800;letter-spacing:1.4px;color:var(--muted);text-transform:uppercase}
+  #gate .lg b{color:var(--red)}
+  #gate h2{font-size:21px;font-weight:800;margin:14px 0 8px}
+  #gate p{color:var(--muted);font-size:13.5px;line-height:1.65}
+  #gate .go{display:inline-block;margin-top:22px;background:var(--red);color:#fff;font-weight:700;
+    font-size:14.5px;padding:12px 30px;border-radius:9px;text-decoration:none;border:none;cursor:pointer;font-family:inherit}
+  #gate .go:hover{background:var(--red-dark)}
+  #gate .sub{margin-top:18px;font-size:12px;color:#A8A29E}
+  .theme-dark #gate{background:#171514;border-color:#2A2724;border-top-color:#FF4D6A}
+
+  /* ===== Chip người dùng trên thanh điều hướng ===== */
+  .navuser{margin-left:auto;display:flex;align-items:center;gap:10px;padding-bottom:8px;font-size:12.5px}
+  .navuser .who{color:var(--muted);font-weight:600}
+  .navuser .who b{color:var(--ink)}
+  .navuser a{color:var(--muted);text-decoration:none;font-weight:700;border:1px solid var(--line);
+    padding:5px 11px;border-radius:7px}
+  .navuser a:hover{color:var(--red);border-color:var(--red)}
+  .theme-dark .navuser .who b{color:#F2EFEA}
+  .theme-dark .navuser a{border-color:#2A2724}
+
+  /* ===== Ẩn cột theo quyền (số đã bị server xoá trước khi gửi về) ===== */
+  body.an-target thead th:nth-child(4),  body.an-target tbody td:nth-child(4),
+  body.an-target thead th:nth-child(5),  body.an-target tbody td:nth-child(5),
+  body.an-target thead th:nth-child(7),  body.an-target tbody td:nth-child(7),
+  body.an-target thead th:nth-child(8),  body.an-target tbody td:nth-child(8),
+  body.an-target thead th:nth-child(10), body.an-target tbody td:nth-child(10),
+  body.an-target thead th:nth-child(11), body.an-target tbody td:nth-child(11){display:none}
+  body.an-ads thead th:nth-child(6),  body.an-ads tbody td:nth-child(6),
+  body.an-ads thead th:nth-child(12), body.an-ads tbody td:nth-child(12),
+  body.an-ads thead th:nth-child(13), body.an-ads tbody td:nth-child(13){display:none}
+  body.an-ads #cardAds{display:none}
+  body.an-target #lgT8{display:none}
+
   .appnav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
     border-bottom:1px solid var(--line);margin:-8px 0 18px;padding-bottom:0}
   .applogo{font-size:12px;font-weight:800;letter-spacing:1.2px;color:var(--muted);
@@ -188,12 +227,26 @@
 
 </style>
 </head>
-<body>
+<body class="locked">
+
+<div id="gate">
+  <div class="lg">Sakawin <b>Reports</b></div>
+  <h2 id="gateTitle">Đăng nhập để xem báo cáo</h2>
+  <p id="gateMsg">Dùng chính tài khoản Lark của bạn — không cần mật khẩu riêng.</p>
+  <button class="go" id="gateBtn" onclick="location.href='/api/auth?action=login'">Đăng nhập bằng Lark</button>
+  <div class="sub" id="gateSub">Chưa có quyền truy cập? Liên hệ quản trị viên để được cấp.</div>
+</div>
+
 <div class="wrap">
   <nav class="appnav">
     <span class="applogo">Sakawin <b>Reports</b></span>
     <a class="navtab active" href="/">📈 Doanh số &amp; Target</a>
     <span class="navtab soon">💰 Tài chính &amp; Lãi lỗ <em>sắp có</em></span>
+    <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none">⚙️ Quản trị</a>
+    <span class="navuser">
+      <span class="who" id="navWho"></span>
+      <a href="/api/auth?action=logout">Đăng xuất</a>
+    </span>
   </nav>
 
   <div class="masthead">
@@ -248,7 +301,7 @@
       <p id="subMain"></p>
       <div class="chartbox tall"><canvas id="chartMain"></canvas></div>
     </div>
-    <div class="chartcard">
+    <div class="chartcard" id="cardAds">
       <h3 id="ttAds"></h3>
       <p><span id="lblAds7"></span> <b id="adsT7Total"></b> · <span id="lblAds8"></span> <b id="adsT8Total"></b></p>
       <div class="chartbox"><canvas id="chartAds"></canvas></div>
@@ -373,7 +426,9 @@ function render(){
   const aggs = {}; GROUPS.forEach(g => aggs[g.key] = calcAgg(shops.filter(s=>s.grp===g.key), g.label));
   const grand = calcAgg(shops, 'TỔNG HỆ THỐNG');
 
-  $('titleMonth').innerHTML = '· TARGET DOANH SỐ THÁNG ' + DATA.month;
+  $('titleMonth').innerHTML = AN.target
+    ? '· BÁO CÁO DOANH SỐ THÁNG ' + DATA.prevMonth.replace('T','') + '/' + DATA.month.split('/')[1]
+    : '· TARGET DOANH SỐ THÁNG ' + DATA.month;
   /* ===== Nhãn tự động theo tháng (nguồn duy nhất: DATA.month/prevMonth/prev2Month) ===== */
   const M  = 'T' + DATA.month.split('/')[0];   // tháng target, vd 'T8'
   const P  = DATA.prevMonth;                    // tháng vừa chốt, vd 'T7'
@@ -382,8 +437,12 @@ function render(){
     `<th>Shop</th><th>DT ${P2}</th><th>DT ${P} thực tế</th><th>Target ${P}</th><th>% hoàn thành ${P}</th><th>Ads ${P} · %Ads</th>`+
     `<th class="t8">TARGET DT ${M}</th><th class="t8">% TT</th><th class="t8">Đơn ${P}</th><th class="t8">Target đơn ${M}</th>`+
     `<th class="t8">AOV target</th><th class="t8">Ads ${M} · %Ads</th><th class="t8">CPO</th><th>Ghi chú</th>`;
-  $('ttMain').textContent = `Doanh thu 3 kỳ theo kênh: ${P2} → ${P} → Target ${M}, kèm % hoàn thành target ${P}`;
-  $('subMain').textContent = `Cột = doanh thu (trục trái) · Chấm nối = % hoàn thành target ${P} (trục phải, vạch đứt = mốc 100%)`;
+  $('ttMain').textContent = AN.target
+    ? `Doanh thu theo kênh: ${P2} → ${P}`
+    : `Doanh thu 3 kỳ theo kênh: ${P2} → ${P} → Target ${M}, kèm % hoàn thành target ${P}`;
+  $('subMain').textContent = AN.target
+    ? `Cột = doanh thu thực tế từng kênh`
+    : `Cột = doanh thu (trục trái) · Chấm nối = % hoàn thành target ${P} (trục phải, vạch đứt = mốc 100%)`;
   $('ttAds').textContent = `Chi phí Ads: ${P} thực chi vs Ngân sách ${M}`;
   $('lblAds7').textContent = `Tổng ads ${P}:`; $('lblAds8').textContent = `Ngân sách ${M}:`;
   $('ttDonut').textContent = `Cơ cấu doanh thu ${P} theo khối`;
@@ -395,12 +454,22 @@ function render(){
   $('reportSub').textContent = DATA.sub;
   $('reportFooter').textContent = DATA.footer;
 
-  $('kpiRow').innerHTML = [
-    {v:(grand.t8/1e9).toLocaleString('vi-VN',{maximumFractionDigits:2})+' tỷ', l:'Target '+M+' toàn hệ', hot:true},
-    {v:'+'+fmtPct(grand.tt), l:'Tăng trưởng vs '+P},
-    {v:fmt(grand.don8), l:'Target đơn hàng'},
-    {v:(grand.ads8/1e9).toLocaleString('vi-VN',{maximumFractionDigits:2})+' tỷ · '+fmtPct(grand.adsPct8), l:'Ngân sách Ads / DT'},
-  ].map(k=>`<div class="kpi${k.hot?' hot':''}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('');
+  /* Ô nào dựa trên số đã bị che thì bỏ hẳn — thà thiếu ô còn hơn hiện số 0 giả
+     hoặc hiện "Target" mà thực chất là doanh thu. */
+  const ty = n => (n/1e9).toLocaleString('vi-VN',{maximumFractionDigits:2})+' tỷ';
+  const kpis = [];
+  if (AN.target) {
+    kpis.push({v:ty(grand.dt7), l:'Doanh thu '+P+' toàn hệ', hot:true});
+    kpis.push({v:ty(grand.dt6), l:'Doanh thu '+P2+' toàn hệ'});
+    kpis.push({v:fmt(grand.don7), l:'Số đơn '+P+' toàn hệ'});
+  } else {
+    kpis.push({v:ty(grand.t8), l:'Target '+M+' toàn hệ', hot:true});
+    kpis.push({v:'+'+fmtPct(grand.tt), l:'Tăng trưởng vs '+P});
+    kpis.push({v:fmt(grand.don8), l:'Target đơn hàng'});
+  }
+  if (!AN.ads) kpis.push({v:ty(grand.ads8)+' · '+fmtPct(grand.adsPct8), l:'Ngân sách Ads / DT'});
+  $('kpiRow').innerHTML = kpis
+    .map(k=>`<div class="kpi${k.hot?' hot':''}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('');
 
   const inp = (i,f,val,cls='') => `<input class="cell ${cls}" data-i="${i}" data-f="${f}" value="${val==null?'':val}">`;
   const rowHTML = (s,i) => {
@@ -454,9 +523,11 @@ function render(){
       datasets:[
         {type:'bar', label:'DT '+P2, data: mainRows.map(s=>s.dt6), backgroundColor:PAL.bar6, borderRadius:4, yAxisID:'y'},
         {type:'bar', label:'DT '+P+' thực tế', data: mainRows.map(s=>s.dt7), backgroundColor:PAL.bar7, borderRadius:4, yAxisID:'y'},
-        {type:'bar', label:'Target '+M, data: mainRows.map(s=>s.t8), backgroundColor:PAL.bar8, borderRadius:4, yAxisID:'y'},
-        {type:'line', label:'% hoàn thành target '+P, data: mainRows.map(s=>s.pct??null),
-          borderColor:PAL.pctLine, backgroundColor:PAL.pctLine, borderWidth:2, pointRadius:4, tension:0, spanGaps:false, yAxisID:'y2'},
+        ...(AN.target ? [] : [
+          {type:'bar', label:'Target '+M, data: mainRows.map(s=>s.t8), backgroundColor:PAL.bar8, borderRadius:4, yAxisID:'y'},
+          {type:'line', label:'% hoàn thành target '+P, data: mainRows.map(s=>s.pct??null),
+            borderColor:PAL.pctLine, backgroundColor:PAL.pctLine, borderWidth:2, pointRadius:4, tension:0, spanGaps:false, yAxisID:'y2'},
+        ]),
       ]},
     options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
       plugins:{ legend:{position:'top'},
@@ -474,7 +545,7 @@ function render(){
   const adsRows = [...online.filter(s=>(s.ads8??0)>0||(s.ads7??0)>0), {name:'Offline (tổng)', ads7:null, ads8:offAgg.ads8}];
   $('adsT7Total').textContent = fmt(grand.ads7)+' đ ('+fmtPct(grand.adsPct7)+' DT)';
   $('adsT8Total').textContent = fmt(grand.ads8)+' đ ('+fmtPct(grand.adsPct8)+' DT)';
-  charts.ads = new Chart($('chartAds'), {
+  if (!AN.ads) charts.ads = new Chart($('chartAds'), {
     type:'bar',
     data:{ labels: adsRows.map(s=>s.name),
       datasets:[
@@ -596,9 +667,12 @@ async function syncFromLark(month){
   try{
     const url = '/api/doanh-so' + (month ? ('?month=' + encodeURIComponent(month)) : '');
     const r = await fetch(url, {cache:'no-store'});
+    const j = await r.json().catch(() => ({ok:false, error:'HTTP ' + r.status}));
+    if(r.status === 401){ return khoaLai('Phiên đăng nhập đã hết hạn', 'Đăng nhập lại để tiếp tục xem báo cáo.', true); }
+    if(r.status === 403){ return khoaLai('Không đủ quyền', j.error || 'Tài khoản chưa được cấp quyền xem trang này.', false); }
     if(!r.ok) throw new Error('HTTP ' + r.status);
-    const j = await r.json();
     if(!j.ok) throw new Error(j.error || 'Lỗi không xác định');
+    apDungQuyen(j.an);
     DATA = j.data;
     buildMonthSelect(j.months, j.month);
     if(editMode) loadMeta();
@@ -631,8 +705,65 @@ async function syncFromLark(month){
 $('btnSync').addEventListener('click', () => syncFromLark($('selMonth').value || ''));
 $('selMonth').addEventListener('change', e => syncFromLark(e.target.value));
 
-render();
-syncFromLark(new URLSearchParams(location.search).get('month') || '');
+/* =====================================================================
+   ĐĂNG NHẬP & PHÂN QUYỀN
+   Trang bị khoá (body.locked) cho tới khi xác thực xong. Số liệu nhúng sẵn
+   trong mã nguồn cũng KHÔNG hiện cho người chưa đăng nhập.
+===================================================================== */
+let TOI = null;
+const AN = { target:false, ads:false };   // phần bị che theo quyền
+
+function moKhoa(){ document.body.classList.remove('locked'); }
+function khoaLai(tieuDe, loi, hienNut){
+  document.body.classList.add('locked');
+  $('gateTitle').textContent = tieuDe;
+  $('gateMsg').textContent = loi;
+  $('gateBtn').style.display = hienNut ? '' : 'none';
+}
+
+function apDungQuyen(an){
+  AN.target = (an||[]).includes('target');
+  AN.ads    = (an||[]).includes('ads');
+  document.body.classList.toggle('an-target', AN.target);
+  document.body.classList.toggle('an-ads',    AN.ads);
+}
+
+async function khoiDong(){
+  let me;
+  try {
+    const r = await fetch('/api/auth?action=me', {cache:'no-store'});
+    me = await r.json();
+  } catch(err){
+    return khoaLai('Không kết nối được máy chủ', 'Thử tải lại trang. Nếu vẫn lỗi, báo quản trị viên.', false);
+  }
+
+  if(!me.dangNhap){
+    return khoaLai('Đăng nhập để xem báo cáo',
+      'Dùng chính tài khoản Lark của bạn — không cần mật khẩu riêng.', true);
+  }
+
+  TOI = me;
+  $('navWho').innerHTML = 'Xin chào <b>' + (me.ten||me.email) + '</b>';
+  $('tabAdmin').style.display = me.quyen.quan_tri ? '' : 'none';
+
+  if(!me.quyen.xem_doanh_so){
+    return khoaLai('Tài khoản chưa được cấp quyền',
+      (me.ten||me.email) + ' đăng nhập thành công nhưng chưa được cấp quyền xem trang Doanh số & Target. '
+      + 'Liên hệ quản trị viên để được mở quyền.', false);
+  }
+
+  // Không được sửa thì giấu luôn các nút sửa/xuất dữ liệu
+  if(!me.quyen.duoc_sua){
+    ['btnEdit','btnCopy','btnPaste'].forEach(id => { const el=$(id); if(el) el.style.display='none'; });
+    $('editHint').textContent = 'Chế độ chỉ xem — số liệu tự lấy từ Lark.';
+  }
+
+  moKhoa();
+  render();
+  syncFromLark(new URLSearchParams(location.search).get('month') || '');
+}
+
+khoiDong();
 </script>
 </body>
 </html>

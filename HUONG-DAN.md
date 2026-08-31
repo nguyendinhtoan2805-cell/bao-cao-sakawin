@@ -16,6 +16,8 @@ Sau khi làm xong: team nhập số vào Lark như mọi khi → web tự cập 
 
 | Trang | File | API | Nguồn số | Tình trạng |
 |---|---|---|---|---|
+| 🔐 Đăng nhập | — | `/api/auth` | Tài khoản Lark công ty | ✅ đang chạy |
+| ⚙️ Quản trị tài khoản | `admin.html` | `/api/users` | Upstash Redis | ✅ đang chạy |
 | 📈 Doanh số & Target | `index.html` | `/api/doanh-so` | `Báo Cáo Doanh Thu - Kênh Bán Hàng` | ✅ đang chạy |
 | 💰 Tài chính & Lãi lỗ | `tai-chinh.html` | `/api/tai-chinh` | `Báo Cáo Chi Tiết - 2026` (doanh thu thuần, giá vốn, chi phí) | 🔜 làm sau |
 
@@ -144,6 +146,49 @@ Mở web, thanh trạng thái dưới hàng nút phải hiện:
 
 ---
 
+## Đăng nhập & phân quyền
+
+Nhân sự đăng nhập bằng **chính tài khoản Lark của công ty** — không phát, không quản mật khẩu nào.
+Ai nghỉ việc, khoá tài khoản Lark là mất quyền vào web luôn.
+
+### Sáu quyền
+
+| Quyền | Cho phép |
+|---|---|
+| Xem trang Doanh số & Target | Vào được trang báo cáo doanh số |
+| Xem trang Tài chính & Lãi lỗ | Vào được trang tài chính (khi làm xong) |
+| Xem Target và % hoàn thành | Thấy cột Target, % hoàn thành và cả khối kế hoạch tháng sau |
+| Xem ngân sách ADS, %Ads và CPO | Thấy các cột chi phí quảng cáo và biểu đồ Ads |
+| Được sửa số trực tiếp trên web | Hiện nút "Nhập số liệu" (sửa tạm, không ghi ngược về Lark) |
+| Quản trị tài khoản | Vào được trang `/admin.html` để cấp quyền cho người khác |
+
+> **Bỏ tick là số liệu không rời khỏi máy chủ**, chứ không phải chỉ ẩn trên màn hình.
+> `/api/doanh-so` kiểm tra quyền rồi mới trả dữ liệu; người không có quyền xem Target
+> nhận về `tgt7: null` — mở DevTools cũng không thấy gì.
+
+### Cài đặt một lần
+
+**1. Kho lưu tài khoản**
+Vercel → **Storage** → **Create Database** → **Upstash for Redis** (gói free) → nối vào project.
+Hai biến `KV_REST_API_URL` và `KV_REST_API_TOKEN` sẽ tự sinh.
+
+**2. Hai biến môi trường tự khai**
+- `SESSION_SECRET` — sinh bằng `openssl rand -base64 48`. Đổi chuỗi này là mọi người phải đăng nhập lại.
+- `ADMIN_EMAILS` — email của bạn. Đây là lối vào lần đầu khi chưa có tài khoản nào.
+
+**3. Khai báo trong Lark App**
+- **Security Settings → Redirect URLs**: thêm `https://<tên-miền>/api/auth?action=callback`
+- **Permissions & Scopes**: thêm `contact:user.email:readonly` (web dùng email làm danh tính)
+- Tạo version mới và submit lại
+
+**4. Redeploy**, rồi vào web → đăng nhập → tab **⚙️ Quản trị** để cấp quyền cho nhân sự.
+
+### Lỡ tự gỡ quyền của mình?
+Email nằm trong `ADMIN_EMAILS` luôn toàn quyền, không gỡ được từ giao diện.
+Đó là lối thoát. Muốn đổi thì sửa biến trên Vercel rồi Redeploy.
+
+---
+
 ## Tra lỗi nhanh
 
 | Dòng cảnh báo | Nguyên nhân | Cách xử lý |
@@ -155,3 +200,7 @@ Mở web, thanh trạng thái dưới hàng nút phải hiện:
 | `Bảng doanh thu chưa có dòng nào hợp lệ` | Thiếu cột `Tháng` hoặc `Kênh Kinh Doanh` | Kiểm tra tên cột |
 | `Không tìm thấy "X" tháng … trong bảng doanh thu` | Tên kênh 2 bảng lệch nhau | Sửa cho trùng tên |
 | `HTTP 404` khi gọi /api/doanh-so | Thư mục `api/` chưa lên repo | Push lại |
+| `Thiếu SESSION_SECRET` | Chưa khai biến | Khai rồi Redeploy |
+| `Chưa kết nối kho lưu tài khoản` | Chưa tạo Upstash Redis | Xem mục Đăng nhập & phân quyền, bước 1 |
+| Lark báo `redirect_uri mismatch` | Chưa khai Redirect URL trong Lark App | Thêm đúng `https://<tên-miền>/api/auth?action=callback` |
+| `Tài khoản Lark không có email` | Thiếu scope `contact:user.email:readonly` | Thêm scope, tạo version mới, submit |
