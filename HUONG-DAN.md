@@ -21,6 +21,29 @@ Sau khi làm xong: team nhập số vào Lark như mọi khi → web tự cập 
 | 📈 Doanh số & Target | `index.html` | `/api/doanh-so` | `Báo Cáo Doanh Thu - Kênh Bán Hàng` | ✅ đang chạy |
 | 💰 Tài chính & Lãi lỗ | `tai-chinh.html` | `/api/tai-chinh` | `Báo Cáo Chi Tiết - 2026` | ✅ đang chạy |
 
+### Nguyên tắc giao diện — áp dụng cho MỌI trang thêm mới
+
+Ba trang dùng chung một bộ khung. Trang mới phải copy đúng bộ này, không tự đặt số khác:
+
+| Thành phần | Giá trị chuẩn |
+|---|---|
+| Khung nội dung | `.wrap{max-width:1760px;width:100%;margin:0 auto}` |
+| Lề trang (desktop) | `padding:24px 28px 60px` |
+| Lề trang (điện thoại) | `padding:15px 13px 50px` |
+| Tiêu đề trang | `27px / 800` |
+| Thanh điều hướng | `.navtab` `14.5px / 700`, chữ `SAKAWIN REPORTS` bên trái, chip người dùng bên phải |
+| Ngưỡng điện thoại | `@media(max-width:900px)` |
+
+Trên điện thoại, mọi trang đều: thanh điều hướng vuốt ngang (`flex-wrap:nowrap`),
+cột đầu của bảng dính bên trái và tự cắt nội dung, ô nhập cỡ chữ `16px` để iPhone
+không tự phóng to.
+
+Hai lỗi flexbox đã mắc một lần, đừng lặp lại: khối cuộn ngang phải có `min-width:0`
+(không thì kéo giãn cả trang), và đổi `flex-direction:column` thì phải đặt luôn
+`flex-wrap:nowrap` (không thì flexbox xếp thành nhiều cột).
+
+---
+
 Hai trang **không dùng chung số**. Trang doanh số nói về *doanh thu bán hàng*,
 trang tài chính nói về *doanh thu thuần và lãi lỗ* — hai chỉ số khác nhau,
 cố tình tách để không ai đọc nhầm. Thanh điều hướng ở đầu trang để chuyển qua lại.

@@ -97,14 +97,21 @@ const pick = (row, ...names) => {
 };
 
 /* Cột KHÔNG phải chi phí (đã có ý nghĩa riêng, hoặc là phần trăm) */
-const COT_LOI = ['thang', 'nam', 'quy', 'shop', 'nguondoanhthu', 'nentang', 'kenhkinhdoanh',
-  'doanhthu', 'giavon', 'loinhuan',   // 'loinhuan' bắt cả Gộp, Ròng và cột "LỢI NHUẬN" (8,83%)
-  'bienloinhuan', 'ghichu', 'stt', 'thutu', 'nhan', 'traffic', 'tienrutvecty'];
+/* Cột định danh — so khớp theo tiền tố */
+const COT_DINH_DANH = ['thang', 'nam', 'quy', 'shop', 'nguon', 'nentang', 'kenhkinhdoanh',
+  'ghichu', 'stt', 'thutu', 'nhan'];
+/* Từ khoá chỉ ra cột KHÔNG phải chi phí — dò ở BẤT KỲ vị trí nào trong tên.
+   Phải dùng includes chứ không phải startsWith: cột thật trong Base tên là
+   "Tổng Doanh Thu Năm", nếu chỉ so tiền tố thì nó lọt vào nhóm chi phí và
+   một mình chiếm 100% biểu đồ cơ cấu. */
+const TU_KHOA_KHONG_PHAI_CHI_PHI = /doanhthu|giavon|loinhuan|bien|traffic|tienrutve|phantram|^pct/;
 const laCotChiPhi = ten => {
   const n = norm(ten);
   if (ten.includes('%')) return false;
-  if (n.startsWith('pct') || n.includes('phantram') || n.includes('bien')) return false;
-  return !COT_LOI.some(x => n === x || n.startsWith(x));
+  if (TU_KHOA_KHONG_PHAI_CHI_PHI.test(n)) return false;
+  // Cột "Tổng ..." thường là cột cộng sẵn — lấy vào là cộng trùng
+  if (n.startsWith('tong')) return false;
+  return !COT_DINH_DANH.some(x => n === x || n.startsWith(x));
 };
 
 const fmtTy = n => (n / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' tỷ';
@@ -250,11 +257,15 @@ module.exports = async (req, res) => {
       };
     }).filter(x => x.month && x.name);
 
-    const months = [...new Set(recs.map(r => r.month))].sort();
+    /* Bảng có sẵn dòng trống cho các tháng chưa tới, nên "tháng mới nhất" phải là
+       tháng mới nhất CÓ DOANH THU, không phải tháng mới nhất có dòng. */
+    const coSo = [...new Set(recs.filter(r => (r.dtt || 0) > 0).map(r => r.month))].sort();
+    const tatCa = [...new Set(recs.map(r => r.month))].sort();
+    const months = coSo.length ? coSo : tatCa;
     const askedRaw = txt(req.query && req.query.month);
     const M = (askedRaw ? monthKey(askedRaw) : '') || months[months.length - 1];
     const cur = recs.filter(r => r.month === M);
-    if (!cur.length) throw new Error(`Không có dòng nào cho tháng ${M}. Các tháng đang có: ${months.join(', ')}`);
+    if (!cur.length) throw new Error(`Không có dòng nào cho tháng ${M}. Các tháng đang có số: ${months.join(', ')}`);
 
     /* Từng shop */
     const shops = cur.map(r => {
@@ -266,7 +277,8 @@ module.exports = async (req, res) => {
         gopPct: (r.dtt > 0 && r.lnGop != null) ? r.lnGop / r.dtt * 100 : null,
         rongPct: (r.dtt > 0 && r.lnRong != null) ? r.lnRong / r.dtt * 100 : null,
       };
-    }).sort((a, b) => (b.dtt ?? 0) - (a.dtt ?? 0));
+    }).filter(s => (s.dtt ?? 0) > 0 || (s.tongChiPhi ?? 0) > 0)
+      .sort((a, b) => (b.dtt ?? 0) - (a.dtt ?? 0));
 
     const cong = f => shops.reduce((a, s) => a + (f(s) ?? 0), 0);
     const tong = { dtt: cong(s => s.dtt), gv: cong(s => s.gv), lnGop: cong(s => s.lnGop),
@@ -289,10 +301,12 @@ module.exports = async (req, res) => {
     /* Điểm chưa chốt */
     const thieuSot = [];
     for (const s of shops) {
-      if (!s.dtt) thieuSot.push(`${s.name}: chưa có doanh thu thuần`);
+      if (!s.dtt) thieuSot.push(`${s.name}: có chi phí nhưng chưa có doanh thu thuần`);
       else if (s.gv == null || s.gv === 0) thieuSot.push(`${s.name}: chưa có giá vốn`);
       else if (!s.tongChiPhi) thieuSot.push(`${s.name}: chưa phân bổ chi phí`);
     }
+    const trongHoanToan = cur.filter(r => !(r.dtt > 0) && !Object.keys(r.chiPhi).length).length;
+    if (trongHoanToan) thieuSot.push(`${trongHoanToan} dòng của tháng ${M} còn trống hoàn toàn (chưa nhập số nào)`);
     const truoc = recs.filter(r => r.month === shiftMonth(M, -1)).map(r => r.name);
     for (const n of truoc) if (!shops.some(s => norm(s.name) === norm(n)))
       thieuSot.push(`${n}: có ở tháng trước nhưng thiếu ở tháng này`);
