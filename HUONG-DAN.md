@@ -266,6 +266,29 @@ nên cần cả `LARK_TABLE_FINANCE`. Thiếu biến đó thì ô này để tr�
 | Người vào / người rời | So danh sách nhân sự giữa hai kỳ |
 | Quỹ lương nặng | Trên 25% doanh thu → cảnh báo đỏ, 15–25% → lưu ý |
 
+### Ảnh nhân sự
+
+Thêm vào bảng `Lương - Thưởng - Sakawin` một cột kiểu **Tệp đính kèm** đặt tên `Ảnh`
+(hoặc `Hình`, `Avatar`, `Ảnh nhân sự` — đều nhận), rồi tải ảnh lên từng dòng.
+Trang tự hiện ảnh, **không cần sửa code**. Chưa có ảnh thì hiện vòng tròn chữ cái đầu tên.
+
+Ảnh trong Lark phải kèm token mới tải được nên đi vòng qua `/api/quy-luong?anh=<file_token>`;
+endpoint đó cũng đòi quyền **Quỹ lương**, người ngoài không xem trộm được.
+
+### Soi số bất thường
+
+Thấy một cột có số lạ mà mở Lark lại không thấy sai? Mở:
+
+```
+/api/quy-luong?soi=1&ky=thang&month=2026-07
+```
+
+Chỉ quản trị viên gọi được. Trả về từng cột kèm tổng, 8 dòng đóng góp lớn nhất,
+**giá trị thô Lark trả về và kiểu dữ liệu**, cùng danh sách dòng trùng lặp
+(một người xuất hiện hai lần trong cùng tháng thì mọi tổng đều sai).
+
+So `giaTriDaDoc` với `giaTriTho` là biết ngay lỗi nằm ở khâu đọc hay ở dữ liệu gốc.
+
 ---
 
 ## Đăng nhập & phân quyền

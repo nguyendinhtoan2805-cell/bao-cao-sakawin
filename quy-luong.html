@@ -227,6 +227,28 @@
   .warnbar b{color:#7C2D12}
   .riengtu{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);
     background:#F5F3FF;border:1px solid #DDD6FE;border-radius:9px;padding:10px 14px;margin-bottom:14px}
+
+  /* ===== Ảnh nhân sự ===== */
+  .ns{display:flex;align-items:center;gap:11px;min-width:0}
+  .av{width:38px;height:38px;border-radius:50%;flex:0 0 auto;object-fit:cover;
+    background:#F5F5F4;border:1px solid var(--line);display:flex;align-items:center;
+    justify-content:center;font-size:13px;font-weight:800;color:var(--muted);overflow:hidden}
+  .av img{width:100%;height:100%;object-fit:cover;display:block}
+  .ns .tn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+  .theme-dark .av{background:#26231F;border-color:#3A3633}
+
+  /* ===== Số thứ tự bằng bộ đếm CSS =====
+     Cố ý KHÔNG thêm cột <td> mới: thêm cột thì ô số trở thành ô đầu tiên và
+     chiếm mất vị trí dính bên trái trên điện thoại, khiến kéo ngang không
+     còn nhìn thấy tên. */
+  tbody{counter-reset:stt}
+  tbody tr{counter-increment:stt}
+  tbody td:first-child::before{content:counter(stt) ". ";color:#A8A29E;font-weight:600;
+    font-variant-numeric:tabular-nums}
+  tbody td:first-child:has(.ns){display:flex;align-items:center;gap:8px}
+  tbody td:first-child:has(.ns)::before{flex:0 0 auto}
+  tbody tr.tot td:first-child::before{content:none}
+  .theme-dark tbody td:first-child::before{color:#57534E}
 </style>
 </head>
 <body class="locked">
@@ -433,14 +455,25 @@ function render(){
        <td>${fmt(t.hoaHong)}</td><td>${fmt(t.thuong)}</td><td>${fmt(t.giamTru)}</td><td>${fmt(t.thucNhan)}</td></tr>`;
 
   /* Bảng nhân sự */
-  $('soNguoi').textContent = `— ${d.nguoi.length} người, xếp theo quỹ lương giảm dần`;
+  $('soNguoi').innerHTML = `— ${d.nguoi.length} người, xếp theo quỹ lương giảm dần`
+    + (d.coCotAnh ? '' : ' · <span title="Thêm cột tệp đính kèm tên Ảnh vào bảng Lark là ảnh tự hiện">'
+        + 'thêm cột <b>Ảnh</b> vào bảng Lark để hiện ảnh nhân sự</span>');
   $('theadNS').innerHTML = '<th>Nhân sự</th><th>Bộ phận</th><th>Chức vụ</th><th>Tổng cộng</th>'
     + '<th>Thực nhận</th><th>Lệch</th><th class="note-cell">Ghi chú</th>';
+  const chuDau = ten => {
+    const p = String(ten).trim().split(/\s+/);
+    return ((p[p.length-2]||'')[0] || p[0][0] || '?').toUpperCase() + ((p[p.length-1]||'')[0]||'').toUpperCase();
+  };
   $('tbodyNS').innerHTML = d.nguoi.map(n => {
     const l = n.thucNhan - n.tongCong;
     const nghiNgo = n.tongCong > 0 && Math.abs(l) / n.tongCong > 0.15;
+    const av = n.anh
+      ? `<span class="av"><img src="/api/quy-luong?anh=${encodeURIComponent(n.anh)}" alt="" loading="lazy"
+           onerror="this.parentNode.textContent='${esc(chuDau(n.ten))}'"></span>`
+      : `<span class="av">${esc(chuDau(n.ten))}</span>`;
     return `<tr class="${nghiNgo ? 'co-do' : ''}">
-      <td>${esc(n.ten)}</td><td>${esc(n.boPhan)}</td><td>${esc(n.chucVu)}</td>
+      <td><span class="ns">${av}<span class="tn">${esc(n.ten)}</span></span></td>
+      <td>${esc(n.boPhan)}</td><td>${esc(n.chucVu)}</td>
       <td>${fmt(n.tongCong)}</td><td>${fmt(n.thucNhan)}</td>
       <td class="${l > 0 ? 'up' : (l < 0 ? 'down' : '')}">${l === 0 ? '—' : (l > 0 ? '+' : '') + fmt(l)}</td>
       <td class="note-cell">${nghiNgo ? '<span class="flag do">SOÁT LẠI</span> ' : ''}${esc(n.ghiChu)}</td></tr>`;

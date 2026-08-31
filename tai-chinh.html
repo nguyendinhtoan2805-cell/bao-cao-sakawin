@@ -214,6 +214,17 @@
     .tablecard thead th:first-child{z-index:5}
     #gate{margin:8vh auto;padding:34px 24px}
   }
+
+  /* ===== Số thứ tự bằng bộ đếm CSS =====
+     Cố ý KHÔNG thêm cột <td> mới: thêm cột thì ô số trở thành ô đầu tiên và
+     chiếm mất vị trí dính bên trái trên điện thoại, khiến kéo ngang không
+     còn nhìn thấy tên. */
+  tbody{counter-reset:stt}
+  tbody tr{counter-increment:stt}
+  tbody td:first-child::before{content:counter(stt) ". ";color:#A8A29E;font-weight:600;
+    font-variant-numeric:tabular-nums}
+  tbody tr.tot td:first-child::before{content:none}
+  .theme-dark tbody td:first-child::before{color:#57534E}
 </style>
 </head>
 <body class="locked">

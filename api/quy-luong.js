@@ -239,11 +239,31 @@ function phanTich({ tong, tongTruoc, coKyTruoc, boPhan, boPhanTruoc, nguoi, nguo
   return nx;
 }
 
+/* Tên cột ảnh có thể đặt kiểu gì cũng nhận */
+const laCotAnh = ten => /^(anh|hinh|hinhanh|avatar|anhnhansu|anhdaidien|photo)$/.test(norm(ten));
+
 /* ---------- Handler ---------- */
 module.exports = async (req, res) => {
   try {
     const toi = await A.canhCong(req, res, 'xem_luong');
     if (!toi) return;
+
+    /* ===== Trả ảnh nhân sự: /api/quy-luong?anh=<file_token> =====
+       Ảnh trong Lark phải kèm token mới tải được, trình duyệt không tự gọi
+       thẳng được — nên đi vòng qua đây. Gộp vào endpoint này thay vì tạo hàm
+       riêng vì gói Hobby của Vercel chỉ cho 12 hàm. */
+    if (req.query && req.query.anh) {
+      const fileToken = String(req.query.anh).replace(/[^A-Za-z0-9_-]/g, '');
+      if (!fileToken) return res.status(400).end('token không hợp lệ');
+      const tk = await larkToken();
+      const r = await fetch(`${HOST}/open-apis/drive/v1/medias/${fileToken}/download`,
+        { headers: { Authorization: `Bearer ${tk}` } });
+      if (!r.ok) return res.status(404).end('không tải được ảnh');
+      const buf = Buffer.from(await r.arrayBuffer());
+      res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
+      res.setHeader('Cache-Control', 'private, max-age=86400');   // ảnh ít đổi, cho trình duyệt giữ 1 ngày
+      return res.status(200).end(buf);
+    }
     for (const k of ['LARK_APP_ID', 'LARK_APP_SECRET', 'LARK_APP_TOKEN', 'LARK_TABLE_SALARY']) {
       if (!process.env[k]) throw new Error(`Thiếu biến môi trường ${k} trên Vercel.`);
     }
@@ -258,6 +278,7 @@ module.exports = async (req, res) => {
     if (!rows.length) throw new Error('Bảng Lương - Thưởng - Sakawin chưa có dòng nào.');
 
     const recs = rows.map(r => ({
+      _tho: r,
       month: monthKey(pick(r, 'Tháng', 'Thang'), pick(r, 'Năm', 'Nam')),
       ten: txt(pick(r, 'Tên Nhân Sự', 'Ten Nhan Su', 'Họ tên', 'Nhân sự')),
       boPhan: txt(pick(r, 'Bộ Phận', 'Bo Phan', 'Phòng ban')) || '(chưa ghi)',
@@ -273,6 +294,12 @@ module.exports = async (req, res) => {
       tongCong: num(pick(r, 'Tổng Cộng', 'Tong Cong')) || 0,
       thucNhan: num(pick(r, 'Thực Nhận', 'Thuc Nhan')) || 0,
       ghiChu: txt(pick(r, 'Ghi Chú', 'Ghi Chu')),
+      anh: (() => {
+        const cot = Object.keys(r).find(laCotAnh);
+        const v = cot ? r[cot] : null;
+        if (Array.isArray(v) && v[0] && v[0].file_token) return v[0].file_token;
+        return '';
+      })(),
     })).filter(x => x.month && x.ten);
 
     const months = [...new Set(recs.filter(r => r.tongCong > 0 || r.thucNhan > 0).map(r => r.month))].sort();
@@ -313,9 +340,10 @@ module.exports = async (req, res) => {
       const m = new Map();
       for (const r of list) {
         const k = norm(r.ten);
-        if (!m.has(k)) m.set(k, { ten: r.ten, boPhan: r.boPhan, chucVu: r.chucVu, soThang: 0, tongCong: 0, thucNhan: 0, ghiChu: '',
+        if (!m.has(k)) m.set(k, { ten: r.ten, boPhan: r.boPhan, chucVu: r.chucVu, soThang: 0, tongCong: 0, thucNhan: 0, ghiChu: '', anh: '',
           luongCung: 0, luongTN: 0, phuCap: 0, hoaHong: 0, thuong: 0, giamTru: 0 });
         const o = m.get(k);
+        if (r.anh) o.anh = r.anh;
         o.soThang++; o.tongCong += r.tongCong; o.thucNhan += r.thucNhan;
         if (r.ghiChu && !o.ghiChu) o.ghiChu = r.ghiChu;
         for (const t of THANH_PHAN) o[t.ma] += r[t.ma];
@@ -367,14 +395,52 @@ module.exports = async (req, res) => {
     const p2 = n => String(n).padStart(2, '0');
     const stamp = `${p2(vn.getUTCDate())}/${p2(vn.getUTCMonth() + 1)}/${vn.getUTCFullYear()} ${p2(vn.getUTCHours())}:${p2(vn.getUTCMinutes())}`;
 
+    /* ===== Chế độ soi (?soi=1) — chỉ quản trị viên, để truy nguồn số bất thường =====
+       Trả về: từng cột thành phần kèm tổng và 8 dòng đóng góp lớn nhất, giá trị thô
+       và kiểu dữ liệu Lark trả về; cộng thêm kiểm tra dòng trùng. */
+    let soi = null;
+    if (txt(q.soi) === '1' && toi.quyen.quan_tri) {
+      const kieu = v => v == null ? 'trống'
+        : Array.isArray(v) ? 'mảng[' + (v[0] && typeof v[0] === 'object' ? Object.keys(v[0]).join('/') : typeof (v[0])) + ']'
+        : typeof v === 'object' ? 'đối tượng{' + Object.keys(v).join('/') + '}'
+        : typeof v;
+      const TEN_COT = {
+        luongCung: 'Lương Cứng (Thực tế)', luongTN: 'Lương TN (Thực tế)', phuCap: 'Phụ Cấp (Thực tế)',
+        hoaHong: '% Hoa Hồng', thuong: 'Thưởng Thêm (nếu có)', giamTru: 'Giảm Trừ',
+      };
+      const dem = new Map();
+      for (const r of trong) {
+        const k = norm(r.ten) + '|' + r.month;
+        dem.set(k, (dem.get(k) || 0) + 1);
+      }
+      soi = {
+        soDongTrongKy: trong.length,
+        thangTrongKy: trongKy,
+        tenCotThayTrongBang: [...new Set(rows.flatMap(r => Object.keys(r)))],
+        dongTrungLap: [...dem.entries()].filter(([, n]) => n > 1)
+          .map(([k, n]) => `${k.split('|')[1]} — ${k.split('|')[0]} xuất hiện ${n} lần`),
+        cot: THANH_PHAN.concat([{ ma: 'tongCong', ten: 'Tổng Cộng' }, { ma: 'thucNhan', ten: 'Thực Nhận' }])
+          .map(t => ({
+            ma: t.ma, ten: t.ten, tenCotLark: TEN_COT[t.ma] || t.ten, tong: tong[t.ma],
+            top: trong.slice().sort((a, b) => (b[t.ma] || 0) - (a[t.ma] || 0)).slice(0, 8).map(r => ({
+              ten: r.ten, boPhan: r.boPhan, thang: nhanThang(r.month),
+              giaTriDaDoc: r[t.ma],
+              giaTriTho: TEN_COT[t.ma] ? r._tho[TEN_COT[t.ma]] : undefined,
+              kieuDuLieu: TEN_COT[t.ma] ? kieu(r._tho[TEN_COT[t.ma]]) : undefined,
+            })),
+          })),
+      };
+    }
+
     res.setHeader('Cache-Control', 'private, no-store');
     res.status(200).json({
-      ok: true, ky, moc, months,
+      ok: true, ky, moc, months, soi,
       kyInfo: { nhan: K.nhan, phu: K.phu, tu: trongKy[0], den: trongKy[trongKy.length - 1], soThang, coKyTruoc, kyTruocNhan },
       toi: { email: toi.email, ten: toi.ten, quyen: toi.quyen },
       syncedAt: new Date().toISOString(),
       data: { tong, tongTruoc, coKyTruoc, boPhan, chucVu, nguoi, xuHuong, nhanXet, thieuSot, doanhThu,
               thanhPhan: THANH_PHAN, nghiNgo,
+              coCotAnh: [...new Set(rows.flatMap(r => Object.keys(r)))].some(laCotAnh),
               sub: `Số liệu tự động đồng bộ từ Lark — bảng Lương - Thưởng - Sakawin · Cập nhật ${stamp} (giờ VN) · Đơn vị: đồng (VNĐ)` },
     });
   } catch (err) {
