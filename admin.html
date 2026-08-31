@@ -70,6 +70,24 @@
   input[type=checkbox]{width:23px;height:23px;accent-color:var(--red);cursor:pointer}
   input[type=checkbox]:disabled{cursor:not-allowed}
 
+  .segs2{display:flex;background:#F5F5F4;border-radius:9px;padding:3px;gap:2px}
+  .segs2 button{font-family:inherit;font-size:13.5px;font-weight:700;padding:9px 16px;border:none;
+    border-radius:7px;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap}
+  .segs2 button.on{background:var(--red);color:#fff}
+  .kind{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:5px;margin-left:8px}
+  .kind.lark{background:#EFF4FF;color:#1D4ED8}
+  .kind.mk{background:#F5F3FF;color:#5B21B6}
+  .kind.warn{background:#FEF3C7;color:#92400E}
+  .kind.lock{background:#FEE2E2;color:#991B1B}
+  .pwbox{margin-top:16px;padding:18px 20px;border:2px dashed var(--green);border-radius:12px;
+    background:var(--green-tint);display:none}
+  .pwbox.show{display:block}
+  .pwbox h4{font-size:14px;font-weight:800;color:var(--green);margin-bottom:6px}
+  .pwbox p{font-size:13px;color:#3F6B52;line-height:1.65}
+  .pwrow{display:flex;gap:10px;align-items:center;margin:12px 0 4px;flex-wrap:wrap}
+  .pwval{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:21px;font-weight:700;
+    letter-spacing:1.5px;background:#fff;border:1px solid #BFE3CD;border-radius:8px;padding:11px 18px;
+    user-select:all;color:var(--ink)}
   .msg{padding:14px 18px;border-radius:10px;font-size:14.5px;font-weight:600;margin-bottom:20px;display:none;line-height:1.6}
   .msg.show{display:block}
   .msg.ok{background:var(--green-tint);border:1px solid #BFE3CD;color:var(--green)}
@@ -139,13 +157,33 @@
 
   <div class="card">
     <h3>Thêm tài khoản</h3>
+    <div class="addrow" style="margin-bottom:14px">
+      <div class="fld"><label>Kiểu đăng nhập</label>
+        <div class="segs2" id="segLoai">
+          <button data-loai="lark" class="on">Tài khoản Lark</button>
+          <button data-loai="mk">Cấp mật khẩu</button>
+        </div>
+      </div>
+    </div>
     <div class="addrow">
-      <div class="fld"><label>Email Lark của nhân sự</label><input id="newEmail" placeholder="ten.nhanvien@sakawin.vn"></div>
+      <div class="fld"><label id="lbTk">Email Lark của nhân sự</label><input id="newEmail" placeholder="ten.nhanvien@sakawin.vn"></div>
       <div class="fld"><label>Tên hiển thị (không bắt buộc)</label><input id="newName" placeholder="Nguyễn Văn A"></div>
       <button class="btn primary" id="btnAdd">+ Thêm tài khoản</button>
     </div>
+
+    <div class="pwbox" id="pwBox">
+      <h4>🔑 Mật khẩu vừa cấp — chỉ hiện một lần</h4>
+      <p>Chép và gửi cho nhân sự ngay bây giờ. Đóng trang là không xem lại được nữa;
+         lúc đó phải bấm <b>Đặt lại mật khẩu</b> để cấp chuỗi mới.</p>
+      <div class="pwrow">
+        <span class="pwval" id="pwVal"></span>
+        <button class="btn mini" id="pwCopy">Sao chép</button>
+        <button class="btn mini danger" id="pwHide">Tôi đã lưu, ẩn đi</button>
+      </div>
+      <p id="pwFor" style="font-weight:700"></p>
+    </div>
     <p class="hint">
-      Email phải trùng với email tài khoản Lark của họ. Thêm xong, mặc định họ thấy
+      <span id="hintTk">Email phải trùng với email tài khoản Lark của họ.</span> Thêm xong, mặc định họ thấy
       <b>đầy đủ trang Doanh số &amp; Target</b> (gồm cả target, % hoàn thành và ngân sách ADS),
       nhưng <b>không</b> thấy trang Tài chính &amp; Lãi lỗ.
       Muốn giấu bớt của riêng ai thì bỏ tick ở bảng dưới.
@@ -197,10 +235,15 @@ function ve(){
     const goc = ADMIN_GOC.includes(String(u.email).toLowerCase());
     const o = goc ? ' disabled' : '';
     return `<tr>
-      <td class="who2"><b>${esc(u.ten || u.email)}</b><span>${esc(u.email)}</span>${goc ? '<span class="pill">Quản trị gốc</span>' : ''}</td>
+      <td class="who2"><b>${esc(u.ten || u.email)}</b><span>${esc(u.email)}</span>${goc ? '<span class="pill">Quản trị gốc</span>' : ''}
+        ${goc ? '' : `<span class="kind ${u.loai}">${u.loai === 'mk' ? '🔑 mật khẩu' : 'Lark'}</span>`}
+        ${u.phaiDoi ? '<span class="kind warn">chưa đổi mật khẩu</span>' : ''}
+        ${u.bikhoa ? '<span class="kind lock">đang bị khoá tạm</span>' : ''}</td>
       ${DANH_MUC.map(q => `<td><input type="checkbox" data-i="${i}" data-q="${q.ma}"${u.quyen[q.ma] ? ' checked' : ''}${o}></td>`).join('')}
       <td><input type="checkbox" data-i="${i}" data-q="__kichHoat"${u.kichHoat ? ' checked' : ''}${o}></td>
-      <td>${goc ? '' : `<button class="btn mini danger" data-xoa="${esc(u.email)}">Xoá</button>`}</td>
+      <td style="white-space:nowrap">${goc ? '' : `
+        ${u.loai === 'mk' ? `<button class="btn mini" data-dl="${esc(u.email)}">Đặt lại MK</button> ` : ''}
+        <button class="btn mini danger" data-xoa="${esc(u.email)}">Xoá</button>`}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="${DANH_MUC.length + 3}" style="text-align:center;color:#A8A29E;padding:30px">
       Chưa có tài khoản nào. Thêm ở ô phía trên.</td></tr>`;
@@ -212,6 +255,7 @@ function ve(){
 
   document.querySelectorAll('#tbody input[type=checkbox]').forEach(cb => cb.addEventListener('change', doiQuyen));
   document.querySelectorAll('#tbody button[data-xoa]').forEach(b => b.addEventListener('click', () => xoa(b.dataset.xoa)));
+  document.querySelectorAll('#tbody button[data-dl]').forEach(b => b.addEventListener('click', () => datLai(b.dataset.dl)));
 }
 
 async function goi(method, body, qs){
@@ -248,22 +292,60 @@ async function xoa(email){
 
 const chuanHoa = u => ({
   email: u.email, ten: u.ten || '', kichHoat: u.kichHoat !== false,
+  loai: u.loai === 'mk' ? 'mk' : 'lark', phaiDoi: !!u.phaiDoi, bikhoa: !!u.bikhoa,
   quyen: Object.fromEntries(DANH_MUC.map(q => [q.ma, !!(u.quyen && u.quyen[q.ma])])),
 });
+
+let LOAI_MOI = 'lark';
+$('segLoai').addEventListener('click', e => {
+  const b = e.target.closest('button[data-loai]');
+  if(!b) return;
+  [...$('segLoai').children].forEach(x => x.classList.toggle('on', x === b));
+  LOAI_MOI = b.dataset.loai;
+  const mk = LOAI_MOI === 'mk';
+  $('lbTk').textContent = mk ? 'Tên đăng nhập' : 'Email Lark của nhân sự';
+  $('newEmail').placeholder = mk ? 'vd: an.kinhdoanh' : 'ten.nhanvien@sakawin.vn';
+  $('hintTk').textContent = mk
+    ? 'Dành cho nhân sự ở tổ chức Lark khác. Web sẽ sinh mật khẩu ngẫu nhiên, hiện một lần để bạn gửi cho họ; lần đăng nhập đầu họ phải tự đổi.'
+    : 'Email phải trùng với email tài khoản Lark của họ.';
+});
+
+function hienMatKhau(mk, cho){
+  $('pwVal').textContent = mk;
+  $('pwFor').textContent = 'Tài khoản: ' + cho;
+  $('pwBox').classList.add('show');
+  $('pwBox').scrollIntoView({block:'nearest'});
+}
+$('pwCopy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('pwVal').textContent); baoTin('Đã sao chép mật khẩu.'); }
+  catch(e){ baoTin('Trình duyệt chặn sao chép — bôi đen chuỗi rồi Ctrl+C.', true); }
+});
+$('pwHide').addEventListener('click', () => $('pwBox').classList.remove('show'));
 
 $('btnAdd').addEventListener('click', async () => {
   const email = $('newEmail').value.trim().toLowerCase();
   const ten = $('newName').value.trim();
-  if(!email) return baoTin('Chưa nhập email.', true);
-  if(USERS.some(u => u.email.toLowerCase() === email)) return baoTin('Email này đã có trong danh sách.', true);
+  if(!email) return baoTin(LOAI_MOI === 'mk' ? 'Chưa nhập tên đăng nhập.' : 'Chưa nhập email.', true);
+  if(USERS.some(u => u.email.toLowerCase() === email)) return baoTin('Tài khoản này đã có trong danh sách.', true);
   // Mặc định: thấy đầy đủ trang Doanh số & Target. KHÔNG thấy trang Tài chính.
-  const j = await goi('POST', {email, ten,
+  const j = await goi('POST', {email, ten, loai: LOAI_MOI,
     quyen:{xem_doanh_so:true, xem_target:true, xem_ads:true}, kichHoat:true});
   if(!j.ok) return baoTin(j.error, true);
   await taiLai();
   $('newEmail').value = ''; $('newName').value = '';
+  if(j.matKhauMoi) hienMatKhau(j.matKhauMoi, email);
   baoTin('Đã thêm ' + email + ' với quyền xem báo cáo doanh số.');
 });
+
+async function datLai(email){
+  if(!confirm('Cấp mật khẩu mới cho ' + email + '?\n\nMật khẩu cũ mất hiệu lực ngay. Họ sẽ phải đổi lại ở lần đăng nhập kế tiếp.')) return;
+  const u = USERS.find(x => x.email === email);
+  const j = await goi('POST', {email, ten: u ? u.ten : '', quyen: u ? u.quyen : {}, kichHoat: u ? u.kichHoat : true, datLaiMatKhau: true});
+  if(!j.ok) return baoTin(j.error, true);
+  await taiLai();
+  if(j.matKhauMoi) hienMatKhau(j.matKhauMoi, email);
+  baoTin('Đã cấp mật khẩu mới cho ' + email + '.');
+}
 
 async function taiLai(){
   const j = await goi('GET');
@@ -291,8 +373,8 @@ async function taiLai(){
 
   if(!me.dangNhap){
     $('gateTitle').textContent = 'Cần đăng nhập';
-    $('gateMsg').textContent = 'Đang chuyển sang trang đăng nhập Lark…';
-    return location.href = '/api/auth/login';
+    $('gateMsg').textContent = 'Đang chuyển về trang đăng nhập…';
+    return location.href = '/';
   }
   if(!me.quyen.quan_tri){
     return khoa('Không đủ quyền', (me.ten || me.email) + ' không có quyền quản trị tài khoản.');

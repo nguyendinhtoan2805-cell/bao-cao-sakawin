@@ -538,7 +538,10 @@ async function sync(){
     const r = await fetch('/api/tai-chinh?' + truyVan(), {cache:'no-store'});
     const j = await r.json().catch(()=>({ok:false,error:'HTTP '+r.status}));
     if(r.status === 401) return khoa('Phiên đã hết hạn','Đăng nhập lại để tiếp tục.');
-    if(r.status === 403) return khoa('Không đủ quyền', j.error || 'Tài khoản chưa được cấp quyền xem trang Tài chính.');
+    if(r.status === 403){
+      if(j.phaiDoiMatKhau) return location.href = '/';   // trang chủ có form đổi mật khẩu
+      return khoa('Không đủ quyền', j.error || 'Tài khoản chưa được cấp quyền xem trang Tài chính.');
+    }
     if(!j.ok) throw new Error(j.error || 'Lỗi không xác định');
 
     DATA = j.data;
@@ -575,7 +578,7 @@ $('btnSync').addEventListener('click', () => sync());
   let me;
   try { me = await (await fetch('/api/auth/me',{cache:'no-store'})).json(); }
   catch(err){ return khoa('Không kết nối được máy chủ','Thử tải lại trang.'); }
-  if(!me.dangNhap){ $('gateTitle').textContent='Cần đăng nhập'; return location.href='/api/auth/login'; }
+  if(!me.dangNhap){ $('gateTitle').textContent='Cần đăng nhập'; return location.href='/'; }
   if(!me.quyen.xem_tai_chinh){
     return khoa('Không đủ quyền', (me.ten||me.email) + ' chưa được cấp quyền xem trang Tài chính & Lãi lỗ. Liên hệ quản trị viên nếu cần.');
   }

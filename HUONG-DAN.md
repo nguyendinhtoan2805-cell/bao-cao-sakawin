@@ -233,8 +233,29 @@ Không phải văn mẫu — mọi câu đều tính từ số của tháng đan
 
 ## Đăng nhập & phân quyền
 
-Nhân sự đăng nhập bằng **chính tài khoản Lark của công ty** — không phát, không quản mật khẩu nào.
-Ai nghỉ việc, khoá tài khoản Lark là mất quyền vào web luôn.
+Có **hai đường đăng nhập**, dùng song song:
+
+| Đường | Cho ai | Cách cấp |
+|---|---|---|
+| 🟦 **Tài khoản Lark** | Nhân sự trong tổ chức `Sakawin Việt Nam` | Thêm email Lark của họ ở trang quản trị |
+| 🟪 **Tên đăng nhập + mật khẩu** | Nhân sự ở tổ chức Lark khác | Chọn *Cấp mật khẩu*, web sinh chuỗi ngẫu nhiên |
+
+Lark App chỉ chạy trong đúng một tổ chức — người ở org khác không mở được app, nên phải có
+đường thứ hai. Ưu tiên đường Lark khi được: không phải phát mật khẩu, và nghỉ việc thì khoá
+tài khoản Lark là mất quyền luôn.
+
+### Cách cấp tài khoản mật khẩu
+
+1. Trang quản trị → chọn **Cấp mật khẩu** → nhập tên đăng nhập (vd `linh.mkt`) → **Thêm tài khoản**
+2. Web sinh mật khẩu 12 ký tự, hiện trong khung xanh **đúng một lần** → chép, gửi cho nhân sự
+3. Họ đăng nhập lần đầu → web **bắt đổi mật khẩu** ngay, chưa đổi thì chưa xem được gì
+4. Quên mật khẩu → bấm **Đặt lại MK** ở dòng của họ, web cấp chuỗi mới
+
+**Mật khẩu gốc không lưu ở đâu cả** — chỉ lưu bản băm bằng scrypt kèm chuỗi muối riêng cho
+từng tài khoản. Kể cả bạn cũng không xem lại được, chỉ có thể cấp mới.
+
+**Chống dò mật khẩu:** sai 5 lần liên tiếp là khoá tài khoản 15 phút, kể cả sau đó nhập đúng.
+Thông báo lỗi luôn là *"Tài khoản hoặc mật khẩu không đúng"* — không tiết lộ tài khoản có tồn tại hay không.
 
 ### Sáu quyền
 

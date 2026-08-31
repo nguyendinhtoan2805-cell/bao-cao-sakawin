@@ -43,6 +43,24 @@
     font-size:16px;padding:15px 38px;border-radius:10px;text-decoration:none;border:none;cursor:pointer;font-family:inherit}
   #gate .go:hover{background:var(--red-dark)}
   #gate .sub{margin-top:22px;font-size:13px;color:#A8A29E;line-height:1.6}
+  #gate .hr{display:flex;align-items:center;gap:12px;margin:26px 0 20px;color:#A8A29E;
+    font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  #gate .hr::before,#gate .hr::after{content:'';flex:1;height:1px;background:var(--line)}
+  #gate .f{display:flex;flex-direction:column;gap:10px;text-align:left}
+  #gate .f input{font-family:inherit;font-size:15.5px;padding:12px 15px;border:1.5px solid #D6D3D1;
+    border-radius:9px;background:#FFFDF5;width:100%}
+  #gate .f input:focus{outline:none;border-color:var(--red);background:#fff}
+  #gate .f button{font-family:inherit;font-size:15px;font-weight:700;padding:13px 20px;border-radius:9px;
+    border:1.5px solid var(--red);background:#fff;color:var(--red);cursor:pointer;margin-top:4px}
+  #gate .f button:hover{background:var(--red-tint)}
+  #gate .f button:disabled{opacity:.5;cursor:default}
+  #gate .er{font-size:13px;font-weight:600;color:var(--red);background:var(--red-tint);
+    border-radius:8px;padding:10px 13px;display:none;line-height:1.55}
+  #gate .er.show{display:block}
+  #gate .ok{font-size:13px;font-weight:600;color:var(--green);background:var(--green-tint);
+    border-radius:8px;padding:10px 13px;display:none;line-height:1.55}
+  #gate .ok.show{display:block}
+  .theme-dark #gate .f input{background:#1B1918;border-color:#3A3633;color:#F2EFEA}
   .theme-dark #gate{background:#171514;border-color:#2A2724;border-top-color:#FF4D6A}
 
   /* ===== Chip người dùng trên thanh điều hướng ===== */
@@ -309,6 +327,28 @@
   <h2 id="gateTitle">Đăng nhập để xem báo cáo</h2>
   <p id="gateMsg">Dùng chính tài khoản Lark của bạn — không cần mật khẩu riêng.</p>
   <button class="go" id="gateBtn" onclick="location.href='/api/auth/login'">Đăng nhập bằng Lark</button>
+
+  <div id="gateMK">
+    <div class="hr">hoặc</div>
+    <div class="f">
+      <input id="gTk" placeholder="Tên đăng nhập hoặc email" autocomplete="username">
+      <input id="gMk" type="password" placeholder="Mật khẩu" autocomplete="current-password">
+      <div class="er" id="gErr"></div>
+      <button id="gGo">Đăng nhập bằng tài khoản được cấp</button>
+    </div>
+  </div>
+
+  <div id="gateDoi" style="display:none">
+    <div class="hr">đổi mật khẩu</div>
+    <div class="f">
+      <input id="dCu" type="password" placeholder="Mật khẩu hiện tại" autocomplete="current-password">
+      <input id="dMoi" type="password" placeholder="Mật khẩu mới (từ 8 ký tự)" autocomplete="new-password">
+      <input id="dLai" type="password" placeholder="Nhập lại mật khẩu mới" autocomplete="new-password">
+      <div class="er" id="dErr"></div>
+      <button id="dGo">Đổi mật khẩu và vào báo cáo</button>
+    </div>
+  </div>
+
   <div class="sub" id="gateSub">Chưa có quyền truy cập? Liên hệ quản trị viên để được cấp.</div>
 </div>
 
@@ -744,7 +784,10 @@ async function syncFromLark(month){
     const r = await fetch(url, {cache:'no-store'});
     const j = await r.json().catch(() => ({ok:false, error:'HTTP ' + r.status}));
     if(r.status === 401){ return khoaLai('Phiên đăng nhập đã hết hạn', 'Đăng nhập lại để tiếp tục xem báo cáo.', true); }
-    if(r.status === 403){ return khoaLai('Không đủ quyền', j.error || 'Tài khoản chưa được cấp quyền xem trang này.', false); }
+    if(r.status === 403){
+      if(j.phaiDoiMatKhau) return batDoiMatKhau(TOI ? (TOI.ten||TOI.email) : 'bạn');
+      return khoaLai('Không đủ quyền', j.error || 'Tài khoản chưa được cấp quyền xem trang này.', false);
+    }
     if(!r.ok) throw new Error('HTTP ' + r.status);
     if(!j.ok) throw new Error(j.error || 'Lỗi không xác định');
     apDungQuyen(j.an);
@@ -794,7 +837,58 @@ function khoaLai(tieuDe, loi, hienNut){
   $('gateTitle').textContent = tieuDe;
   $('gateMsg').textContent = loi;
   $('gateBtn').style.display = hienNut ? '' : 'none';
+  $('gateMK').style.display  = hienNut ? '' : 'none';
+  $('gateDoi').style.display = 'none';
 }
+
+/* ===== Đăng nhập bằng tài khoản do quản trị cấp ===== */
+function baoLoi(id, text){
+  const e = $(id);
+  e.textContent = text || '';
+  e.classList.toggle('show', !!text);
+}
+
+$('gGo').addEventListener('click', async () => {
+  const taiKhoan = $('gTk').value.trim(), matKhau = $('gMk').value;
+  if(!taiKhoan || !matKhau) return baoLoi('gErr', 'Nhập đủ tên đăng nhập và mật khẩu.');
+  $('gGo').disabled = true; baoLoi('gErr', '');
+  try {
+    const r = await fetch('/api/auth/mat-khau', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({taiKhoan, matKhau})});
+    const j = await r.json();
+    if(!j.ok) return baoLoi('gErr', j.error);
+    location.reload();
+  } catch(err){ baoLoi('gErr', 'Không kết nối được máy chủ.'); }
+  finally { $('gGo').disabled = false; }
+});
+['gTk','gMk'].forEach(id => $(id).addEventListener('keydown', e => { if(e.key==='Enter') $('gGo').click(); }));
+
+/* ===== Bắt đổi mật khẩu ở lần đăng nhập đầu ===== */
+function batDoiMatKhau(ten){
+  document.body.classList.add('locked');
+  $('gateTitle').textContent = 'Đặt mật khẩu mới';
+  $('gateMsg').textContent = `Chào ${ten}. Đây là lần đăng nhập đầu tiên — hãy đổi sang mật khẩu của riêng bạn trước khi xem báo cáo.`;
+  $('gateBtn').style.display = 'none';
+  $('gateMK').style.display  = 'none';
+  $('gateDoi').style.display = '';
+  $('gateSub').textContent   = 'Mật khẩu cũ do quản trị viên cấp sẽ hết hiệu lực ngay sau khi đổi.';
+}
+
+$('dGo').addEventListener('click', async () => {
+  const cu = $('dCu').value, moi = $('dMoi').value, lai = $('dLai').value;
+  if(!cu || !moi) return baoLoi('dErr', 'Nhập đủ mật khẩu hiện tại và mật khẩu mới.');
+  if(moi.length < 8) return baoLoi('dErr', 'Mật khẩu mới phải từ 8 ký tự trở lên.');
+  if(moi !== lai) return baoLoi('dErr', 'Hai ô mật khẩu mới không khớp nhau.');
+  $('dGo').disabled = true; baoLoi('dErr', '');
+  try {
+    const r = await fetch('/api/auth/doi-mat-khau', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({matKhauCu:cu, matKhauMoi:moi})});
+    const j = await r.json();
+    if(!j.ok) return baoLoi('dErr', j.error);
+    location.reload();
+  } catch(err){ baoLoi('dErr', 'Không kết nối được máy chủ.'); }
+  finally { $('dGo').disabled = false; }
+});
 
 function apDungQuyen(an){
   AN.target = (an||[]).includes('target');
@@ -814,8 +908,9 @@ async function khoiDong(){
 
   if(!me.dangNhap){
     return khoaLai('Đăng nhập để xem báo cáo',
-      'Dùng chính tài khoản Lark của bạn — không cần mật khẩu riêng.', true);
+      'Nhân sự trong Sakawin Việt Nam dùng tài khoản Lark. Ai ở tổ chức khác thì dùng tài khoản quản trị viên cấp.', true);
   }
+  if(me.phaiDoiMatKhau) return batDoiMatKhau(me.ten || me.email);
 
   TOI = me;
   $('navWho').innerHTML = 'Xin chào <b>' + (me.ten||me.email) + '</b>';

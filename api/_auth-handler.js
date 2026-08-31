@@ -16,6 +16,7 @@
 ===================================================================== */
 const crypto = require('crypto');
 const A = require('./_auth.js');
+const S = require('./_store.js');
 
 const HOST = (process.env.LARK_HOST || 'https://open.larksuite.com').replace(/\/$/, '');
 const ACCOUNTS = HOST.includes('feishu') ? 'https://accounts.feishu.cn' : 'https://accounts.larksuite.com';
@@ -87,6 +88,41 @@ module.exports = action => async (req, res) => {
       return res.status(200).json(u
         ? { ok: true, dangNhap: true, ...u, nhanQuyen: A.NHAN_QUYEN }
         : { ok: true, dangNhap: false });
+    }
+
+    /* ---------- đăng nhập bằng mật khẩu ---------- */
+    if (action === 'matkhau') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Chỉ nhận POST.' });
+      if (!process.env.SESSION_SECRET) return res.status(200).json({ ok: false, error: 'Thiếu SESSION_SECRET trên Vercel.' });
+      const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      const kq = await A.dangNhapMatKhau(b.taiKhoan, b.matKhau);
+      res.setHeader('Cache-Control', 'no-store');
+      if (!kq.ok) return res.status(200).json({ ok: false, error: kq.loi });
+      A.datCookie(res, A.COOKIE, A.kyPhien({ email: A.chuanTaiKhoan(kq.u.email), ten: kq.u.ten || kq.u.email }), 12 * 3600);
+      return res.status(200).json({ ok: true, phaiDoiMatKhau: kq.u.phaiDoi === true });
+    }
+
+    /* ---------- tự đổi mật khẩu ---------- */
+    if (action === 'doimatkhau') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Chỉ nhận POST.' });
+      res.setHeader('Cache-Control', 'no-store');
+      const toi = await A.nguoiDung(req);
+      if (!toi) return res.status(401).json({ ok: false, error: 'Chưa đăng nhập.' });
+      const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      const moi = String(b.matKhauMoi || '');
+      if (moi.length < 8) return res.status(200).json({ ok: false, error: 'Mật khẩu mới phải từ 8 ký tự trở lên.' });
+
+      const list = await S.docDanhSach();
+      const i = list.findIndex(x => A.chuanTaiKhoan(x.email) === A.chuanTaiKhoan(toi.email));
+      if (i < 0 || list[i].loai !== 'mk') return res.status(200).json({ ok: false, error: 'Tài khoản này đăng nhập bằng Lark, không có mật khẩu để đổi.' });
+      if (!A.kiemMatKhau(list[i], b.matKhauCu || '')) return res.status(200).json({ ok: false, error: 'Mật khẩu hiện tại không đúng.' });
+
+      const ten = list[i].ten, quyen = list[i].quyen, kichHoat = list[i].kichHoat;
+      list[i] = { ...list[i], ten, quyen, kichHoat, phaiDoi: false };
+      A.datMatKhau(list[i], moi);
+      list[i].phaiDoi = false;
+      await S.ghiDanhSach(list);
+      return res.status(200).json({ ok: true });
     }
 
     /* ---------- logout ---------- */

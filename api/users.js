@@ -8,8 +8,10 @@
 const A = require('./_auth.js');
 const S = require('./_store.js');
 
-const chuanEmail = e => String(e || '').trim().toLowerCase();
-const hopLe = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+/* Tài khoản có thể là email Lark, cũng có thể là tên đăng nhập do admin đặt
+   cho nhân sự ở tổ chức Lark khác — nên không ép định dạng email. */
+const chuanEmail = A.chuanTaiKhoan;
+const hopLe = A.taiKhoanHopLe;
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -36,6 +38,9 @@ module.exports = async (req, res) => {
         users: list.map(u => ({
           email: u.email, ten: u.ten || '',
           kichHoat: u.kichHoat !== false,
+          loai: u.loai === 'mk' ? 'mk' : 'lark',
+          phaiDoi: u.phaiDoi === true,
+          bikhoa: !!(u.khoaDen && Date.now() < u.khoaDen),
           quyen: { ...A.quyenRong(), ...(u.quyen || {}) },
         })),
       });
@@ -52,11 +57,29 @@ module.exports = async (req, res) => {
 
       const list = await S.docDanhSach();
       const i = list.findIndex(u => chuanEmail(u.email) === email);
-      const ban = { email, ten: String(b.ten || '').trim(), kichHoat: b.kichHoat !== false, quyen };
+      const cu = i >= 0 ? list[i] : null;
+
+      /* Giữ nguyên phần mật khẩu đã có — sửa quyền không được làm mất mật khẩu */
+      const ban = {
+        ...(cu || {}),
+        email, ten: String(b.ten || (cu && cu.ten) || '').trim(),
+        kichHoat: b.kichHoat !== false, quyen,
+      };
+
+      let matKhauMoi = null;
+      const muonMatKhau = b.loai === 'mk' || b.datLaiMatKhau === true;
+      if (muonMatKhau && (b.datLaiMatKhau === true || !cu || cu.loai !== 'mk')) {
+        matKhauMoi = A.sinhMatKhau(12);
+        A.datMatKhau(ban, matKhauMoi);
+        ban.phaiDoi = true;          // bắt đổi ngay lần đăng nhập đầu
+      }
+      if (b.loai === 'lark' && ban.loai === 'mk' && !b.datLaiMatKhau) {
+        delete ban.loai; delete ban.bam; delete ban.muoi; delete ban.phaiDoi;
+      }
       if (i >= 0) list[i] = ban; else list.push(ban);
 
       await S.ghiDanhSach(list);
-      return res.status(200).json({ ok: true, users: list, daLuu: email });
+      return res.status(200).json({ ok: true, daLuu: email, matKhauMoi });
     }
 
     /* ---------- Xoá ---------- */
@@ -74,7 +97,7 @@ module.exports = async (req, res) => {
       const conLai = list.filter(u => chuanEmail(u.email) !== email);
       if (conLai.length === list.length) return res.status(200).json({ ok: false, error: 'Không tìm thấy tài khoản này.' });
       await S.ghiDanhSach(conLai);
-      return res.status(200).json({ ok: true, users: conLai, daXoa: email });
+      return res.status(200).json({ ok: true, daXoa: email });
     }
 
     return res.status(405).json({ ok: false, error: 'Phương thức không hỗ trợ.' });
