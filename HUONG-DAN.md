@@ -182,6 +182,8 @@ không phải sửa code. Cột bị loại trừ theo tên đã chuẩn hoá: `
 
 ### Kỳ xem
 
+**Cả ba trang báo cáo đều có bộ lọc này** — Doanh số, Tài chính, Quỹ lương.
+
 | Nút | Nghĩa | Kỳ đem ra so sánh |
 |---|---|---|
 | Tháng | Một tháng | Tháng liền trước |
@@ -189,6 +191,14 @@ không phải sửa code. Cột bị loại trừ theo tên đã chuẩn hoá: `
 | 3 tháng | Ba tháng tính ngược từ tháng đang chọn | 3 tháng liền trước |
 | Cả năm | Cộng dồn các tháng đã có số trong năm | Cùng số tháng liền trước |
 | Tự chọn | Khoảng từ tháng A đến tháng B | Cùng số tháng liền trước |
+
+Riêng trang Doanh số, khi gộp nhiều tháng thì nhãn cột đổi từ `T6 / T7 / T8` sang
+`kỳ trước / Q3 / kỳ tới`, và **Target tháng sau được cộng theo từng tháng rồi mới tổng** —
+vì mỗi tháng có % tăng trưởng riêng, lấy tổng doanh thu nhân một % chung là sai.
+
+> ⚠️ Gộp nhiều tháng mà có kênh chưa điền Target đủ các tháng thì cột **% hoàn thành**
+> của kênh đó **cao hơn thực tế** (doanh thu cộng đủ kỳ, target chỉ cộng được vài tháng).
+> Trang tự phát hiện và ghi rõ kênh nào trong thanh cảnh báo vàng.
 
 Kỳ trước luôn là **cùng số tháng, ngay liền trước** — nên so sánh không bị lệch độ dài.
 Mọi khối trên trang (KPI, chi phí, kênh chủ lực, kênh lỗ, nhận định) đều tính theo kỳ đang chọn.
@@ -268,8 +278,9 @@ nên cần cả `LARK_TABLE_FINANCE`. Thiếu biến đó thì ô này để tr�
 
 ### Ảnh nhân sự
 
-Thêm vào bảng `Lương - Thưởng - Sakawin` một cột kiểu **Tệp đính kèm** đặt tên `Ảnh`
-(hoặc `Hình`, `Avatar`, `Ảnh nhân sự` — đều nhận), rồi tải ảnh lên từng dòng.
+Thêm vào bảng `Lương - Thưởng - Sakawin` một cột kiểu **Tệp đính kèm** rồi tải ảnh lên từng dòng.
+**Đặt tên cột thế nào cũng được** — web nhận diện theo *kiểu dữ liệu* (cột tệp đính kèm của Lark
+luôn là mảng có `file_token`), không dò theo tên. Có nhiều cột tệp thì ưu tiên cột tên giống "ảnh".
 Trang tự hiện ảnh, **không cần sửa code**. Chưa có ảnh thì hiện vòng tròn chữ cái đầu tên.
 
 Ảnh trong Lark phải kèm token mới tải được nên đi vòng qua `/api/quy-luong?anh=<file_token>`;

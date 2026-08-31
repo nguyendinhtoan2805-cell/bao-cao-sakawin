@@ -239,8 +239,21 @@ function phanTich({ tong, tongTruoc, coKyTruoc, boPhan, boPhanTruoc, nguoi, nguo
   return nx;
 }
 
-/* Tên cột ảnh có thể đặt kiểu gì cũng nhận */
-const laCotAnh = ten => /^(anh|hinh|hinhanh|avatar|anhnhansu|anhdaidien|photo)$/.test(norm(ten));
+/* Nhận diện cột ảnh theo KIỂU DỮ LIỆU chứ không theo tên: cột tệp đính kèm của
+   Lark luôn là mảng các đối tượng có file_token. Nhờ vậy đặt tên cột kiểu gì
+   cũng chạy — "Ảnh", "Hình", "Ảnh chân dung", "Photo NS"… đều được.
+   (Dò theo tên thì rủi ro: bỏ dấu xong "Doanh thu" cũng chứa chữ "anh".) */
+const laTepAnh = v => Array.isArray(v) && v[0] && typeof v[0] === 'object' && !!v[0].file_token;
+const laAnhTheoTen = ten => /^(anh|hinh|hinhanh|avatar|anhnhansu|anhdaidien|anhchandung|photo)/.test(norm(ten));
+
+/* Trả về file_token của ảnh trong một dòng, ưu tiên cột có tên giống "ảnh" */
+function timAnh(r) {
+  const cot = Object.keys(r);
+  const uuTien = cot.filter(k => laAnhTheoTen(k) && laTepAnh(r[k]));
+  const batKy = cot.filter(k => laTepAnh(r[k]));
+  const chon = uuTien[0] || batKy[0];
+  return chon ? r[chon][0].file_token : '';
+}
 
 /* ---------- Handler ---------- */
 module.exports = async (req, res) => {
@@ -294,12 +307,7 @@ module.exports = async (req, res) => {
       tongCong: num(pick(r, 'Tổng Cộng', 'Tong Cong')) || 0,
       thucNhan: num(pick(r, 'Thực Nhận', 'Thuc Nhan')) || 0,
       ghiChu: txt(pick(r, 'Ghi Chú', 'Ghi Chu')),
-      anh: (() => {
-        const cot = Object.keys(r).find(laCotAnh);
-        const v = cot ? r[cot] : null;
-        if (Array.isArray(v) && v[0] && v[0].file_token) return v[0].file_token;
-        return '';
-      })(),
+      anh: timAnh(r),
     })).filter(x => x.month && x.ten);
 
     const months = [...new Set(recs.filter(r => r.tongCong > 0 || r.thucNhan > 0).map(r => r.month))].sort();
@@ -417,6 +425,8 @@ module.exports = async (req, res) => {
         soDongTrongKy: trong.length,
         thangTrongKy: trongKy,
         tenCotThayTrongBang: [...new Set(rows.flatMap(r => Object.keys(r)))],
+        cotAnhNhanDuoc: [...new Set(rows.flatMap(r => Object.keys(r).filter(k => laTepAnh(r[k]))))],
+        soDongCoAnh: trong.filter(r => r.anh).length,
         dongTrungLap: [...dem.entries()].filter(([, n]) => n > 1)
           .map(([k, n]) => `${k.split('|')[1]} — ${k.split('|')[0]} xuất hiện ${n} lần`),
         cot: THANH_PHAN.concat([{ ma: 'tongCong', ten: 'Tổng Cộng' }, { ma: 'thucNhan', ten: 'Thực Nhận' }])
@@ -440,7 +450,7 @@ module.exports = async (req, res) => {
       syncedAt: new Date().toISOString(),
       data: { tong, tongTruoc, coKyTruoc, boPhan, chucVu, nguoi, xuHuong, nhanXet, thieuSot, doanhThu,
               thanhPhan: THANH_PHAN, nghiNgo,
-              coCotAnh: [...new Set(rows.flatMap(r => Object.keys(r)))].some(laCotAnh),
+              coCotAnh: recs.some(r => !!r.anh),
               sub: `Số liệu tự động đồng bộ từ Lark — bảng Lương - Thưởng - Sakawin · Cập nhật ${stamp} (giờ VN) · Đơn vị: đồng (VNĐ)` },
     });
   } catch (err) {

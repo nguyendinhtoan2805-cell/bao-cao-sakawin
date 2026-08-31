@@ -142,6 +142,36 @@ const pick = (row, ...names) => {
   return undefined;
 };
 
+/* =====================================================================
+   KỲ BÁO CÁO — gộp nhiều tháng
+   "Kỳ chốt" là khoảng đang xem; "kỳ trước" là cùng số tháng ngay liền trước;
+   "kỳ kế hoạch" là khoảng cùng độ dài ngay sau.
+===================================================================== */
+const thangCua = k => Number(k.split('-')[1]);
+const namCua = k => Number(k.split('-')[0]);
+const nhanThang = k => 'T' + thangCua(k);
+function daiThang(tu, den) { const o = []; let c = tu; for (let i = 0; i < 240 && c <= den; i++) { o.push(c); c = shiftMonth(c, 1); } return o; }
+
+function tinhKy(ky, moc, q) {
+  const n = namCua(moc), m = thangCua(moc);
+  switch (ky) {
+    case 'quy': {
+      const q0 = Math.floor((m - 1) / 3) * 3 + 1, sq = Math.floor((m - 1) / 3) + 1;
+      return { tu: `${n}-${String(q0).padStart(2,'0')}`, den: `${n}-${String(q0+2).padStart(2,'0')}`,
+               nhan: `Quý ${sq}/${n}`, ngan: `Q${sq}`, phu: `T${q0}–T${q0+2}` };
+    }
+    case '3thang': { const tu = shiftMonth(moc, -2);
+      return { tu, den: moc, nhan: '3 tháng gần nhất', ngan: `T${thangCua(tu)}–T${m}`, phu: `${nhanThang(tu)} – ${nhanThang(moc)}` }; }
+    case 'nam': return { tu: `${n}-01`, den: `${n}-12`, nhan: `Cả năm ${n}`, ngan: `${n}`, phu: 'Cộng dồn các tháng đã có số' };
+    case 'tuychon': {
+      const a = monthKey(txt(q.tu)) || moc, b = monthKey(txt(q.den)) || moc;
+      const tu = a <= b ? a : b, den = a <= b ? b : a;
+      return { tu, den, nhan: 'Khoảng tự chọn', ngan: `T${thangCua(tu)}–T${thangCua(den)}`, phu: `${nhanThang(tu)} – ${nhanThang(den)}` };
+    }
+    default: return { tu: moc, den: moc, nhan: `Tháng ${m}/${n}`, ngan: `T${m}`, phu: '' };
+  }
+}
+
 /* ---------- Handler ---------- */
 const A = require('./_auth.js');
 
@@ -211,44 +241,104 @@ module.exports = async (req, res) => {
     const duocLen = t => coCotTick ? t.show === true : (t.tgt != null || t.dt != null);
 
     const months = [...new Set(tgts.filter(duocLen).map(t => t.month))].sort();
-    const asked = txt(req.query && req.query.month);
-    const M = (asked ? monthKey(asked) : '') || months[months.length - 1];
-    const P = shiftMonth(M, -1);
-    const N = shiftMonth(M, 1);
+    if (!months.length) throw new Error('Chưa tháng nào có kênh lên báo cáo.');
 
-    const cur = tgts.filter(t => t.month === M && duocLen(t));
+    const q = req.query || {};
+    const ky = ['thang', 'quy', '3thang', 'nam', 'tuychon'].includes(txt(q.ky)) ? txt(q.ky) : 'thang';
+    const moc = monthKey(txt(q.month)) || months[months.length - 1];
+    const K = tinhKy(ky, moc, q);
+    const trongKy = daiThang(K.tu, K.den).filter(m => months.includes(m));
+    if (!trongKy.length) throw new Error(`Khoảng ${K.phu || K.nhan} chưa có tháng nào có số. Các tháng đang có: ${months.map(nhanThang).join(', ')}`);
+
+    const soThang = trongKy.length;
+    const M = trongKy[trongKy.length - 1];                    // tháng cuối của kỳ chốt
+    const truocDen = shiftMonth(trongKy[0], -1);
+    const trongKyTruoc = daiThang(shiftMonth(truocDen, -(soThang - 1)), truocDen);
+
+    /* Gộp các tháng trong kỳ lại theo từng kênh.
+       Target tháng sau (t8) phải cộng theo TỪNG THÁNG rồi mới tổng, vì mỗi
+       tháng có %tăng trưởng riêng — lấy tổng doanh thu nhân một %TT chung là sai. */
+    const gopKenh = danhSachThang => {
+      const m = new Map();
+      for (const th of danhSachThang) {
+        for (const t of tgts.filter(x => x.month === th && duocLen(x))) {
+          const k = norm(t.kenh);
+          const r = rev.get(th + '|' + k);
+          if (!m.has(k)) m.set(k, { kenh: t.kenh, hienThi: t.hienThi, grp: t.grp, badge: '', note: '',
+            order: t.order, dt: 0, tgt: 0, ads: 0, don: 0, t8: 0, ads8: 0, don8: 0, coDt: false,
+            soThangDt: 0, soThangTgt: 0 });
+          const o = m.get(k);
+          if (t.badge && !o.badge) o.badge = t.badge;
+          if (t.note && !o.note) o.note = t.note;
+          if (o.order == null) o.order = t.order;
+          const dt = r && r.dt != null ? r.dt : null;
+          if (dt != null) { o.dt += dt; o.coDt = true; o.soThangDt++; }
+          if (t.tgt != null) { o.tgt += t.tgt; o.soThangTgt++; }
+          if (r && r.ads != null) o.ads += r.ads;
+          if (r && r.don != null) o.don += r.don;
+          if (dt != null) {
+            const t8 = Math.round(dt * (1 + (t.tt ?? 0) / 100));
+            o.t8 += t8;
+            o.ads8 += Math.round(t8 * (t.adsPctNext ?? 0) / 100);
+          }
+          if (t.donNext != null) o.don8 += t.donNext;
+          if (!o.grp && t.grp) o.grp = t.grp;
+        }
+      }
+      return m;
+    };
+
+    const gopNay = gopKenh(trongKy);
+    const gopTruoc = gopKenh(trongKyTruoc);
+    const cur = [...gopNay.values()]
+      .sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999) || (b.dt ?? 0) - (a.dt ?? 0));
     if (!cur.length) throw new Error(coCotTick
-      ? `Tháng ${M} chưa có kênh nào được tick "Lên báo cáo".`
-      : `Tháng ${M} chưa có kênh nào có Target hoặc doanh thu. Các tháng đang có số: ${months.join(', ')}`);
-    // Chưa điền "Thứ tự" thì xếp theo doanh thu giảm dần cho khỏi lộn xộn
-    cur.sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999) || (b.dt ?? 0) - (a.dt ?? 0));
+      ? `Khoảng ${K.nhan} chưa có kênh nào được tick "Lên báo cáo".`
+      : `Khoảng ${K.nhan} chưa có kênh nào có Target hoặc doanh thu.`);
 
     const warnings = [];
+
+    /* Xem gộp nhiều tháng mà chỉ vài tháng có Target thì % hoàn thành bị thổi lên:
+       doanh thu cộng đủ kỳ trong khi target chỉ cộng được vài tháng. Phải cảnh báo,
+       không thì đọc nhầm thành vượt chỉ tiêu. */
+    if (soThang > 1) {
+      const lechTgt = cur.filter(t => t.soThangTgt > 0 && t.soThangTgt < t.soThangDt);
+      if (lechTgt.length) warnings.push(
+        `${lechTgt.length} kênh có doanh thu nhiều tháng hơn số tháng đã điền Target `
+        + `(${lechTgt.slice(0, 5).map(t => `${t.hienThi || t.kenh}: doanh thu ${t.soThangDt} tháng / target ${t.soThangTgt} tháng`).join(' · ')}`
+        + `${lechTgt.length > 5 ? ` · và ${lechTgt.length - 5} kênh nữa` : ''}). `
+        + `Cột "% hoàn thành" của các kênh này đang cao hơn thực tế vì doanh thu cộng đủ kỳ `
+        + `còn target chỉ cộng được vài tháng — điền nốt Target rồi xem lại.`);
+      const khongTgt = cur.filter(t => t.soThangTgt === 0 && t.coDt);
+      if (khongTgt.length) warnings.push(
+        `${khongTgt.length} kênh chưa có Target tháng nào trong kỳ: `
+        + khongTgt.slice(0, 6).map(t => t.hienThi || t.kenh).join(', ')
+        + `${khongTgt.length > 6 ? `…(+${khongTgt.length - 6})` : ''}.`);
+    }
+
     const shops = cur.map(t => {
-      const now = rev.get(M + '|' + norm(t.kenh));
-      const before = rev.get(P + '|' + norm(t.kenh));
-      if (!now) warnings.push(`Không tìm thấy "${t.kenh}" tháng ${M} trong bảng doanh thu — kiểm tra tên kênh có khớp nhau không.`);
+      const truoc = gopTruoc.get(norm(t.kenh));
+      if (!t.coDt) warnings.push(`"${t.kenh}" ${K.nhan}: chưa có doanh thu trong bảng Kênh Bán Hàng.`);
 
-      const dt7 = now ? now.dt : null;
-      const dt6 = before ? before.dt : null;
-      if (now && dt7 == null) warnings.push(`"${t.kenh}" tháng ${M}: đã có dòng trong bảng doanh thu nhưng cột "Doanh Thu Kinh Doanh (số thực)" đang để trống.`);
-
-      const s = {
+      /* %TT và trần Ads của cả kỳ suy ngược từ tổng, không lấy trung bình cộng
+         các tháng — trung bình cộng sẽ sai khi doanh thu giữa các tháng lệch nhau. */
+      const dt7 = t.coDt ? t.dt : null;
+      const t8 = t.t8 || null;
+      const s2 = {
         name: t.hienThi || t.kenh,
-        // Nhóm: ưu tiên cột trong bảng Target → Nền Tảng ở bảng doanh thu → suy từ tên kênh
-        grp: t.grp ? grpOf(t.grp) : (now ? now.grp : grpOf(t.kenh)),
-        dt6,
+        grp: t.grp ? grpOf(t.grp) : grpOf(t.kenh),
+        dt6: truoc && truoc.coDt ? truoc.dt : null,
         dt7,
-        tgt7: t.tgt,
-        ads7: now ? now.ads : null,
-        don7: now ? now.don : null,
-        tt: t.tt ?? 0,
-        don8: t.donNext,
-        adsPct8: t.adsPctNext ?? 0,
+        tgt7: t.tgt || null,
+        ads7: t.ads || null,
+        don7: t.don || null,
+        tt: (dt7 && t8) ? (t8 / dt7 - 1) * 100 : 0,
+        don8: t.don8 || null,
+        adsPct8: (t8 && t.ads8) ? t.ads8 / t8 * 100 : 0,
         note: t.note || '',
       };
-      if (t.badge) s.badge = { cls: /🔥|top|hot/i.test(t.badge) ? 'fire' : 'ok', txt: t.badge };
-      return s;
+      if (t.badge) s2.badge = { cls: /🔥|top|hot/i.test(t.badge) ? 'fire' : 'ok', txt: t.badge };
+      return s2;
     });
 
     /* --- Nhận xét (bảng phụ, tuỳ chọn) --- */
@@ -263,7 +353,7 @@ module.exports = async (req, res) => {
             tone: toneOf(pick(r, 'Mức độ', 'Muc do', 'Tone', 'Loại')),
             text: txt(pick(r, 'Nội dung', 'Noi dung', 'Nhận xét', 'Text')),
           }))
-          .filter(c => c.text && (!c.month || c.month === M))
+          .filter(c => c.text && (!c.month || trongKy.includes(c.month)))
           .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
           .map(({ tone, text }) => ({ tone, text }));
       } catch (e) {
@@ -275,12 +365,19 @@ module.exports = async (req, res) => {
     const p2 = n => String(n).padStart(2, '0');
     const stamp = `${p2(vn.getUTCDate())}/${p2(vn.getUTCMonth() + 1)}/${vn.getUTCFullYear()} ${p2(vn.getUTCHours())}:${p2(vn.getUTCMinutes())}`;
 
+    /* Nhãn ba cột thời gian. Một tháng thì vẫn là T6 / T7 / 8/2026 như cũ;
+       nhiều tháng thì đổi sang nhãn của kỳ để tiêu đề cột khỏi vô nghĩa. */
+    const nhanKyTruoc = soThang === 1 ? label(shiftMonth(trongKy[0], -1)) : 'kỳ trước';
+    const nhanKyNay   = soThang === 1 ? label(M) : K.ngan;
+    const nhanKySau   = soThang === 1 ? title(shiftMonth(M, 1)) : 'kỳ tới';
+
     const data = {
-      month: title(N),
-      prevMonth: label(M),
-      prev2Month: label(P),
+      month: nhanKySau,
+      nhanM: soThang === 1 ? null : 'kỳ tới',
+      prevMonth: nhanKyNay,
+      prev2Month: nhanKyTruoc,
       sub: `Số liệu tự động đồng bộ từ Lark — Base TỔNG QUAN DOANH SỐ 2026 · Cập nhật ${stamp} (giờ VN) · Đơn vị: đồng (VNĐ)`,
-      footer: `Người lập: ${process.env.REPORT_AUTHOR || 'Nguyễn Đình Toàn'} · Doanh thu / số đơn / ngân sách ADS lấy từ bảng "Báo Cáo Doanh Thu - Kênh Bán Hàng"; target và kế hoạch lấy từ bảng "Target & Kế hoạch" · Đồng bộ lúc ${stamp}`,
+      footer: `Người lập: ${process.env.REPORT_AUTHOR || 'Nguyễn Đình Toàn'} · ${K.nhan}${soThang > 1 ? ` — cộng dồn ${soThang} tháng ${nhanThang(trongKy[0])}–${nhanThang(M)}` : ''} · Doanh thu / số đơn / ngân sách ADS lấy từ bảng "Báo Cáo Doanh Thu - Kênh Bán Hàng" · Đồng bộ lúc ${stamp}`,
       shops,
       comments,
     };
@@ -299,7 +396,9 @@ module.exports = async (req, res) => {
     // Có người dùng riêng nên không dùng cache dùng chung của Vercel
     res.setHeader('Cache-Control', 'private, no-store');
     res.status(200).json({
-      ok: true, month: M, months, warnings, an,
+      ok: true, ky, moc, month: M, months, warnings, an,
+      kyInfo: { nhan: K.nhan, ngan: K.ngan, phu: K.phu, tu: trongKy[0], den: M, soThang,
+                coKyTruoc: trongKyTruoc.some(m => months.includes(m)) },
       toi: { email: toi.email, ten: toi.ten, quyen: toi.quyen },
       syncedAt: new Date().toISOString(), data,
     });

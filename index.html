@@ -105,6 +105,23 @@
 
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
   select.btn{padding:8px 12px}
+  .filterbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#fff;
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px}
+  .filterbar .lb{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .segs{display:flex;background:#F5F5F4;border-radius:9px;padding:3px;gap:2px}
+  .segs button{font-family:inherit;font-size:13px;font-weight:700;padding:8px 15px;border:none;
+    border-radius:7px;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap}
+  .segs button:hover{color:var(--ink)}
+  .segs button.on{background:var(--red);color:#fff;box-shadow:0 1px 3px rgba(200,16,46,.3)}
+  .filterbar select{font-family:inherit;font-size:13.5px;font-weight:600;padding:9px 12px;
+    border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  .filterbar .sep{color:var(--muted);font-weight:700}
+  .kyinfo{margin-left:auto;font-size:12.5px;color:var(--muted);font-weight:600;text-align:right}
+  .kyinfo b{color:var(--ink)}
+  .theme-dark .filterbar{background:#171514;border-color:#2A2724}
+  .theme-dark .segs{background:#26231F}
+  .theme-dark .filterbar select{background:#1B1918;border-color:#3A3633;color:#F2EFEA}
+
   .syncbar{font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:8px;margin:0 0 16px;
     border:1px solid var(--line);background:#fff;color:var(--muted)}
   .syncbar.loading{border-color:#D6D3D1}
@@ -282,6 +299,12 @@
     .kpi .v{font-size:18px}
 
     /* Nút bấm to hơn cho vừa ngón tay */
+    .filterbar{padding:11px 12px;gap:9px}
+    .segs{width:100%;overflow-x:auto;scrollbar-width:none}
+    .segs::-webkit-scrollbar{display:none}
+    .segs button{font-size:12.5px;padding:8px 12px}
+    .filterbar select{flex:1;min-width:0;font-size:13px}
+    .kyinfo{margin-left:0;text-align:left;width:100%}
     .toolbar{gap:8px}
     .btn,select.btn{font-size:13.5px;padding:11px 15px}
     .editnote{font-size:11.5px;line-height:1.5}
@@ -375,12 +398,27 @@
 
   <div class="toolbar">
     <button class="btn primary" id="btnSync">🔄 Đồng bộ từ Lark</button>
-    <select class="btn" id="selMonth" style="display:none" title="Chọn tháng đã chốt để xem lại báo cáo"></select>
     <button class="btn" id="btnEdit">✏️ Nhập số liệu</button>
     <button class="btn" id="btnCopy">📋 Sao chép dữ liệu</button>
     <button class="btn" id="btnPaste">📥 Dán dữ liệu tháng trước</button>
     <button class="btn" id="btnTheme">🎨 Giao diện: Executive Dark</button>
     <span class="editnote" id="editHint">Chế độ xem — số liệu tự lấy từ Lark. Bấm "Nhập số liệu" nếu cần sửa tay (chỉ tạm thời, không ghi ngược về Lark).</span>
+  </div>
+
+  <div class="filterbar">
+    <span class="lb">Kỳ xem</span>
+    <div class="segs" id="segKy">
+      <button data-ky="thang" class="on">Tháng</button>
+      <button data-ky="quy">Quý</button>
+      <button data-ky="3thang">3 tháng</button>
+      <button data-ky="nam">Cả năm</button>
+      <button data-ky="tuychon">Tự chọn</button>
+    </div>
+    <select id="selMoc"></select>
+    <span id="rangeWrap" style="display:none">
+      <select id="selTu"></select> <span class="sep">→</span> <select id="selDen"></select>
+    </span>
+    <span class="kyinfo" id="kyInfo"></span>
   </div>
 
   <div class="syncbar loading" id="syncBar">⏳ Đang lấy số liệu từ Lark Base…</div>
@@ -542,11 +580,11 @@ function render(){
   const aggs = {}; GROUPS.forEach(g => aggs[g.key] = calcAgg(shops.filter(s=>s.grp===g.key), g.label));
   const grand = calcAgg(shops, 'TỔNG HỆ THỐNG');
 
-  $('titleMonth').innerHTML = AN.target
+  $('titleMonth').innerHTML = DATA.tieuDe ? '· ' + DATA.tieuDe : AN.target
     ? '· BÁO CÁO DOANH SỐ THÁNG ' + DATA.prevMonth.replace('T','') + '/' + DATA.month.split('/')[1]
     : '· TARGET DOANH SỐ THÁNG ' + DATA.month;
   /* ===== Nhãn tự động theo tháng (nguồn duy nhất: DATA.month/prevMonth/prev2Month) ===== */
-  const M  = 'T' + DATA.month.split('/')[0];   // tháng target, vd 'T8'
+  const M  = DATA.nhanM || ('T' + DATA.month.split('/')[0]);   // 'T8' khi xem 1 tháng, 'kỳ tới' khi gộp nhiều tháng
   const P  = DATA.prevMonth;                    // tháng vừa chốt, vd 'T7'
   const P2 = DATA.prev2Month;                   // tháng trước nữa, vd 'T6'
   $('theadRow').innerHTML =
@@ -765,24 +803,40 @@ function setSync(cls, msg){
   el.textContent = msg;
 }
 
-function buildMonthSelect(months, current){
-  const sel = $('selMonth');
-  if(!months || months.length < 2){ sel.style.display = 'none'; return; }
-  sel.innerHTML = months.slice().reverse().map(m => {
-    const [y, mm] = m.split('-');
-    return `<option value="${m}"${m===current?' selected':''}>Chốt T${Number(mm)}/${y}</option>`;
-  }).join('');
-  sel.style.display = '';
+/* ===== Bộ lọc kỳ: tháng / quý / 3 tháng / cả năm / tự chọn ===== */
+let KY = 'thang';
+const nhanThangNgan = k => { const [y,m] = k.split('-'); return `T${Number(m)}/${y}`; };
+
+function nạpChonThang(months, moc){
+  if(!months || !months.length) return;
+  const nguoc = months.slice().reverse().map(m => `<option value="${m}">${nhanThangNgan(m)}</option>`).join('');
+  const xuoi  = months.map(m => `<option value="${m}">${nhanThangNgan(m)}</option>`).join('');
+  $('selMoc').innerHTML = nguoc; $('selMoc').value = moc;
+  if(!$('selTu').innerHTML){
+    $('selTu').innerHTML = xuoi; $('selDen').innerHTML = xuoi;
+    $('selTu').value = months[0]; $('selDen').value = months[months.length-1];
+  }
+  capNhatOChon();
+}
+function capNhatOChon(){
+  const tc = KY === 'tuychon';
+  $('selMoc').style.display = tc ? 'none' : '';
+  $('rangeWrap').style.display = tc ? '' : 'none';
+}
+function truyVanKy(){
+  const p = new URLSearchParams(); p.set('ky', KY);
+  if(KY === 'tuychon'){ p.set('tu', $('selTu').value); p.set('den', $('selDen').value); }
+  else if($('selMoc').value) p.set('month', $('selMoc').value);
+  return p.toString();
 }
 
-async function syncFromLark(month){
+async function syncFromLark(){
   if(syncing) return;
   syncing = true;
   $('btnSync').disabled = true;
   setSync('loading', '⏳ Đang lấy số liệu từ Lark Base…');
   try{
-    const url = '/api/doanh-so' + (month ? ('?month=' + encodeURIComponent(month)) : '');
-    const r = await fetch(url, {cache:'no-store'});
+    const r = await fetch('/api/doanh-so?' + truyVanKy(), {cache:'no-store'});
     const j = await r.json().catch(() => ({ok:false, error:'HTTP ' + r.status}));
     if(r.status === 401){ return khoaLai('Phiên đăng nhập đã hết hạn', 'Đăng nhập lại để tiếp tục xem báo cáo.', true); }
     if(r.status === 403){
@@ -792,12 +846,20 @@ async function syncFromLark(month){
     if(!r.ok) throw new Error('HTTP ' + r.status);
     if(!j.ok) throw new Error(j.error || 'Lỗi không xác định');
     apDungQuyen(j.an);
+
+    const ki = j.kyInfo || {};
     DATA = j.data;
-    buildMonthSelect(j.months, j.month);
+    DATA.tieuDe = ki.soThang > 1
+      ? (AN.target ? 'BÁO CÁO DOANH SỐ · ' + ki.nhan.toUpperCase() : 'TARGET DOANH SỐ · ' + ki.nhan.toUpperCase())
+      : null;
+    nạpChonThang(j.months, j.moc);
+    $('kyInfo').innerHTML = `Đang xem <b>${ki.nhan || ''}</b>`
+      + (ki.soThang > 1 ? ` · gộp <b>${ki.soThang} tháng</b> (${nhanThangNgan(ki.tu)} – ${nhanThangNgan(ki.den)})` : '');
+
     if(editMode) loadMeta();
     render();
     const t = new Date(j.syncedAt).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit', year:'numeric'});
-    const base = '✅ Số liệu lấy trực tiếp từ Lark · chốt tháng ' + j.month + ' · đồng bộ lúc ' + t;
+    const base = '✅ Số liệu lấy trực tiếp từ Lark · ' + (ki.nhan || '') + (ki.phu ? ' ('+ki.phu+')' : '') + ' · đồng bộ lúc ' + t;
     const w = j.warnings || [];
     if(w.length){
       const el = $('syncBar');
@@ -821,8 +883,15 @@ async function syncFromLark(month){
   }
 }
 
-$('btnSync').addEventListener('click', () => syncFromLark($('selMonth').value || ''));
-$('selMonth').addEventListener('change', e => syncFromLark(e.target.value));
+$('segKy').addEventListener('click', e => {
+  const b = e.target.closest('button[data-ky]');
+  if(!b) return;
+  [...$('segKy').children].forEach(x => x.classList.toggle('on', x === b));
+  KY = b.dataset.ky; capNhatOChon(); syncFromLark();
+});
+['selMoc','selTu','selDen'].forEach(id => $(id).addEventListener('change', () => syncFromLark()));
+
+$('btnSync').addEventListener('click', () => syncFromLark());
 
 /* =====================================================================
    ĐĂNG NHẬP & PHÂN QUYỀN
@@ -933,7 +1002,13 @@ async function khoiDong(){
 
   moKhoa();
   render();
-  syncFromLark(new URLSearchParams(location.search).get('month') || '');
+  const qs = new URLSearchParams(location.search);
+  if(['thang','quy','3thang','nam'].includes(qs.get('ky'))){
+    KY = qs.get('ky');
+    [...$('segKy').children].forEach(x => x.classList.toggle('on', x.dataset.ky === KY));
+    capNhatOChon();
+  }
+  syncFromLark();
 }
 
 khoiDong();
