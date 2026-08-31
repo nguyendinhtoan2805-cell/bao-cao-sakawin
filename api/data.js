@@ -1,80 +1,101 @@
 /* =====================================================================
    /api/data — Vercel Serverless Function
-   Đọc số liệu từ LARK BASE và trả về đúng định dạng DATA của web báo cáo.
+   Đọc số liệu từ Base "TỔNG QUAN DOANH SỐ 2026 - SAKAWIN" trên Lark
+   và trả về đúng định dạng DATA mà trang báo cáo đang dùng.
 
-   BIẾN MÔI TRƯỜNG cần khai trên Vercel (Settings → Environment Variables):
-     LARK_APP_ID        vd: cli_a1b2c3d4e5f6
-     LARK_APP_SECRET    secret của Lark App
-     LARK_APP_TOKEN     mã Base, lấy trong URL: .../base/<APP_TOKEN>?table=...
-     LARK_TABLE_SHOPS   table_id bảng "Doanh so theo thang" (tblXXXX trong URL)
-     LARK_TABLE_NOTES   (tuỳ chọn) table_id bảng "Nhan xet"
-     LARK_HOST          (tuỳ chọn) mặc định https://open.larksuite.com
-                        Nếu dùng Feishu (bản Trung Quốc): https://open.feishu.cn
-     REPORT_AUTHOR      (tuỳ chọn) tên người lập ghi ở chân trang
+   ĐỌC 2 BẢNG:
+   1) "Báo Cáo Doanh Thu - Kênh Bán Hàng"  (bảng có sẵn, KHÔNG sửa gì)
+      → Doanh thu · Số đơn · Ngân sách ADS · Nền tảng
+   2) "Target & Kế hoạch"                   (bảng tạo mới)
+      → Target · 3 cột kế hoạch tháng sau · quyết định shop nào lên báo cáo,
+        tên hiển thị và thứ tự dòng
 
-   Gọi thử: /api/data            → tháng mới nhất có trong bảng
-            /api/data?month=2026-07  → chốt số tháng 7, lên kế hoạch tháng 8
+   BIẾN MÔI TRƯỜNG trên Vercel (Settings → Environment Variables):
+     LARK_APP_ID          cli_xxxxxxxx
+     LARK_APP_SECRET      secret của Lark App
+     LARK_APP_TOKEN       mã Base, lấy trong URL: .../base/<APP_TOKEN>?table=...
+     LARK_TABLE_REVENUE   table_id bảng "Báo Cáo Doanh Thu - Kênh Bán Hàng"
+     LARK_TABLE_TARGET    table_id bảng "Target & Kế hoạch"
+     LARK_TABLE_NOTES     (tuỳ chọn) table_id bảng "Nhận xét"
+     LARK_TABLE_REVENUE2  (tuỳ chọn) table_id bảng "Báo Cáo Chi Tiết - 2026".
+                          CHỈ dùng để vá lỗ hổng: tháng nào Sheet 1 chưa nhập
+                          doanh thu thì lấy tạm "Doanh Thu Thuần" của sheet này,
+                          và ghi rõ cảnh báo trong kết quả trả về.
+     LARK_HOST            (tuỳ chọn) mặc định https://open.larksuite.com
+     REPORT_YEAR          (tuỳ chọn) mặc định 2026 — dùng khi cột Tháng chỉ ghi 1..12
+     REPORT_AUTHOR        (tuỳ chọn) tên người lập ở chân trang
+
+   Gọi thử:  /api/data              → tháng chốt mới nhất có target
+             /api/data?month=7      → chốt T7, lên kế hoạch T8
+             /api/data?month=2026-07
 ===================================================================== */
 
 const HOST = (process.env.LARK_HOST || 'https://open.larksuite.com').replace(/\/$/, '');
+const YEAR = Number(process.env.REPORT_YEAR) || 2026;
 
-/* ---------- Helpers đọc giá trị từ Lark Base ---------- */
+/* ---------- Đọc giá trị thô từ Lark Base ---------- */
 const txt = v => {
   if (v == null) return '';
   if (Array.isArray(v)) return v.map(x => (x && typeof x === 'object') ? (x.text ?? x.name ?? '') : String(x)).join('').trim();
-  if (typeof v === 'object') return String(v.text ?? v.name ?? v.value ?? '').trim();
+  if (typeof v === 'object') {
+    // Cột công thức trả về {type, value}; cột lựa chọn trả về {text}/{name}
+    if (Array.isArray(v.value)) return txt(v.value);
+    return String(v.text ?? v.name ?? v.value ?? '').trim();
+  }
   return String(v).trim();
 };
 
 const num = v => {
   if (v == null || v === '') return null;
   if (typeof v === 'number') return v;
+  if (typeof v === 'object' && !Array.isArray(v) && typeof v.value === 'number') return v.value;
   const s = txt(v).replace(/\s/g, '').replace(/[^\d.,-]/g, '');
   if (!s || s === '-') return null;
   const sep = Math.max(s.lastIndexOf('.'), s.lastIndexOf(','));
   if (sep === -1) return Number(s);
-  // ".123" ở cuối => dấu phân nhóm nghìn (1.234.567). Ngược lại là dấu thập phân (6,5)
+  // đúng 3 chữ số sau dấu cuối => dấu phân nhóm nghìn (1.234.567)
   const decimals = s.length - sep - 1;
   if (decimals === 3) return Number(s.replace(/[.,]/g, ''));
   return Number(s.slice(0, sep).replace(/[.,]/g, '') + '.' + s.slice(sep + 1));
 };
 
-/* "2026-08" | "8/2026" | date field (epoch ms) → "2026-08" */
-const ym = v => {
-  if (v == null || v === '') return '';
-  if (typeof v === 'number' && v > 1e11) {
-    const d = new Date(v);
-    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-  }
-  const s = txt(v);
-  let m = s.match(/(\d{4})[-/.](\d{1,2})/);              // 2026-08
-  if (m) return `${m[1]}-${String(+m[2]).padStart(2, '0')}`;
-  m = s.match(/(?:T|tháng)?\s*(\d{1,2})[-/.](\d{4})/i);  // 8/2026, T8/2026
-  if (m) return `${m[2]}-${String(+m[1]).padStart(2, '0')}`;
-  return s;
-};
+/* So khớp tên shop giữa 2 bảng: bỏ dấu, bỏ khoảng trắng, không phân biệt hoa thường */
+const norm = s => txt(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/gi, 'd').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-const shiftMonth = (key, delta) => {
+/* Cột Tháng ở Base chỉ ghi số 1..12 → ghép với REPORT_YEAR (hoặc cột Năm nếu có) */
+const monthKey = (thang, nam) => {
+  const raw = txt(thang);
+  const direct = raw.match(/^(\d{4})[-/](\d{1,2})$/);          // đã ghi sẵn 2026-07
+  if (direct) return `${direct[1]}-${String(+direct[2]).padStart(2, '0')}`;
+  const m = num(thang);
+  if (!m || m < 1 || m > 12) return '';
+  const y = num(nam) || YEAR;
+  return `${y}-${String(m).padStart(2, '0')}`;
+};
+const shiftMonth = (key, d) => {
   const [y, m] = key.split('-').map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  const t = new Date(Date.UTC(y, m - 1 + d, 1));
+  return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}`;
 };
-const label = key => 'T' + Number(key.split('-')[1]);              // 2026-08 → T8
-const title = key => `${Number(key.split('-')[1])}/${key.split('-')[0]}`; // → 8/2026
+const label = k => 'T' + Number(k.split('-')[1]);
+const title = k => `${Number(k.split('-')[1])}/${k.split('-')[0]}`;
 
-/* Nhóm kênh: chấp nhận nhiều cách gõ, quy về 4 mã của web */
-const GRP = { shopee: 'shopee', tiktok: 'tiktok', 'tik tok': 'tiktok', 'kênh khác': 'khac', 'kenh khac': 'khac', khac: 'khac', khác: 'khac', offline: 'off', off: 'off', 'aeon': 'off', 'go!': 'off' };
+/* Nền Tảng trên Lark → 4 khối của báo cáo */
 const grpOf = v => {
-  const k = txt(v).toLowerCase().trim();
-  if (GRP[k]) return GRP[k];
+  const k = norm(v);
   if (k.includes('shopee')) return 'shopee';
-  if (k.includes('tiktok') || k.includes('tik tok')) return 'tiktok';
-  if (k.includes('off') || k.includes('aeon') || k.includes('go')) return 'off';
-  return 'khac';
+  if (k.includes('tiktok')) return 'tiktok';
+  if (k.includes('aeon') || k.startsWith('go') || k.includes('showroom')) return 'off';
+  return 'khac';   // Facebook, Đơn Ngoài, Sỉ...
 };
 
-const TONE = { 'tốt': 'good', tot: 'good', good: 'good', 'tích cực': 'good', 'cảnh báo': 'warn', 'canh bao': 'warn', warn: 'warn', 'rủi ro': 'warn' };
-const toneOf = v => TONE[txt(v).toLowerCase().trim()] || '';
+const toneOf = v => {
+  const k = norm(v);
+  if (k.startsWith('tot') || k === 'good' || k.includes('tichcuc')) return 'good';
+  if (k.includes('canhbao') || k === 'warn' || k.includes('ruiro')) return 'warn';
+  return '';
+};
 
 /* ---------- Lark API ---------- */
 async function larkToken() {
@@ -88,7 +109,7 @@ async function larkToken() {
   return j.tenant_access_token;
 }
 
-async function readTable(token, tableId) {
+async function readTable(token, tableId, tenGoi) {
   const out = [];
   let pageToken = '';
   for (let guard = 0; guard < 20; guard++) {
@@ -97,7 +118,7 @@ async function readTable(token, tableId) {
     if (pageToken) url.searchParams.set('page_token', pageToken);
     const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     const j = await r.json();
-    if (j.code !== 0) throw new Error(`Đọc bảng ${tableId} thất bại (code ${j.code}): ${j.msg}`);
+    if (j.code !== 0) throw new Error(`Đọc bảng ${tenGoi} thất bại (code ${j.code}): ${j.msg}`);
     for (const it of (j.data.items || [])) out.push(it.fields || {});
     if (!j.data.has_more) break;
     pageToken = j.data.page_token;
@@ -105,13 +126,13 @@ async function readTable(token, tableId) {
   return out;
 }
 
-/* Lấy field theo nhiều tên gọi có thể có (phòng khi cột bị đổi tên nhẹ) */
+/* Lấy field theo nhiều tên gọi — chịu được việc cột bị đổi tên nhẹ hoặc thêm/bớt dấu */
 const pick = (row, ...names) => {
   for (const n of names) if (row[n] !== undefined) return row[n];
   const keys = Object.keys(row);
   for (const n of names) {
-    const k = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === n.toLowerCase().replace(/\s+/g, ''));
-    if (k) return row[k];
+    const hit = keys.find(k => norm(k) === norm(n));
+    if (hit) return row[hit];
   }
   return undefined;
 };
@@ -119,70 +140,113 @@ const pick = (row, ...names) => {
 /* ---------- Handler ---------- */
 module.exports = async (req, res) => {
   try {
-    for (const k of ['LARK_APP_ID', 'LARK_APP_SECRET', 'LARK_APP_TOKEN', 'LARK_TABLE_SHOPS']) {
+    for (const k of ['LARK_APP_ID', 'LARK_APP_SECRET', 'LARK_APP_TOKEN', 'LARK_TABLE_REVENUE', 'LARK_TABLE_TARGET']) {
       if (!process.env[k]) throw new Error(`Thiếu biến môi trường ${k} trên Vercel.`);
     }
 
     const token = await larkToken();
-    const rows = await readTable(token, process.env.LARK_TABLE_SHOPS);
+    const [revRaw, tgtRaw, rev2Raw] = await Promise.all([
+      readTable(token, process.env.LARK_TABLE_REVENUE, 'Báo Cáo Doanh Thu - Kênh Bán Hàng'),
+      readTable(token, process.env.LARK_TABLE_TARGET, 'Target & Kế hoạch'),
+      process.env.LARK_TABLE_REVENUE2
+        ? readTable(token, process.env.LARK_TABLE_REVENUE2, 'Báo Cáo Chi Tiết - 2026')
+        : Promise.resolve([]),
+    ]);
 
-    /* Chuẩn hoá từng dòng: 1 dòng = 1 shop × 1 tháng ĐÃ CHỐT
-       (cột kế hoạch trên dòng đó là kế hoạch cho tháng liền sau) */
-    const recs = rows.map(r => ({
-      month: ym(pick(r, 'Tháng', 'Thang', 'Month')),
-      name: txt(pick(r, 'Shop', 'Tên shop', 'Kênh', 'Điểm bán')),
-      grp: grpOf(pick(r, 'Nhóm', 'Nhom', 'Nhóm kênh', 'Group')),
-      dt: num(pick(r, 'Doanh thu', 'Doanh số', 'Revenue')),
+    /* --- Bảng doanh thu: khoá theo (tháng, tên kênh đã chuẩn hoá) --- */
+    const rev = new Map();
+    for (const r of revRaw) {
+      const mk = monthKey(pick(r, 'Tháng', 'Thang', 'Month'), pick(r, 'Năm', 'Nam', 'Year'));
+      const kenh = txt(pick(r, 'Kênh Kinh Doanh', 'Kenh Kinh Doanh', 'Kênh', 'Shop'));
+      if (!mk || !kenh) continue;
+      rev.set(mk + '|' + norm(kenh), {
+        dt: num(pick(r, 'Doanh Thu Kinh Doanh (số thực)', 'Doanh Thu Kinh Doanh', 'Doanh Thu', 'Doanh thu')),
+        don: num(pick(r, 'Số Lượng Đơn Hàng', 'So Luong Don Hang', 'Số đơn', 'Số Đơn')),
+        ads: num(pick(r, 'Ngân Sách ADS', 'Ngan Sach ADS', 'Chi phí Ads', 'Ads')),
+        grp: grpOf(pick(r, 'Nền Tảng', 'Nen Tang', 'Nhóm', 'Platform')),
+      });
+    }
+    if (!rev.size) throw new Error('Bảng doanh thu không có dòng nào hợp lệ (cần cột Tháng + Kênh Kinh Doanh).');
+
+    /* --- Doanh thu dự phòng từ "Báo Cáo Chi Tiết - 2026" (nếu có khai biến) --- */
+    const rev2 = new Map();
+    for (const r of rev2Raw) {
+      const mk = monthKey(pick(r, 'Tháng', 'Thang', 'Month'), pick(r, 'Năm', 'Nam', 'Year'));
+      const shop = txt(pick(r, 'Shop', 'Kênh Kinh Doanh', 'Kênh'));
+      if (!mk || !shop) continue;
+      const dt = num(pick(r, 'Doanh Thu Thuần', 'Doanh Thu Thuan', 'Doanh Thu'));
+      if (dt != null) rev2.set(mk + '|' + norm(shop), dt);
+    }
+
+    /* --- Bảng target: quyết định shop nào lên báo cáo, tên hiển thị, thứ tự --- */
+    const tgts = tgtRaw.map(r => ({
+      month: monthKey(pick(r, 'Tháng', 'Thang', 'Month'), pick(r, 'Năm', 'Nam', 'Year')),
+      kenh: txt(pick(r, 'Kênh Kinh Doanh', 'Kenh Kinh Doanh', 'Kênh', 'Shop')),
+      hienThi: txt(pick(r, 'Tên hiển thị', 'Ten hien thi', 'Tên trên báo cáo')),
       tgt: num(pick(r, 'Target', 'Chỉ tiêu', 'Mục tiêu')),
-      ads: num(pick(r, 'Chi phí Ads', 'Chi phi Ads', 'Ads', 'Chi phí quảng cáo')),
-      don: num(pick(r, 'Số đơn', 'So don', 'Đơn', 'Orders')),
-      tt: num(pick(r, '% tăng trưởng KH', '% tang truong KH', 'Tăng trưởng KH', '%TT KH')),
+      tt: num(pick(r, '% tăng trưởng KH', 'Tăng trưởng KH', '%TT KH')),
       donNext: num(pick(r, 'Số đơn KH', 'So don KH', 'Đơn KH')),
-      adsPctNext: num(pick(r, 'Trần Ads % KH', 'Tran Ads % KH', 'Ads % KH', 'Trần Ads%')),
+      adsPctNext: num(pick(r, 'Trần Ads % KH', 'Tran Ads % KH', 'Ads % KH')),
       badge: txt(pick(r, 'Nhãn', 'Nhan', 'Badge')),
       note: txt(pick(r, 'Ghi chú', 'Ghi chu', 'Note')),
       order: num(pick(r, 'Thứ tự', 'STT', 'Order')),
-    })).filter(x => x.month && x.name);
+      grp: txt(pick(r, 'Nhóm', 'Nhom', 'Nền Tảng')),
+    })).filter(t => t.month && t.kenh);
 
-    if (!recs.length) throw new Error('Bảng Lark chưa có dòng nào hợp lệ (cần tối thiểu cột Tháng + Shop).');
+    if (!tgts.length) throw new Error('Bảng "Target & Kế hoạch" chưa có dòng nào hợp lệ (cần cột Tháng + Kênh Kinh Doanh).');
 
-    const months = [...new Set(recs.map(r => r.month))].sort();
-    const M = ym(req.query && req.query.month) || months[months.length - 1]; // tháng vừa chốt
-    const P = shiftMonth(M, -1);                                             // tháng trước nữa
-    const N = shiftMonth(M, 1);                                              // tháng target
+    const months = [...new Set(tgts.map(t => t.month))].sort();
+    const asked = txt(req.query && req.query.month);
+    const M = (asked ? monthKey(asked) : '') || months[months.length - 1];
+    const P = shiftMonth(M, -1);
+    const N = shiftMonth(M, 1);
 
-    const cur = recs.filter(r => r.month === M);
-    if (!cur.length) throw new Error(`Không có dòng nào cho tháng ${M}. Các tháng đang có: ${months.join(', ')}`);
-    const prevByName = new Map(recs.filter(r => r.month === P).map(r => [r.name, r]));
+    const cur = tgts.filter(t => t.month === M);
+    if (!cur.length) throw new Error(`Bảng Target chưa có dòng nào cho tháng ${M}. Các tháng đang có: ${months.join(', ')}`);
+    cur.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 
-    cur.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || (b.dt ?? 0) - (a.dt ?? 0));
+    const warnings = [];
+    const shops = cur.map(t => {
+      const key = M + '|' + norm(t.kenh);
+      const now = rev.get(key);
+      const before = rev.get(P + '|' + norm(t.kenh));
+      if (!now) warnings.push(`Không tìm thấy "${t.kenh}" tháng ${M} trong bảng doanh thu — kiểm tra tên kênh có khớp nhau không.`);
 
-    const shops = cur.map(r => {
+      // Sheet 1 chưa nhập doanh thu → vá tạm bằng Doanh Thu Thuần của bảng chi tiết
+      let dt7 = now ? now.dt : null;
+      if (dt7 == null && rev2.has(key)) {
+        dt7 = rev2.get(key);
+        warnings.push(`"${t.kenh}" tháng ${M}: bảng Kênh Bán Hàng chưa có doanh thu, đang tạm dùng Doanh Thu Thuần của bảng Báo Cáo Chi Tiết.`);
+      }
+      let dt6 = before ? before.dt : null;
+      if (dt6 == null && rev2.has(P + '|' + norm(t.kenh))) dt6 = rev2.get(P + '|' + norm(t.kenh));
+
       const s = {
-        name: r.name,
-        grp: r.grp,
-        dt6: prevByName.has(r.name) ? prevByName.get(r.name).dt : null,
-        dt7: r.dt,
-        tgt7: r.tgt,
-        ads7: r.ads,
-        don7: r.don,
-        tt: r.tt ?? 0,
-        don8: r.donNext,
-        adsPct8: r.adsPctNext ?? 0,
-        note: r.note || '',
+        name: t.hienThi || t.kenh,
+        // Nhóm: ưu tiên cột trong bảng Target → Nền Tảng ở bảng doanh thu → suy từ tên kênh
+        grp: t.grp ? grpOf(t.grp) : (now ? now.grp : grpOf(t.kenh)),
+        dt6,
+        dt7,
+        tgt7: t.tgt,
+        ads7: now ? now.ads : null,
+        don7: now ? now.don : null,
+        tt: t.tt ?? 0,
+        don8: t.donNext,
+        adsPct8: t.adsPctNext ?? 0,
+        note: t.note || '',
       };
-      if (r.badge) s.badge = { cls: /🔥|top|hot/i.test(r.badge) ? 'fire' : 'ok', txt: r.badge };
+      if (t.badge) s.badge = { cls: /🔥|top|hot/i.test(t.badge) ? 'fire' : 'ok', txt: t.badge };
       return s;
     });
 
-    /* Nhận xét (bảng phụ, tuỳ chọn) */
+    /* --- Nhận xét (bảng phụ, tuỳ chọn) --- */
     let comments = [];
     if (process.env.LARK_TABLE_NOTES) {
       try {
-        const nrows = await readTable(token, process.env.LARK_TABLE_NOTES);
+        const nrows = await readTable(token, process.env.LARK_TABLE_NOTES, 'Nhận xét');
         comments = nrows
           .map(r => ({
-            month: ym(pick(r, 'Tháng', 'Thang', 'Month')),
+            month: monthKey(pick(r, 'Tháng', 'Thang', 'Month'), pick(r, 'Năm', 'Nam', 'Year')),
             order: num(pick(r, 'Thứ tự', 'STT', 'Order')),
             tone: toneOf(pick(r, 'Mức độ', 'Muc do', 'Tone', 'Loại')),
             text: txt(pick(r, 'Nội dung', 'Noi dung', 'Nhận xét', 'Text')),
@@ -190,24 +254,27 @@ module.exports = async (req, res) => {
           .filter(c => c.text && (!c.month || c.month === M))
           .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
           .map(({ tone, text }) => ({ tone, text }));
-      } catch (e) { /* thiếu bảng nhận xét thì bỏ qua, không làm hỏng báo cáo */ }
+      } catch (e) {
+        warnings.push('Không đọc được bảng Nhận xét: ' + e.message);
+      }
     }
 
-    const now = new Date(Date.now() + 7 * 3600 * 1000); // giờ VN
-    const stamp = `${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${now.getUTCFullYear()} ${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`;
+    const vn = new Date(Date.now() + 7 * 3600 * 1000);
+    const p2 = n => String(n).padStart(2, '0');
+    const stamp = `${p2(vn.getUTCDate())}/${p2(vn.getUTCMonth() + 1)}/${vn.getUTCFullYear()} ${p2(vn.getUTCHours())}:${p2(vn.getUTCMinutes())}`;
 
     const data = {
       month: title(N),
       prevMonth: label(M),
       prev2Month: label(P),
-      sub: `Số liệu tự động đồng bộ từ Lark Base · Cập nhật ${stamp} (giờ VN) · Đơn vị: đồng (VNĐ)`,
-      footer: `Người lập: ${process.env.REPORT_AUTHOR || 'Nguyễn Đình Toàn'} · Số liệu lấy trực tiếp từ Lark Base lúc ${stamp} · Nguồn: Lark Base — Doanh số theo tháng`,
+      sub: `Số liệu tự động đồng bộ từ Lark — Base TỔNG QUAN DOANH SỐ 2026 · Cập nhật ${stamp} (giờ VN) · Đơn vị: đồng (VNĐ)`,
+      footer: `Người lập: ${process.env.REPORT_AUTHOR || 'Nguyễn Đình Toàn'} · Doanh thu / số đơn / ngân sách ADS lấy từ bảng "Báo Cáo Doanh Thu - Kênh Bán Hàng"; target và kế hoạch lấy từ bảng "Target & Kế hoạch" · Đồng bộ lúc ${stamp}`,
       shops,
       comments,
     };
 
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=900');
-    res.status(200).json({ ok: true, month: M, months, syncedAt: new Date().toISOString(), data });
+    res.status(200).json({ ok: true, month: M, months, warnings, syncedAt: new Date().toISOString(), data });
   } catch (err) {
     // Không cache lỗi — sửa cấu hình xong là thấy kết quả ngay
     res.setHeader('Cache-Control', 'no-store');

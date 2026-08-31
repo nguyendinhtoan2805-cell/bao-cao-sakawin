@@ -34,9 +34,13 @@
   .syncbar.loading{border-color:#D6D3D1}
   .syncbar.ok{background:var(--green-tint);border-color:#BFE3CD;color:var(--green)}
   .syncbar.err{background:#FFF7ED;border-color:#FCD9A8;color:var(--amber)}
+  .syncbar.warn{background:#FFFBEB;border-color:#FDE8B8;color:var(--amber);cursor:pointer}
+  .syncbar ul{margin:8px 0 0 18px;font-weight:500;line-height:1.55}
+  .syncbar ul li{margin-bottom:3px}
   .theme-dark .syncbar{background:#171514;border-color:#2A2724;color:#A39D95}
   .theme-dark .syncbar.ok{background:#122019;border-color:#1F3A2A;color:#3DBE7B}
   .theme-dark .syncbar.err{background:#241C10;border-color:#4A3618;color:#E8B24A}
+  .theme-dark .syncbar.warn{background:#241C10;border-color:#4A3618;color:#E8B24A}
   .btn{font-family:inherit;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px;border:1.5px solid var(--red);background:#fff;color:var(--red);cursor:pointer}
   .btn:hover{background:var(--red-tint)}
   .btn.primary{background:var(--red);color:#fff}
@@ -575,7 +579,22 @@ async function syncFromLark(month){
     if(editMode) loadMeta();
     render();
     const t = new Date(j.syncedAt).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit', year:'numeric'});
-    setSync('ok', '✅ Số liệu lấy trực tiếp từ Lark Base · chốt tháng ' + j.month + ' · đồng bộ lúc ' + t);
+    const base = '✅ Số liệu lấy trực tiếp từ Lark · chốt tháng ' + j.month + ' · đồng bộ lúc ' + t;
+    const w = j.warnings || [];
+    if(w.length){
+      const el = $('syncBar');
+      el.className = 'syncbar warn';
+      el.textContent = base + ' · ⚠️ ' + w.length + ' điểm cần kiểm tra (bấm để xem)';
+      el.onclick = () => {
+        if(el.querySelector('ul')){ el.textContent = base + ' · ⚠️ ' + w.length + ' điểm cần kiểm tra (bấm để xem)'; return; }
+        const ul = document.createElement('ul');
+        w.forEach(x => { const li = document.createElement('li'); li.textContent = x; ul.appendChild(li); });
+        el.appendChild(ul);
+      };
+    } else {
+      $('syncBar').onclick = null;
+      setSync('ok', base);
+    }
   }catch(err){
     setSync('err', '⚠️ Chưa lấy được số từ Lark (' + err.message + ') — trang đang hiển thị số lưu sẵn trong mã nguồn.');
   }finally{
