@@ -4,8 +4,9 @@ Base dùng: **TỔNG QUAN DOANH SỐ 2026 - SAKAWIN** (Sakawin Việt Nam › Wi
 
 Sau khi làm xong: team nhập số vào Lark như mọi khi → web tự cập nhật, không còn gõ tay.
 
-> **Không phải sửa bảng nào đang có.** Web chỉ *đọc* bảng `Báo Cáo Doanh Thu - Kênh Bán Hàng`.
-> Việc duy nhất phải làm thêm là tạo 1 bảng mới chứa Target + kế hoạch.
+> **Không tạo Base mới, không tạo bảng doanh thu mới.** Web đọc thẳng bảng
+> `Báo Cáo Doanh Thu - Kênh Bán Hàng` đang chạy; việc duy nhất phải làm thêm là
+> bổ sung mấy cột Target vào chính bảng đó.
 
 ---
 
@@ -15,7 +16,7 @@ Sau khi làm xong: team nhập số vào Lark như mọi khi → web tự cập 
 
 | Trang | File | API | Nguồn số | Tình trạng |
 |---|---|---|---|---|
-| 📈 Doanh số & Target | `index.html` | `/api/doanh-so` | `Báo Cáo Doanh Thu - Kênh Bán Hàng` + `Target & Kế hoạch` | ✅ đang chạy |
+| 📈 Doanh số & Target | `index.html` | `/api/doanh-so` | `Báo Cáo Doanh Thu - Kênh Bán Hàng` | ✅ đang chạy |
 | 💰 Tài chính & Lãi lỗ | `tai-chinh.html` | `/api/tai-chinh` | `Báo Cáo Chi Tiết - 2026` (doanh thu thuần, giá vốn, chi phí) | 🔜 làm sau |
 
 Hai trang **không dùng chung số**. Trang doanh số nói về *doanh thu bán hàng*,
@@ -32,7 +33,7 @@ cố tình tách để không ai đọc nhầm. Thanh điều hướng ở đầ
 | Số đơn | cùng bảng → **Số Lượng Đơn Hàng** |
 | Ngân sách ADS | cùng bảng → **Ngân Sách ADS** |
 | Nhóm kênh (Shopee/TikTok/Khác/Offline) | cùng bảng → **Nền Tảng** |
-| Target, kế hoạch tháng sau, thứ tự dòng, tên hiển thị | bảng **Target & Kế hoạch** (tạo mới) |
+| Target, kế hoạch tháng sau, thứ tự dòng, tên hiển thị | **cùng bảng đó**, thêm vài cột (xem Phần 1) |
 | Nhận xét & định hướng | bảng **Nhận xét** (tạo mới, tuỳ chọn) |
 
 Còn lại — %hoàn thành target, %Ads, target tháng sau, AOV, CPO, tăng trưởng, các dòng TỔNG,
@@ -40,29 +41,39 @@ Còn lại — %hoàn thành target, %Ads, target tháng sau, AOV, CPO, tăng tr
 
 ---
 
-## Phần 1 — Tạo 2 bảng mới trong Base (~10 phút)
+## Phần 1 — Thêm cột vào bảng đang có (~5 phút)
 
-### Bảng `Target & Kế hoạch`
-Mỗi dòng = 1 kênh × 1 tháng **đã chốt**. Ba cột kế hoạch là kế hoạch cho **tháng liền sau**.
+Base đã có sẵn bảng `Báo Cáo Doanh Thu - Kênh Bán Hàng` với đúng cấu trúc cần thiết:
+**1 dòng = 1 kênh × 1 tháng**. Chỉ cần thêm vài cột vào chính bảng đó là xong —
+không tạo bảng mới, không nhập lại tên kênh, không nhập lại tháng.
 
-Bảng này cũng chính là thứ quyết định **shop nào được lên báo cáo và xếp theo thứ tự nào** —
-kênh không có dòng ở đây thì không hiện. Muốn thêm Showroom hay Aeon Huế vào báo cáo,
-chỉ cần thêm 1 dòng.
+### Các cột cần thêm
 
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| Tháng | Số | `7` — giống hệt cách ghi ở bảng doanh thu |
-| Kênh Kinh Doanh | Văn bản | **Phải trùng tên với bảng doanh thu**: `Shopee HN`, `Shopee Mall`… |
-| Tên hiển thị | Văn bản | Tên muốn hiện trên web, vd `Sakawin Hà Nội`. Bỏ trống thì lấy tên kênh |
-| Target | Số | Target của chính tháng đó |
-| % tăng trưởng KH | Số | Kế hoạch tăng trưởng tháng sau, vd `40` |
-| Số đơn KH | Số | Số đơn kế hoạch tháng sau |
-| Trần Ads % KH | Số | vd `6` hoặc `4.5` |
-| Nhãn | Văn bản | vd `TOP SALE 🔥`, `VỀ SỐ ✓`. Có 🔥 hoặc chữ "top" → nhãn đỏ, còn lại nhãn xanh |
-| Ghi chú | Văn bản | Hiện dưới tên shop |
-| Thứ tự | Số | Thứ tự dòng trên báo cáo |
+| Cột | Kiểu | Bắt buộc | Ghi chú |
+|---|---|:--:|---|
+| Lên báo cáo | Ô tick (Checkbox) | ✅ | Tick kênh nào thì kênh đó hiện trên web |
+| Target | Số | ✅ | Target của chính tháng đó |
+| % tăng trưởng KH | Số | | Kế hoạch tăng trưởng tháng sau, vd `40` |
+| Số đơn KH | Số | | Số đơn kế hoạch tháng sau |
+| Trần Ads % KH | Số | | vd `6` hoặc `4.5` |
+| Tên hiển thị | Văn bản | | Tên muốn hiện trên web, vd `Sakawin Hà Nội`. Bỏ trống thì lấy tên kênh |
+| Thứ tự | Số | | Thứ tự dòng. Bỏ trống thì tự xếp theo doanh thu giảm dần |
+| Nhãn | Văn bản | | vd `TOP SALE 🔥`, `VỀ SỐ ✓`. Có 🔥 hoặc chữ "top" → nhãn đỏ, còn lại nhãn xanh |
+| Ghi chú | Văn bản | | Hiện dưới tên shop |
+
+> **Bảng trông rộng ra?** Tạo một chế độ xem (View) riêng tên `Nhập số hằng ngày`
+> và ẩn mấy cột này đi. Team vận hành vẫn thấy bảng gọn như cũ.
+
+### Điền số
+
+Chỉ cần điền cho **các dòng tháng 7** của 15 kênh đang lên báo cáo.
+File `lark-import/Target-T7-de-dien.csv` là bảng tra: mở bằng Excel/Numbers,
+có sẵn Target · % tăng trưởng · Số đơn KH · Trần Ads % · Ghi chú đang chạy trên web,
+đã ghi kèm tên kênh bên Lark để bạn dò cho đúng dòng.
 
 ### Bảng `Nhận xét` (tuỳ chọn)
+Cái này thì đúng là bảng mới, vì không gắn với kênh nào cả. Nhập từ `lark-import/Nhan-xet.csv`.
+
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
 | Tháng | Số | `7` |
@@ -70,13 +81,9 @@ chỉ cần thêm 1 dòng.
 | Mức độ | Lựa chọn | `Tốt` (xanh) · `Cảnh báo` (cam) · `Trung tính` |
 | Nội dung | Văn bản | |
 
-### Nhập sẵn, khỏi gõ
-Thư mục `lark-import/` có 2 file CSV đã trích **toàn bộ target T7 + kế hoạch T8 đang chạy trên web**,
-đã map sẵn tên kênh sang đúng tên Lark (`Sakawin Hà Nội` → `Shopee HN`…).
-
-Trong Lark Base: **Thêm bảng → Nhập từ tệp** → chọn `Target-Ke-hoach.csv`, rồi làm tương tự với `Nhan-xet.csv`.
-
----
+> **Muốn để Target ở bảng riêng?** Vẫn được: tạo bảng có các cột trên cộng thêm
+> `Tháng` và `Kênh Kinh Doanh`, rồi khai biến `LARK_TABLE_TARGET` trên Vercel.
+> Không khai thì web mặc định đọc ngay trong bảng doanh thu.
 
 ## Phần 2 — Tạo Lark App (~15 phút)
 
@@ -108,8 +115,8 @@ Mở web, thanh trạng thái dưới hàng nút phải hiện:
 ## Dùng hằng tháng
 
 1. Team nhập doanh thu / số đơn / ngân sách ADS vào `Báo Cáo Doanh Thu - Kênh Bán Hàng` **như bình thường**.
-2. Thêm dòng tháng mới vào `Target & Kế hoạch` (target + 3 cột kế hoạch tháng sau).
-3. Thêm vài dòng vào `Nhận xét`.
+2. Trên chính dòng đó: tick `Lên báo cáo`, điền `Target` và 3 cột kế hoạch tháng sau.
+3. Thêm vài dòng vào bảng `Nhận xét`.
 4. Mở web → bấm **🔄 Đồng bộ từ Lark**. Xong.
 
 ### Mẹo
@@ -133,6 +140,7 @@ Mở web, thanh trạng thái dưới hàng nút phải hiện:
 | `Thiếu biến môi trường …` | Chưa khai biến trên Vercel | Thêm biến rồi **Redeploy** |
 | `code 99991663` / `permission denied` | App chưa được thêm vào Base | Làm lại Phần 2 bước 5 |
 | `code 91402` / `NOTEXIST` | Sai `LARK_APP_TOKEN` hoặc `TABLE_ID` | Copy lại từ URL Base |
-| `Bảng Target & Kế hoạch chưa có dòng nào hợp lệ` | Thiếu cột `Tháng` hoặc `Kênh Kinh Doanh` | Kiểm tra tên cột |
+| `Tháng … chưa có kênh nào được tick "Lên báo cáo"` | Quên tick ô | Tick các kênh muốn hiện |
+| `Bảng doanh thu chưa có dòng nào hợp lệ` | Thiếu cột `Tháng` hoặc `Kênh Kinh Doanh` | Kiểm tra tên cột |
 | `Không tìm thấy "X" tháng … trong bảng doanh thu` | Tên kênh 2 bảng lệch nhau | Sửa cho trùng tên |
 | `HTTP 404` khi gọi /api/doanh-so | Thư mục `api/` chưa lên repo | Push lại |

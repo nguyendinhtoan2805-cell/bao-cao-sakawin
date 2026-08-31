@@ -4,12 +4,16 @@
 
    Nguồn số DUY NHẤT của trang này là Base "TỔNG QUAN DOANH SỐ 2026 - SAKAWIN":
 
-   1) "Báo Cáo Doanh Thu - Kênh Bán Hàng"  (bảng có sẵn, chỉ đọc, KHÔNG sửa)
+   1) "Báo Cáo Doanh Thu - Kênh Bán Hàng"  (bảng có sẵn)
       → Doanh thu bán hàng · Số đơn · Ngân sách ADS · Nền tảng
-   2) "Target & Kế hoạch"                   (bảng tạo mới)
-      → Target · kế hoạch tháng sau · quyết định kênh nào lên báo cáo,
-        tên hiển thị và thứ tự dòng
-   3) "Nhận xét"                            (tuỳ chọn)
+      → và cả Target + kế hoạch tháng sau, nếu thêm mấy cột dưới đây vào
+        chính bảng này (cách gọn nhất — không phải nhập lại tên kênh/tháng):
+            Target · % tăng trưởng KH · Số đơn KH · Trần Ads % KH
+            Lên báo cáo (ô tick) · Tên hiển thị · Nhãn · Ghi chú · Thứ tự
+   2) "Nhận xét"  (tuỳ chọn) → nhận xét & định hướng cuối trang
+
+   Muốn để Target ở bảng riêng thì khai LARK_TABLE_TARGET trỏ sang bảng đó;
+   không khai thì mặc định đọc ngay trong bảng doanh thu.
 
    KHÔNG đọc bảng "Báo Cáo Chi Tiết - 2026". Bảng đó là doanh thu thuần,
    lãi lỗ và chi phí — thuộc về trang Tài chính sẽ làm sau, trộn vào đây
@@ -20,7 +24,7 @@
      LARK_APP_SECRET      secret của Lark App
      LARK_APP_TOKEN       mã Base, lấy trong URL: .../base/<APP_TOKEN>?table=...
      LARK_TABLE_REVENUE   table_id bảng "Báo Cáo Doanh Thu - Kênh Bán Hàng"
-     LARK_TABLE_TARGET    table_id bảng "Target & Kế hoạch"
+     LARK_TABLE_TARGET    (tuỳ chọn) chỉ khai nếu để Target ở một bảng riêng
      LARK_TABLE_NOTES     (tuỳ chọn) table_id bảng "Nhận xét"
      LARK_HOST            (tuỳ chọn) mặc định https://open.larksuite.com
      REPORT_YEAR          (tuỳ chọn) mặc định 2026 — cột Tháng ở Base chỉ ghi 1..12
@@ -140,15 +144,22 @@ const pick = (row, ...names) => {
 /* ---------- Handler ---------- */
 module.exports = async (req, res) => {
   try {
-    for (const k of ['LARK_APP_ID', 'LARK_APP_SECRET', 'LARK_APP_TOKEN', 'LARK_TABLE_REVENUE', 'LARK_TABLE_TARGET']) {
+    for (const k of ['LARK_APP_ID', 'LARK_APP_SECRET', 'LARK_APP_TOKEN', 'LARK_TABLE_REVENUE']) {
       if (!process.env[k]) throw new Error(`Thiếu biến môi trường ${k} trên Vercel.`);
     }
 
+    /* Target nằm ở đâu?
+       - Mặc định: ngay trong bảng doanh thu, chỉ cần thêm cột (KHÔNG nhập lại tên kênh/tháng).
+       - Nếu khai LARK_TABLE_TARGET khác bảng doanh thu thì đọc từ bảng riêng đó. */
+    const targetTable = process.env.LARK_TABLE_TARGET;
+    const roiRieng = !!targetTable && targetTable !== process.env.LARK_TABLE_REVENUE;
+
     const token = await larkToken();
-    const [revRaw, tgtRaw] = await Promise.all([
+    const [revRaw, tgtSeparate] = await Promise.all([
       readTable(token, process.env.LARK_TABLE_REVENUE, 'Báo Cáo Doanh Thu - Kênh Bán Hàng'),
-      readTable(token, process.env.LARK_TABLE_TARGET, 'Target & Kế hoạch'),
+      roiRieng ? readTable(token, targetTable, 'Target & Kế hoạch') : Promise.resolve([]),
     ]);
+    const tgtRaw = roiRieng ? tgtSeparate : revRaw;
 
     /* --- Bảng doanh thu: khoá theo (tháng, tên kênh đã chuẩn hoá) --- */
     const rev = new Map();
@@ -178,19 +189,32 @@ module.exports = async (req, res) => {
       note: txt(pick(r, 'Ghi chú', 'Ghi chu', 'Note')),
       order: num(pick(r, 'Thứ tự', 'STT', 'Order')),
       grp: txt(pick(r, 'Nhóm', 'Nhom', 'Nền Tảng')),
+      show: pick(r, 'Lên báo cáo', 'Len bao cao', 'Hiện trên báo cáo'),
+      dt: num(pick(r, 'Doanh Thu Kinh Doanh (số thực)', 'Doanh Thu Kinh Doanh', 'Doanh Thu', 'Doanh thu')),
     })).filter(t => t.month && t.kenh);
 
-    if (!tgts.length) throw new Error('Bảng "Target & Kế hoạch" chưa có dòng nào hợp lệ (cần cột Tháng + Kênh Kinh Doanh).');
+    if (!tgts.length) throw new Error(roiRieng
+      ? 'Bảng "Target & Kế hoạch" chưa có dòng nào hợp lệ (cần cột Tháng + Kênh Kinh Doanh).'
+      : 'Bảng doanh thu chưa có dòng nào hợp lệ (cần cột Tháng + Kênh Kinh Doanh).');
 
-    const months = [...new Set(tgts.map(t => t.month))].sort();
+    /* Kênh nào được lên báo cáo?
+       - Có cột "Lên báo cáo" (ô tick) → chỉ lấy dòng được tick.
+       - Không có cột đó → lấy kênh có Target, hoặc có doanh thu. */
+    const coCotTick = tgts.some(t => t.show === true);
+    const duocLen = t => coCotTick ? t.show === true : (t.tgt != null || t.dt != null);
+
+    const months = [...new Set(tgts.filter(duocLen).map(t => t.month))].sort();
     const asked = txt(req.query && req.query.month);
     const M = (asked ? monthKey(asked) : '') || months[months.length - 1];
     const P = shiftMonth(M, -1);
     const N = shiftMonth(M, 1);
 
-    const cur = tgts.filter(t => t.month === M);
-    if (!cur.length) throw new Error(`Bảng Target chưa có dòng nào cho tháng ${M}. Các tháng đang có: ${months.join(', ')}`);
-    cur.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+    const cur = tgts.filter(t => t.month === M && duocLen(t));
+    if (!cur.length) throw new Error(coCotTick
+      ? `Tháng ${M} chưa có kênh nào được tick "Lên báo cáo".`
+      : `Tháng ${M} chưa có kênh nào có Target hoặc doanh thu. Các tháng đang có số: ${months.join(', ')}`);
+    // Chưa điền "Thứ tự" thì xếp theo doanh thu giảm dần cho khỏi lộn xộn
+    cur.sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999) || (b.dt ?? 0) - (a.dt ?? 0));
 
     const warnings = [];
     const shops = cur.map(t => {
