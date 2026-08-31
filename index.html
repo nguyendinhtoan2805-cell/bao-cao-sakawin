@@ -315,7 +315,7 @@
   <nav class="appnav">
     <span class="applogo">Sakawin <b>Reports</b></span>
     <a class="navtab active" href="/">📈 Doanh số &amp; Target</a>
-    <span class="navtab soon">💰 Tài chính &amp; Lãi lỗ <em>sắp có</em></span>
+    <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none">💰 Tài chính &amp; Lãi lỗ</a>
     <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none">⚙️ Quản trị</a>
     <span class="navuser">
       <span class="who" id="navWho"></span>
@@ -819,6 +819,7 @@ async function khoiDong(){
   TOI = me;
   $('navWho').innerHTML = 'Xin chào <b>' + (me.ten||me.email) + '</b>';
   $('tabAdmin').style.display = me.quyen.quan_tri ? '' : 'none';
+  $('tabTaiChinh').style.display = me.quyen.xem_tai_chinh ? '' : 'none';
 
   if(!me.quyen.xem_doanh_so){
     return khoaLai('Tài khoản chưa được cấp quyền',

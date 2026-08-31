@@ -122,7 +122,7 @@
   <nav class="appnav">
     <span class="applogo">Sakawin <b>Reports</b></span>
     <a class="navtab" href="/">📈 Doanh số &amp; Target</a>
-    <span class="navtab soon">💰 Tài chính &amp; Lãi lỗ <em>sắp có</em></span>
+    <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none">💰 Tài chính &amp; Lãi lỗ</a>
     <a class="navtab active" href="/admin.html">⚙️ Quản trị</a>
     <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout">Đăng xuất</a></span>
   </nav>
@@ -297,6 +297,7 @@ async function taiLai(){
     return khoa('Không đủ quyền', (me.ten || me.email) + ' không có quyền quản trị tài khoản.');
   }
   $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten || me.email) + '</b>';
+  $('tabTaiChinh').style.display = me.quyen.xem_tai_chinh ? '' : 'none';
   try { if(await taiLai()) document.body.classList.remove('locked'); }
   catch(err){ /* goi() đã hiện thông báo */ }
 })();

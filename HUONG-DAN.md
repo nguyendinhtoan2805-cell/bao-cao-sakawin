@@ -19,7 +19,7 @@ Sau khi làm xong: team nhập số vào Lark như mọi khi → web tự cập 
 | 🔐 Đăng nhập | — | `/api/auth/*` | Tài khoản Lark công ty | ✅ đang chạy |
 | ⚙️ Quản trị tài khoản | `admin.html` | `/api/users` | Upstash Redis | ✅ đang chạy |
 | 📈 Doanh số & Target | `index.html` | `/api/doanh-so` | `Báo Cáo Doanh Thu - Kênh Bán Hàng` | ✅ đang chạy |
-| 💰 Tài chính & Lãi lỗ | `tai-chinh.html` | `/api/tai-chinh` | `Báo Cáo Chi Tiết - 2026` (doanh thu thuần, giá vốn, chi phí) | 🔜 làm sau |
+| 💰 Tài chính & Lãi lỗ | `tai-chinh.html` | `/api/tai-chinh` | `Báo Cáo Chi Tiết - 2026` | ✅ đang chạy |
 
 Hai trang **không dùng chung số**. Trang doanh số nói về *doanh thu bán hàng*,
 trang tài chính nói về *doanh thu thuần và lãi lỗ* — hai chỉ số khác nhau,
@@ -143,6 +143,36 @@ Mở web, thanh trạng thái dưới hàng nút phải hiện:
 - **Lark chết / chưa cấu hình:** web KHÔNG trắng — vẫn hiện số nhúng sẵn kèm cảnh báo cam.
 - **Nút "Nhập số liệu" cũ vẫn còn** để sửa nhanh khi họp, nhưng **không ghi ngược về Lark**
   và mất khi tải lại trang.
+
+---
+
+## Trang Tài chính & Lãi lỗ
+
+Đọc bảng `Báo Cáo Chi Tiết - 2026`, cần biến `LARK_TABLE_FINANCE=tbl87Xc6y812sNBx`
+và quyền **Xem trang Tài chính & Lãi lỗ**.
+
+**Tự dò cột chi phí.** Cột số nào không phải doanh thu / giá vốn / lợi nhuận / phần trăm
+thì được hiểu là một khoản chi phí. Thêm cột chi phí mới trong Lark là trang tự hiện,
+không phải sửa code. Cột bị loại trừ theo tên đã chuẩn hoá: `doanhthu*`, `giavon*`,
+`loinhuan*`, `bien*`, `traffic`, `tienrutvecty`, và mọi cột có dấu `%`.
+
+Trang gồm: bốn ô KPI · sơ đồ *từ doanh thu xuống lợi nhuận* · khối phân tích tự động ·
+biểu đồ lợi nhuận theo điểm bán (đỏ = đang lỗ) · cơ cấu chi phí · diễn biến theo tháng ·
+bảng chi tiết.
+
+### Khối phân tích tự động sinh ra gì
+
+Không phải văn mẫu — mọi câu đều tính từ số của tháng đang xem:
+
+| Nhận định | Cách phát hiện |
+|---|---|
+| Bức tranh chung | Biên ròng < 0 → cảnh báo · < 5% → lưu ý · còn lại → tốt |
+| Điểm đang lỗ | Lợi nhuận ròng < 0, kèm tổng lỗ và mức lợi nhuận nếu cắt hết |
+| Lỗ do chi phí, không phải do bán lỗ | Lãi gộp > 0 nhưng lãi ròng < 0 — nhóm này cứu được |
+| Giá vốn bất thường | Cao hơn trung bình toàn hệ từ 8 điểm phần trăm trở lên |
+| Chi phí tập trung ở đâu | Ba khoản lớn nhất và tỷ trọng của chúng |
+| So với tháng trước | Biên ròng lệch từ 1 điểm phần trăm |
+| **Điểm chưa chốt** | Thiếu doanh thu / giá vốn / chi phí · shop có tháng trước mà thiếu tháng này · tổng cột chi phí lệch quá 0,5% doanh thu so với hiệu *lãi gộp − lãi ròng* (dấu hiệu một cột đang cộng trùng) |
 
 ---
 

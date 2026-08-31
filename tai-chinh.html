@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sakawin — Tài chính &amp; Lãi lỗ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{--red:#C8102E;--red-dark:#8B0A1E;--red-tint:#FDECEF;--ink:#1C1917;--muted:#78716C;
+    --line:#E7E5E4;--paper:#FAFAF9;--green:#1A7F4B;--green-tint:#EDF7F0;--amber:#B45309;
+    --amber-tint:#FFF7ED;--blue:#1D4ED8;--blue-tint:#EFF4FF;--card:#fff}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--paper);color:var(--ink);
+    padding:22px 24px 60px;-webkit-text-size-adjust:100%}
+  body.locked .wrap{display:none}
+  .wrap{max-width:1660px;margin:0 auto}
+
+  .appnav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:-8px 0 20px}
+  .applogo{font-size:12px;font-weight:800;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;margin-right:14px;padding-bottom:10px}
+  .applogo b{color:var(--red)}
+  .navtab{font-size:14.5px;font-weight:700;padding:8px 14px 10px;border-bottom:2.5px solid transparent;
+    color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:7px}
+  .navtab:hover{color:var(--ink)}
+  .navtab.active{color:var(--red);border-bottom-color:var(--red)}
+  .navuser{margin-left:auto;display:flex;align-items:center;gap:12px;padding-bottom:8px;font-size:13.5px;flex:0 0 auto}
+  .navuser .who{color:var(--muted);font-weight:600}
+  .navuser .who b{color:var(--ink)}
+  .navuser a{color:var(--muted);text-decoration:none;font-weight:700;border:1px solid var(--line);padding:5px 11px;border-radius:7px}
+  .navuser a:hover{color:var(--red);border-color:var(--red)}
+
+  .masthead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    border-bottom:3px solid var(--red);padding-bottom:16px;margin-bottom:16px;min-width:0}
+  .brand{min-width:0}
+  .brand h1{font-size:27px;font-weight:800;letter-spacing:-.4px}
+  .brand h1 span{color:var(--red)}
+  .brand p{color:var(--muted);font-size:13px;margin-top:5px}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .btn{font-family:inherit;font-size:13.5px;font-weight:700;padding:9px 17px;border-radius:8px;
+    border:1.5px solid var(--red);background:#fff;color:var(--red);cursor:pointer}
+  .btn:hover{background:var(--red-tint)}
+  .btn.primary{background:var(--red);color:#fff}
+  select.btn{padding:9px 12px}
+
+  .syncbar{font-size:12.5px;font-weight:600;padding:9px 14px;border-radius:8px;margin:14px 0 20px;
+    border:1px solid var(--line);background:#fff;color:var(--muted)}
+  .syncbar.ok{background:var(--green-tint);border-color:#BFE3CD;color:var(--green)}
+  .syncbar.err{background:var(--amber-tint);border-color:#FCD9A8;color:var(--amber)}
+
+  /* ===== Dải KPI ===== */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin-bottom:24px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:17px 20px;position:relative;overflow:hidden}
+  .kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--muted)}
+  .kpi.rev::before{background:#A8A29E}.kpi.cogs::before{background:var(--amber)}
+  .kpi.gross::before{background:var(--blue)}.kpi.net::before{background:var(--green)}
+  .kpi.net.loss::before{background:var(--red)}
+  .kpi .l{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .kpi .v{font-size:26px;font-weight:800;margin-top:7px;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+  .kpi .s{font-size:12.5px;color:var(--muted);margin-top:5px;font-weight:600}
+  .kpi.net .v{color:var(--green)} .kpi.net.loss .v{color:var(--red)}
+
+  /* ===== Luồng từ doanh thu xuống lợi nhuận ===== */
+  .flow{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-bottom:24px}
+  .flow h3,.blocktitle{font-size:12.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--red-dark)}
+  .flowrows{margin-top:18px;display:flex;flex-direction:column;gap:11px}
+  .fr{display:grid;grid-template-columns:190px 1fr 150px 76px;gap:14px;align-items:center;font-size:13.5px}
+  .fr .nm{font-weight:700}
+  .fr .nm small{display:block;font-weight:500;color:var(--muted);font-size:11.5px;margin-top:2px}
+  .fr .track{background:#F5F5F4;border-radius:6px;height:30px;overflow:hidden;position:relative}
+  .fr .fill{height:100%;border-radius:6px}
+  .fr .amt{text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+  .fr .pct{text-align:right;font-weight:700;color:var(--muted);font-size:12.5px}
+  .fr.neg .amt{color:var(--red)}
+
+  /* ===== Khối phân tích ===== */
+  .analysis{background:linear-gradient(180deg,#FFFDFD 0%,#fff 100%);border:1px solid var(--line);
+    border-left:4px solid var(--red);border-radius:14px;padding:22px 26px;margin-bottom:24px}
+  .analysis .hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .analysis .hd h3{font-size:15px;font-weight:800;letter-spacing:-.2px}
+  .analysis .hd .tag{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
+    background:var(--red-tint);color:var(--red-dark);padding:3px 9px;border-radius:5px}
+  .analysis .sub{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.6}
+  .findings{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+  .fd{border:1px solid var(--line);border-radius:11px;padding:15px 17px;background:#fff}
+  .fd .t{font-size:14px;font-weight:800;display:flex;align-items:flex-start;gap:8px;line-height:1.45}
+  .fd .d{font-size:13px;color:#57534E;line-height:1.7;margin-top:8px}
+  .fd.canh-bao{border-color:#F5C6C6;background:#FFFAFA}
+  .fd.canh-bao .t{color:var(--red-dark)}
+  .fd.luu-y{border-color:#FCD9A8;background:var(--amber-tint)}
+  .fd.luu-y .t{color:var(--amber)}
+  .fd.tot{border-color:#BFE3CD;background:var(--green-tint)}
+  .fd.tot .t{color:var(--green)}
+  .fd.chua-chot{border-color:#C7D2FE;background:var(--blue-tint)}
+  .fd.chua-chot .t{color:var(--blue)}
+
+  /* ===== Biểu đồ ===== */
+  .grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .card h3{font-size:13.5px;font-weight:800;margin-bottom:4px}
+  .card p.hint{font-size:12px;color:var(--muted);margin-bottom:12px}
+  .chartbox{height:310px;position:relative}
+  .chartbox.tall{height:370px}
+
+  /* ===== Bảng ===== */
+  .tablecard{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  thead th{position:sticky;top:0;background:var(--red);color:#fff;font-weight:700;padding:12px 9px;
+    text-align:right;white-space:nowrap;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;z-index:2}
+  thead th:first-child{text-align:left;padding-left:15px}
+  tbody td{border-bottom:1px solid var(--line);padding:12px 9px;text-align:right;
+    white-space:nowrap;font-variant-numeric:tabular-nums}
+  tbody td:first-child{text-align:left;padding-left:15px;font-weight:600}
+  tbody tr:nth-child(even) td{background:#FBFAF9}
+  tr.tot td{background:var(--red)!important;color:#fff;font-weight:800;font-size:1.04em}
+  td.pos{color:var(--green);font-weight:700} td.neg{color:var(--red);font-weight:700}
+  .chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:4px;
+    background:#F5F5F4;color:var(--muted);margin-left:7px}
+
+  #gate{display:none;max-width:560px;margin:15vh auto;padding:50px 44px;background:#fff;border:1px solid var(--line);
+    border-top:5px solid var(--red);border-radius:16px;text-align:center;box-shadow:0 14px 52px rgba(28,25,23,.09)}
+  body.locked #gate{display:block}
+  #gate h2{font-size:25px;font-weight:800;margin-bottom:12px}
+  #gate p{color:var(--muted);font-size:15.5px;line-height:1.7}
+  #gate a{display:inline-block;margin-top:24px;color:var(--red);font-weight:700;text-decoration:none}
+  footer{margin-top:26px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;line-height:1.7}
+
+  @media(max-width:1100px){.grid{grid-template-columns:1fr}}
+  @media(max-width:900px){
+    html,body{max-width:100%;overflow-x:hidden}
+    body{padding:14px 12px 50px}
+    .wrap{min-width:0}
+    .appnav{gap:2px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:14px}
+    .appnav::-webkit-scrollbar{display:none}
+    .applogo{display:none}
+    .navtab{font-size:13px;padding:9px 10px 11px;white-space:nowrap}
+    .navuser{font-size:12px;gap:8px}
+    .navuser .who{max-width:34vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .masthead{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:12px}
+    .brand h1{font-size:20px;overflow-wrap:anywhere}
+    .kpis{grid-template-columns:1fr 1fr;gap:10px}
+    .kpi{padding:13px 15px}.kpi .v{font-size:20px}.kpi .l{font-size:10px}
+    .flow,.analysis,.card{padding:16px 15px}
+    .fr{grid-template-columns:1fr 88px;gap:6px 10px}
+    .fr .track{grid-column:1/-1;height:22px}
+    .fr .amt{text-align:right}
+    .fr .pct{display:none}
+    .findings{grid-template-columns:1fr;gap:11px}
+    .chartbox{height:270px}.chartbox.tall{height:300px}
+    table{font-size:12px}
+    thead th{padding:10px 6px;font-size:10.5px}
+    tbody td{padding:10px 6px}
+    .tablecard tbody td:first-child,.tablecard thead th:first-child{
+      position:sticky;left:0;z-index:3;min-width:124px;max-width:124px;
+      overflow:hidden;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+    .tablecard tbody td:first-child{background:#fff;box-shadow:1px 0 0 var(--line)}
+    .tablecard thead th:first-child{z-index:5}
+    #gate{margin:8vh auto;padding:34px 24px}
+  }
+</style>
+</head>
+<body class="locked">
+
+<div id="gate">
+  <h2 id="gateTitle">Đang kiểm tra quyền…</h2>
+  <p id="gateMsg">Chờ một chút.</p>
+  <a href="/">← Về trang Doanh số</a>
+</div>
+
+<div class="wrap">
+  <nav class="appnav">
+    <span class="applogo">Sakawin <b>Reports</b></span>
+    <a class="navtab" href="/">📈 Doanh số &amp; Target</a>
+    <a class="navtab active" href="/tai-chinh.html">💰 Tài chính &amp; Lãi lỗ</a>
+    <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none">⚙️ Quản trị</a>
+    <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout">Đăng xuất</a></span>
+  </nav>
+
+  <div class="masthead">
+    <div class="brand">
+      <h1>SAKAWIN <span id="titleMonth"></span></h1>
+      <p id="reportSub"></p>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" id="btnSync">🔄 Đồng bộ từ Lark</button>
+      <select class="btn" id="selMonth" style="display:none"></select>
+    </div>
+  </div>
+
+  <div class="syncbar" id="syncBar">⏳ Đang lấy số liệu từ Lark…</div>
+
+  <div class="kpis" id="kpiRow"></div>
+
+  <div class="flow">
+    <h3>Từ doanh thu xuống lợi nhuận</h3>
+    <div class="flowrows" id="flowRows"></div>
+  </div>
+
+  <div class="analysis">
+    <div class="hd">
+      <h3>🔎 Phân tích tình hình kinh doanh</h3>
+      <span class="tag" id="anTag">Tự động</span>
+    </div>
+    <p class="sub" id="anSub"></p>
+    <div class="findings" id="findings"></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3 id="ttProfit"></h3>
+      <p class="hint">Cột đỏ là điểm đang lỗ. Càng sang phải doanh thu càng nhỏ.</p>
+      <div class="chartbox tall"><canvas id="chartProfit"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Cơ cấu chi phí</h3>
+      <p class="hint">Các khoản chi phí toàn hệ trong tháng, xếp từ lớn xuống nhỏ.</p>
+      <div class="chartbox tall"><canvas id="chartCost"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <h3>Diễn biến theo tháng</h3>
+    <p class="hint">Cột = doanh thu thuần và lãi gộp · Đường = biên lợi nhuận ròng (trục phải).</p>
+    <div class="chartbox"><canvas id="chartTrend"></canvas></div>
+  </div>
+
+  <div class="blocktitle" style="margin-bottom:12px">Chi tiết theo điểm bán</div>
+  <div class="tablecard"><table>
+    <thead><tr id="thead"></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table></div>
+
+  <footer id="reportFooter"></footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let DATA = null, charts = {}, syncing = false;
+
+const fmt = n => n == null ? '—' : Math.round(n).toLocaleString('vi-VN');
+const ty = n => n == null ? '—' : (n / 1e9).toLocaleString('vi-VN', {maximumFractionDigits:2}) + ' tỷ';
+const pct = (n,d=1) => n == null ? '—' : n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d}) + '%';
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function khoa(t, m){ document.body.classList.add('locked'); $('gateTitle').textContent = t; $('gateMsg').textContent = m; }
+function setSync(cls, msg){ const e=$('syncBar'); e.className='syncbar '+cls; e.textContent=msg; }
+
+const ICON = {'canh-bao':'⚠️','luu-y':'🟠','tot':'✅','chua-chot':'📌','':'📊'};
+
+function render(){
+  const d = DATA, t = d.tong;
+  const bienGop = t.dtt > 0 ? t.lnGop/t.dtt*100 : null;
+  const bienRong = t.dtt > 0 ? t.lnRong/t.dtt*100 : null;
+  const lo = t.lnRong < 0;
+
+  $('reportSub').textContent = d.sub;
+  $('reportFooter').textContent = d.sub + ' · Nguồn: bảng Báo Cáo Chi Tiết trong Lark Base. '
+    + 'Phần phân tích được tính trực tiếp từ số liệu của tháng đang xem.';
+
+  $('kpiRow').innerHTML = `
+    <div class="kpi rev"><div class="l">Doanh thu thuần</div><div class="v">${ty(t.dtt)}</div>
+      <div class="s">${fmt(t.dtt)} đ</div></div>
+    <div class="kpi cogs"><div class="l">Giá vốn hàng bán</div><div class="v">${ty(t.gv)}</div>
+      <div class="s">${pct(t.dtt>0?t.gv/t.dtt*100:null)} doanh thu</div></div>
+    <div class="kpi gross"><div class="l">Lợi nhuận gộp</div><div class="v">${ty(t.lnGop)}</div>
+      <div class="s">Biên gộp ${pct(bienGop)}</div></div>
+    <div class="kpi net${lo?' loss':''}"><div class="l">Lợi nhuận ròng</div><div class="v">${ty(t.lnRong)}</div>
+      <div class="s">Biên ròng ${pct(bienRong)}${lo?' · đang lỗ':''}</div></div>`;
+
+  /* Luồng doanh thu → lợi nhuận */
+  const goc = Math.max(t.dtt, 1);
+  const hang = (nm, ghi, val, mau, am) => {
+    const w = Math.max(0, Math.min(100, Math.abs(val)/goc*100));
+    return `<div class="fr${am?' neg':''}">
+      <div class="nm">${nm}<small>${ghi}</small></div>
+      <div class="track"><div class="fill" style="width:${w}%;background:${mau}"></div></div>
+      <div class="amt">${fmt(val)}</div>
+      <div class="pct">${pct(t.dtt>0?val/t.dtt*100:null,0)}</div></div>`;
+  };
+  $('flowRows').innerHTML =
+      hang('Doanh thu thuần','Số gốc để so mọi tỷ lệ', t.dtt, '#A8A29E')
+    + hang('− Giá vốn hàng bán','Tiền hàng đã bán ra', -t.gv, '#B45309', true)
+    + hang('= Lợi nhuận gộp','Còn lại sau khi trừ giá vốn', t.lnGop, '#1D4ED8')
+    + hang('− Chi phí vận hành','Lương, kho, văn phòng, chi phí chung…', -(t.lnGop-t.lnRong), '#8B0A1E', true)
+    + hang('= Lợi nhuận ròng','Tiền thực sự còn lại', t.lnRong, lo?'#C8102E':'#1A7F4B', lo);
+
+  /* Phân tích */
+  const nCanhBao = d.nhanXet.filter(x=>x.muc==='canh-bao').length;
+  $('anSub').textContent = nCanhBao
+    ? `Đọc số của tháng đang xem và rút ra ${d.nhanXet.length} nhận định, trong đó ${nCanhBao} điểm cần xử lý sớm.`
+    : `Đọc số của tháng đang xem và rút ra ${d.nhanXet.length} nhận định. Không có điểm nào ở mức báo động.`;
+  $('findings').innerHTML = d.nhanXet.map(n => `<div class="fd ${n.muc}">
+      <div class="t"><span>${ICON[n.muc]||'📊'}</span><span>${esc(n.tieuDe)}</span></div>
+      <div class="d">${esc(n.noiDung)}</div></div>`).join('');
+
+  /* Biểu đồ lợi nhuận theo shop */
+  const sp = d.shops.filter(s => s.dtt > 0);
+  $('ttProfit').textContent = `Lợi nhuận ròng theo điểm bán (${sp.length} điểm)`;
+  charts.profit && charts.profit.destroy();
+  charts.profit = new Chart($('chartProfit'), {
+    type:'bar',
+    data:{ labels: sp.map(s=>s.name),
+      datasets:[{ data: sp.map(s=>s.lnRong),
+        backgroundColor: sp.map(s => s.lnRong < 0 ? '#C8102E' : '#1A7F4B'), borderRadius:4 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false},
+        tooltip:{callbacks:{label:c=>' Lợi nhuận ròng: '+fmt(c.raw)+' đ'}}},
+      scales:{ y:{ticks:{callback:v=>(v/1e6).toLocaleString('vi-VN')+' tr',font:{size:11}},grid:{color:'#F0EEEC'}},
+               x:{ticks:{font:{size:10},maxRotation:60,minRotation:35},grid:{display:false}}}}});
+
+  /* Cơ cấu chi phí */
+  charts.cost && charts.cost.destroy();
+  const cp = d.chiPhiTong.slice(0, 10);
+  charts.cost = new Chart($('chartCost'), {
+    type:'bar',
+    data:{ labels: cp.map(c=>c.ten),
+      datasets:[{ data: cp.map(c=>c.tien), backgroundColor:'#B45309', borderRadius:4 }]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' '+fmt(c.raw)+' đ'}}},
+      scales:{ x:{ticks:{callback:v=>(v/1e6).toLocaleString('vi-VN')+' tr',font:{size:10}},grid:{color:'#F0EEEC'}},
+               y:{ticks:{font:{size:11}},grid:{display:false}}}}});
+
+  /* Diễn biến theo tháng */
+  charts.trend && charts.trend.destroy();
+  const xh = d.xuHuong;
+  charts.trend = new Chart($('chartTrend'), {
+    data:{ labels: xh.map(x=>x.thang),
+      datasets:[
+        {type:'bar', label:'Doanh thu thuần', data: xh.map(x=>x.dtt), backgroundColor:'#E4657A', borderRadius:4, yAxisID:'y'},
+        {type:'bar', label:'Lợi nhuận gộp', data: xh.map(x=>x.lnGop), backgroundColor:'#1D4ED8', borderRadius:4, yAxisID:'y'},
+        {type:'line', label:'Biên lợi nhuận ròng', yAxisID:'y2', borderColor:'#1C1917', backgroundColor:'#1C1917',
+          borderWidth:2, pointRadius:4, tension:0, data: xh.map(x=> x.dtt>0 ? x.lnRong/x.dtt*100 : null)},
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{position:'top'}, tooltip:{callbacks:{label:c=>
+        c.dataset.yAxisID==='y2' ? ' '+c.dataset.label+': '+pct(c.raw) : ' '+c.dataset.label+': '+fmt(c.raw)+' đ'}}},
+      scales:{ y:{ticks:{callback:v=>(v/1e9).toLocaleString('vi-VN')+' tỷ',font:{size:11}},grid:{color:'#F0EEEC'}},
+               y2:{position:'right',ticks:{callback:v=>v+'%',font:{size:11}},grid:{display:false}},
+               x:{grid:{display:false}}}}});
+
+  /* Bảng chi tiết */
+  $('thead').innerHTML = '<th>Điểm bán</th><th>Doanh thu thuần</th><th>Giá vốn</th><th>% Giá vốn</th>'
+    + '<th>Lợi nhuận gộp</th><th>% Gộp</th><th>Chi phí</th><th>Lợi nhuận ròng</th><th>% Ròng</th>';
+  const row = s => `<tr>
+    <td>${esc(s.name)}${s.nguon?`<span class="chip">${esc(s.nguon)}</span>`:''}</td>
+    <td>${fmt(s.dtt)}</td><td>${fmt(s.gv)}</td><td>${pct(s.gvPct)}</td>
+    <td>${fmt(s.lnGop)}</td><td>${pct(s.gopPct)}</td><td>${fmt(s.tongChiPhi)}</td>
+    <td class="${s.lnRong<0?'neg':'pos'}">${fmt(s.lnRong)}</td>
+    <td class="${s.lnRong<0?'neg':'pos'}">${pct(s.rongPct)}</td></tr>`;
+  $('tbody').innerHTML = d.shops.map(row).join('') + `<tr class="tot">
+    <td>TỔNG HỆ THỐNG</td><td>${fmt(t.dtt)}</td><td>${fmt(t.gv)}</td><td>${pct(t.dtt>0?t.gv/t.dtt*100:null)}</td>
+    <td>${fmt(t.lnGop)}</td><td>${pct(bienGop)}</td><td>${fmt(t.lnGop-t.lnRong)}</td>
+    <td>${fmt(t.lnRong)}</td><td>${pct(bienRong)}</td></tr>`;
+}
+
+function buildMonthSelect(months, cur){
+  const sel = $('selMonth');
+  if(!months || months.length < 2){ sel.style.display='none'; return; }
+  sel.innerHTML = months.slice().reverse().map(m => {
+    const [y,mm] = m.split('-');
+    return `<option value="${m}"${m===cur?' selected':''}>Tháng ${Number(mm)}/${y}</option>`;
+  }).join('');
+  sel.style.display = '';
+}
+
+async function sync(month){
+  if(syncing) return;
+  syncing = true; $('btnSync').disabled = true;
+  setSync('', '⏳ Đang lấy số liệu từ Lark…');
+  try {
+    const r = await fetch('/api/tai-chinh' + (month ? '?month='+encodeURIComponent(month) : ''), {cache:'no-store'});
+    const j = await r.json().catch(()=>({ok:false,error:'HTTP '+r.status}));
+    if(r.status === 401) return khoa('Phiên đã hết hạn','Đăng nhập lại để tiếp tục.');
+    if(r.status === 403) return khoa('Không đủ quyền', j.error || 'Tài khoản chưa được cấp quyền xem trang Tài chính.');
+    if(!j.ok) throw new Error(j.error || 'Lỗi không xác định');
+    DATA = j.data;
+    const [y,m] = j.month.split('-');
+    $('titleMonth').innerHTML = `· <span>TÀI CHÍNH &amp; LÃI LỖ THÁNG ${Number(m)}/${y}</span>`;
+    buildMonthSelect(j.months, j.month);
+    render();
+    const th = new Date(j.syncedAt).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
+    setSync('ok', `✅ Số liệu lấy trực tiếp từ Lark · tháng ${j.month}${j.quy?' · '+j.quy:''} · đồng bộ lúc ${th}`);
+  } catch(err){
+    setSync('err', '⚠️ Chưa lấy được số từ Lark: ' + err.message);
+  } finally { syncing = false; $('btnSync').disabled = false; }
+}
+
+$('btnSync').addEventListener('click', () => sync($('selMonth').value || ''));
+$('selMonth').addEventListener('change', e => sync(e.target.value));
+
+(async function khoiDong(){
+  let me;
+  try { me = await (await fetch('/api/auth/me',{cache:'no-store'})).json(); }
+  catch(err){ return khoa('Không kết nối được máy chủ','Thử tải lại trang.'); }
+  if(!me.dangNhap){ $('gateTitle').textContent='Cần đăng nhập'; return location.href='/api/auth/login'; }
+  if(!me.quyen.xem_tai_chinh){
+    return khoa('Không đủ quyền', (me.ten||me.email) + ' chưa được cấp quyền xem trang Tài chính & Lãi lỗ. Liên hệ quản trị viên nếu cần.');
+  }
+  $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten||me.email) + '</b>';
+  $('tabAdmin').style.display = me.quyen.quan_tri ? '' : 'none';
+  document.body.classList.remove('locked');
+  sync(new URLSearchParams(location.search).get('month') || '');
+})();
+</script>
+</body>
+</html>
