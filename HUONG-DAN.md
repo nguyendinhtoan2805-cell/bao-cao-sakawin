@@ -179,9 +179,41 @@ thì được hiểu là một khoản chi phí. Thêm cột chi phí mới tron
 không phải sửa code. Cột bị loại trừ theo tên đã chuẩn hoá: `doanhthu*`, `giavon*`,
 `loinhuan*`, `bien*`, `traffic`, `tienrutvecty`, và mọi cột có dấu `%`.
 
-Trang gồm: bốn ô KPI · sơ đồ *từ doanh thu xuống lợi nhuận* · khối phân tích tự động ·
-biểu đồ lợi nhuận theo điểm bán (đỏ = đang lỗ) · cơ cấu chi phí · diễn biến theo tháng ·
-bảng chi tiết.
+### Kỳ xem
+
+| Nút | Nghĩa | Kỳ đem ra so sánh |
+|---|---|---|
+| Tháng | Một tháng | Tháng liền trước |
+| Quý | Cả quý chứa tháng đang chọn | 3 tháng liền trước |
+| 3 tháng | Ba tháng tính ngược từ tháng đang chọn | 3 tháng liền trước |
+| Cả năm | Cộng dồn các tháng đã có số trong năm | Cùng số tháng liền trước |
+| Tự chọn | Khoảng từ tháng A đến tháng B | Cùng số tháng liền trước |
+
+Kỳ trước luôn là **cùng số tháng, ngay liền trước** — nên so sánh không bị lệch độ dài.
+Mọi khối trên trang (KPI, chi phí, kênh chủ lực, kênh lỗ, nhận định) đều tính theo kỳ đang chọn.
+
+### Các khối trên trang
+
+Bốn ô KPI · sơ đồ *từ doanh thu xuống lợi nhuận* · khối phân tích tự động ·
+**🏆 Kênh chủ lực** (nhóm kênh gánh 80% doanh thu đầu tiên) ·
+**🚨 Kênh đang lỗ** (kèm nhãn *lỗ do chi phí* hay *bán đã lỗ*) ·
+biểu đồ lợi nhuận theo điểm bán · cơ cấu chi phí · diễn biến theo tháng ·
+**bảng chi phí chi tiết** · bảng chi tiết theo điểm bán.
+
+### Soát chi phí bất thường
+
+Bảng chi phí so từng khoản với kỳ trước. Cờ chỉ bật cho khoản chiếm **từ 3% tổng chi phí**
+trở lên, để không báo động vì mấy khoản lẻ:
+
+| Cờ | Điều kiện |
+|---|---|
+| 🔴 TĂNG MẠNH | Tăng ≥ 40%, hoặc ngốn thêm ≥ 1,5 điểm phần trăm doanh thu so với kỳ trước |
+| 🟠 TĂNG | Tăng 20–40% |
+| 🟢 GIẢM | Giảm ≥ 20% |
+| 🟣 MỚI | Kỳ trước bằng 0, kỳ này có phát sinh |
+
+Cột **% doanh thu** quan trọng hơn cột *Thay đổi*: chi phí tăng mà doanh thu tăng nhanh hơn
+thì vẫn lành; chi phí đứng yên mà doanh thu giảm mới là vấn đề.
 
 ### Khối phân tích tự động sinh ra gì
 

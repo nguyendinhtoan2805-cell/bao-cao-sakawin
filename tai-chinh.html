@@ -126,7 +126,55 @@
   #gate a{display:inline-block;margin-top:24px;color:var(--red);font-weight:700;text-decoration:none}
   footer{margin-top:26px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;line-height:1.7}
 
-  @media(max-width:1100px){.grid{grid-template-columns:1fr}}
+  /* ===== Bộ lọc kỳ ===== */
+  .filterbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:18px}
+  .filterbar .lb{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .segs{display:flex;background:#F5F5F4;border-radius:9px;padding:3px;gap:2px}
+  .segs button{font-family:inherit;font-size:13px;font-weight:700;padding:8px 15px;border:none;
+    border-radius:7px;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap}
+  .segs button:hover{color:var(--ink)}
+  .segs button.on{background:var(--red);color:#fff;box-shadow:0 1px 3px rgba(200,16,46,.3)}
+  .filterbar select{font-family:inherit;font-size:13.5px;font-weight:600;padding:9px 12px;
+    border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  .filterbar .sep{color:var(--muted);font-weight:700}
+  .kyinfo{margin-left:auto;font-size:12.5px;color:var(--muted);font-weight:600;text-align:right}
+  .kyinfo b{color:var(--ink)}
+
+  /* ===== Khối kênh chủ lực / kênh lỗ ===== */
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+  .box.win{border-left:4px solid var(--green)}
+  .box.alert{border-left:4px solid var(--red)}
+  .box h3{font-size:14px;font-weight:800;display:flex;align-items:center;gap:8px}
+  .box .cap{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.6}
+  .klist{margin-top:16px;display:flex;flex-direction:column;gap:11px}
+  .kr{display:grid;grid-template-columns:1fr 132px;gap:5px 12px;align-items:center}
+  .kr .nm{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:7px;min-width:0}
+  .kr .nm i{font-style:normal;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:4px;
+    background:#F5F5F4;color:var(--muted);flex:0 0 auto}
+  .kr .nm .tn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .kr .bar{grid-column:1/-1;height:8px;border-radius:4px;background:#F5F5F4;overflow:hidden;margin-top:-2px}
+  .kr .bar i{display:block;height:100%;border-radius:4px}
+  .kr .val{text-align:right;font-weight:800;font-size:13.5px;font-variant-numeric:tabular-nums}
+  .kr .val small{display:block;font-weight:600;font-size:11.5px;color:var(--muted);margin-top:2px}
+  .kr.neg .val{color:var(--red)}
+  .box .empty{margin-top:14px;font-size:13.5px;color:var(--green);font-weight:600}
+
+  /* ===== Bảng chi phí ===== */
+  tr.co-do td{background:#FFF5F5!important}
+  tr.co-cam td{background:#FFFBEB!important}
+  tr.co-xanh td{background:#F4FBF6!important}
+  tr.co-moi td{background:#F5F3FF!important}
+  .flag{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:5px;white-space:nowrap}
+  .flag.do{background:#FEE2E2;color:#991B1B}
+  .flag.cam{background:#FEF3C7;color:#92400E}
+  .flag.xanh{background:#DCFCE7;color:#166534}
+  .flag.moi{background:#EDE9FE;color:#5B21B6}
+  td.up{color:var(--red);font-weight:700} td.down{color:var(--green);font-weight:700}
+  .note-cell{text-align:left!important;font-size:12.5px;color:var(--muted);white-space:normal!important;min-width:190px}
+
+  @media(max-width:1100px){.grid{grid-template-columns:1fr}.duo{grid-template-columns:1fr}}
   @media(max-width:900px){
     html,body{max-width:100%;overflow-x:hidden}
     body{padding:15px 13px 50px}
@@ -147,6 +195,14 @@
     .fr .amt{text-align:right}
     .fr .pct{display:none}
     .findings{grid-template-columns:1fr;gap:11px}
+    .filterbar{padding:11px 12px;gap:9px}
+    .segs{width:100%;overflow-x:auto;scrollbar-width:none}
+    .segs::-webkit-scrollbar{display:none}
+    .segs button{font-size:12.5px;padding:8px 12px}
+    .filterbar select{flex:1;min-width:0;font-size:13px}
+    .kyinfo{margin-left:0;text-align:left;width:100%}
+    .box{padding:16px 15px}
+    .kr{grid-template-columns:1fr 108px;gap:9px}
     .chartbox{height:270px}.chartbox.tall{height:300px}
     table{font-size:12px}
     thead th{padding:10px 6px;font-size:10.5px}
@@ -184,8 +240,23 @@
     </div>
     <div class="toolbar">
       <button class="btn primary" id="btnSync">🔄 Đồng bộ từ Lark</button>
-      <select class="btn" id="selMonth" style="display:none"></select>
     </div>
+  </div>
+
+  <div class="filterbar">
+    <span class="lb">Kỳ xem</span>
+    <div class="segs" id="segKy">
+      <button data-ky="thang" class="on">Tháng</button>
+      <button data-ky="quy">Quý</button>
+      <button data-ky="3thang">3 tháng</button>
+      <button data-ky="nam">Cả năm</button>
+      <button data-ky="tuychon">Tự chọn</button>
+    </div>
+    <select id="selMoc"></select>
+    <span id="rangeWrap" style="display:none">
+      <select id="selTu"></select> <span class="sep">→</span> <select id="selDen"></select>
+    </span>
+    <span class="kyinfo" id="kyInfo"></span>
   </div>
 
   <div class="syncbar" id="syncBar">⏳ Đang lấy số liệu từ Lark…</div>
@@ -206,6 +277,19 @@
     <div class="findings" id="findings"></div>
   </div>
 
+  <div class="duo">
+    <div class="box win">
+      <h3>🏆 Kênh chủ lực</h3>
+      <p class="cap" id="capWin"></p>
+      <div class="klist" id="listWin"></div>
+    </div>
+    <div class="box alert">
+      <h3>🚨 Cảnh báo — kênh đang lỗ</h3>
+      <p class="cap" id="capAlert"></p>
+      <div class="klist" id="listAlert"></div>
+    </div>
+  </div>
+
   <div class="grid">
     <div class="card">
       <h3 id="ttProfit"></h3>
@@ -224,6 +308,12 @@
     <p class="hint">Cột = doanh thu thuần và lãi gộp · Đường = biên lợi nhuận ròng (trục phải).</p>
     <div class="chartbox"><canvas id="chartTrend"></canvas></div>
   </div>
+
+  <div class="blocktitle" style="margin-bottom:12px">Chi phí chi tiết <span id="cpSoSanh" style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)"></span></div>
+  <div class="tablecard" style="margin-bottom:26px"><table>
+    <thead><tr id="theadCP"></tr></thead>
+    <tbody id="tbodyCP"></tbody>
+  </table></div>
 
   <div class="blocktitle" style="margin-bottom:12px">Chi tiết theo điểm bán</div>
   <div class="tablecard"><table>
@@ -294,6 +384,53 @@ function render(){
       <div class="t"><span>${ICON[n.muc]||'📊'}</span><span>${esc(n.tieuDe)}</span></div>
       <div class="d">${esc(n.noiDung)}</div></div>`).join('');
 
+  /* ===== Kênh chủ lực ===== */
+  const cl = d.kenh.chuLuc;
+  $('capWin').textContent = cl.length
+    ? `${cl.length} kênh này gánh ${pct(cl[cl.length-1].luyKe)} doanh thu của kỳ. Biến động ở đây ảnh hưởng thẳng tới cả hệ.`
+    : 'Chưa đủ dữ liệu để xác định.';
+  $('listWin').innerHTML = cl.map(k => `<div class="kr">
+      <div class="nm"><span class="tn">${esc(k.name)}</span>
+        ${k.lnRong<0?'<i style="background:#FEE2E2;color:#991B1B">đang lỗ</i>':''}</div>
+      <div class="val">${pct(k.share)}<small>${ty(k.dtt)}</small></div>
+      <div class="bar"><i style="width:${Math.min(100,k.share)}%;background:${k.lnRong<0?'#C8102E':'#1A7F4B'}"></i></div>
+    </div>`).join('');
+
+  /* ===== Kênh đang lỗ ===== */
+  const kl = d.kenh.lo;
+  const tongLo = kl.reduce((a,k)=>a+k.lnRong,0);
+  $('capAlert').innerHTML = kl.length
+    ? `${kl.length} kênh đang lỗ tổng <b>${ty(Math.abs(tongLo))}</b>. Đưa hết về hoà vốn thì lợi nhuận toàn hệ lên <b>${ty(t.lnRong-tongLo)}</b>.`
+    : 'Không có kênh nào lỗ trong kỳ này.';
+  // Thanh so các kênh lỗ VỚI NHAU (kênh lỗ nặng nhất = 100%), chứ không so với
+  // tổng lợi nhuận — chia theo tổng thì thanh nào cũng bé tí, nhìn không ra gì
+  const loNangNhat = Math.max(...kl.map(k => Math.abs(k.lnRong)), 1);
+  $('listAlert').innerHTML = kl.length
+    ? kl.map(k => `<div class="kr neg">
+      <div class="nm"><span class="tn">${esc(k.name)}</span>
+        ${k.cuuDuoc?'<i style="background:#FEF3C7;color:#92400E">lỗ do chi phí</i>':'<i style="background:#FEE2E2;color:#991B1B">bán đã lỗ</i>'}</div>
+      <div class="val">${ty(k.lnRong)}<small>${pct(k.rongPct)} doanh thu</small></div>
+      <div class="bar"><i style="width:${Math.abs(k.lnRong)/loNangNhat*100}%;background:#C8102E"></i></div>
+    </div>`).join('')
+    : '<div class="empty">✅ Toàn bộ kênh đều có lãi trong kỳ này.</div>';
+
+  /* ===== Bảng chi phí chi tiết ===== */
+  $('cpSoSanh').textContent = d.coKyTruoc ? `— so với ${KY_TRUOC}` : '— chưa có kỳ trước để so sánh';
+  $('theadCP').innerHTML = '<th>Khoản chi phí</th><th>Kỳ này</th><th>% chi phí</th><th>% doanh thu</th>'
+    + (d.coKyTruoc ? '<th>Kỳ trước</th><th>Thay đổi</th><th class="note-cell">Ghi chú</th>' : '');
+  const tongCP = d.chiPhiChiTiet.reduce((a,c)=>a+c.tien,0);
+  $('tbodyCP').innerHTML = d.chiPhiChiTiet.map(c => {
+    const t2 = c.tang;
+    const cls = t2 == null ? '' : (t2 > 0 ? 'up' : 'down');
+    const mui = t2 == null ? '—' : (t2>0?'▲ ':'▼ ') + pct(Math.abs(t2),0);
+    return `<tr class="${c.co?'co-'+c.co:''}">
+      <td>${esc(c.ten)}${c.co?` <span class="flag ${c.co}">${c.co==='moi'?'MỚI':c.co==='xanh'?'GIẢM':c.co==='cam'?'TĂNG':'TĂNG MẠNH'}</span>`:''}</td>
+      <td>${fmt(c.tien)}</td><td>${pct(c.tyTrong)}</td><td>${pct(c.pctDT)}</td>
+      ${d.coKyTruoc ? `<td>${fmt(c.tienTruoc)}</td><td class="${cls}">${mui}</td><td class="note-cell">${esc(c.lyDo)}</td>` : ''}</tr>`;
+  }).join('') + `<tr class="tot"><td>TỔNG CHI PHÍ</td><td>${fmt(tongCP)}</td><td>100,0%</td>
+      <td>${pct(t.dtt>0?tongCP/t.dtt*100:null)}</td>
+      ${d.coKyTruoc ? `<td>${fmt(d.chiPhiChiTiet.reduce((a,c)=>a+c.tienTruoc,0))}</td><td></td><td class="note-cell"></td>` : ''}</tr>`;
+
   /* Biểu đồ lợi nhuận theo shop */
   const sp = d.shops.filter(s => s.dtt > 0);
   $('ttProfit').textContent = `Lợi nhuận ròng theo điểm bán (${sp.length} điểm)`;
@@ -308,13 +445,14 @@ function render(){
       scales:{ y:{ticks:{callback:v=>(v/1e6).toLocaleString('vi-VN')+' tr',font:{size:11}},grid:{color:'#F0EEEC'}},
                x:{ticks:{font:{size:10},maxRotation:60,minRotation:35},grid:{display:false}}}}});
 
-  /* Cơ cấu chi phí */
+  /* Cơ cấu chi phí — tô đỏ khoản đang tăng bất thường */
   charts.cost && charts.cost.destroy();
-  const cp = d.chiPhiTong.slice(0, 10);
+  const MAU_CO = {do:'#C8102E', cam:'#E8A33D', xanh:'#1A7F4B', moi:'#7C3AED', '':'#B45309'};
+  const cp = d.chiPhiChiTiet.filter(c=>c.tien>0).slice(0, 12);
   charts.cost = new Chart($('chartCost'), {
     type:'bar',
     data:{ labels: cp.map(c=>c.ten),
-      datasets:[{ data: cp.map(c=>c.tien), backgroundColor:'#B45309', borderRadius:4 }]},
+      datasets:[{ data: cp.map(c=>c.tien), backgroundColor: cp.map(c=>MAU_CO[c.co]||MAU_CO['']), borderRadius:4 }]},
     options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' '+fmt(c.raw)+' đ'}}},
       scales:{ x:{ticks:{callback:v=>(v/1e6).toLocaleString('vi-VN')+' tr',font:{size:10}},grid:{color:'#F0EEEC'}},
@@ -353,40 +491,85 @@ function render(){
     <td>${fmt(t.lnRong)}</td><td>${pct(bienRong)}</td></tr>`;
 }
 
-function buildMonthSelect(months, cur){
-  const sel = $('selMonth');
-  if(!months || months.length < 2){ sel.style.display='none'; return; }
-  sel.innerHTML = months.slice().reverse().map(m => {
-    const [y,mm] = m.split('-');
-    return `<option value="${m}"${m===cur?' selected':''}>Tháng ${Number(mm)}/${y}</option>`;
-  }).join('');
-  sel.style.display = '';
+/* =====================================================================
+   BỘ LỌC KỲ — tháng / quý / 3 tháng / cả năm / tự chọn
+===================================================================== */
+let KY = 'thang', MOC = '', MONTHS = [], KY_TRUOC = 'kỳ trước';
+
+const nhanThang = k => { const [y,m] = k.split('-'); return `T${Number(m)}/${y}`; };
+
+function nạpChonThang(months, moc){
+  MONTHS = months;
+  const opts = months.slice().reverse().map(m => `<option value="${m}">${nhanThang(m)}</option>`).join('');
+  const optsXuoi = months.map(m => `<option value="${m}">${nhanThang(m)}</option>`).join('');
+  $('selMoc').innerHTML = opts;
+  $('selMoc').value = moc;
+  if(!$('selTu').innerHTML){
+    $('selTu').innerHTML = optsXuoi;
+    $('selDen').innerHTML = optsXuoi;
+    $('selTu').value = months[0];
+    $('selDen').value = months[months.length-1];
+  }
+  capNhatNhanMoc();
 }
 
-async function sync(month){
+/* Nhãn ô chọn mốc đổi theo kỳ cho đỡ khó hiểu */
+function capNhatNhanMoc(){
+  const tuChon = KY === 'tuychon';
+  $('selMoc').style.display = tuChon ? 'none' : '';
+  $('rangeWrap').style.display = tuChon ? '' : 'none';
+  const nhan = {thang:'Tháng', quy:'Quý chứa tháng', '3thang':'Kết thúc ở tháng', nam:'Năm của tháng'}[KY];
+  $('selMoc').title = nhan || '';
+}
+
+function truyVan(){
+  const p = new URLSearchParams();
+  p.set('ky', KY);
+  if(KY === 'tuychon'){ p.set('tu', $('selTu').value); p.set('den', $('selDen').value); }
+  else if($('selMoc').value) p.set('month', $('selMoc').value);
+  return p.toString();
+}
+
+async function sync(){
   if(syncing) return;
   syncing = true; $('btnSync').disabled = true;
   setSync('', '⏳ Đang lấy số liệu từ Lark…');
   try {
-    const r = await fetch('/api/tai-chinh' + (month ? '?month='+encodeURIComponent(month) : ''), {cache:'no-store'});
+    const r = await fetch('/api/tai-chinh?' + truyVan(), {cache:'no-store'});
     const j = await r.json().catch(()=>({ok:false,error:'HTTP '+r.status}));
     if(r.status === 401) return khoa('Phiên đã hết hạn','Đăng nhập lại để tiếp tục.');
     if(r.status === 403) return khoa('Không đủ quyền', j.error || 'Tài khoản chưa được cấp quyền xem trang Tài chính.');
     if(!j.ok) throw new Error(j.error || 'Lỗi không xác định');
+
     DATA = j.data;
-    const [y,m] = j.month.split('-');
-    $('titleMonth').innerHTML = `· <span>TÀI CHÍNH &amp; LÃI LỖ THÁNG ${Number(m)}/${y}</span>`;
-    buildMonthSelect(j.months, j.month);
+    KY_TRUOC = j.kyInfo.kyTruocNhan;
+    MOC = j.moc;
+    nạpChonThang(j.months, j.moc);
+
+    $('titleMonth').innerHTML = '· <span>TÀI CHÍNH &amp; LÃI LỖ · ' + esc(j.kyInfo.nhan.toUpperCase()) + '</span>';
+    const ki = j.kyInfo;
+    $('kyInfo').innerHTML = `Đang xem <b>${esc(ki.nhan)}</b>`
+      + (ki.soThang > 1 ? ` · gộp <b>${ki.soThang} tháng</b> (${nhanThang(ki.tu)} – ${nhanThang(ki.den)})` : '')
+      + (ki.coKyTruoc ? ` · so với <b>${esc(ki.kyTruocNhan)}</b>` : ' · chưa có kỳ trước để so');
+
     render();
     const th = new Date(j.syncedAt).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
-    setSync('ok', `✅ Số liệu lấy trực tiếp từ Lark · tháng ${j.month}${j.quy?' · '+j.quy:''} · đồng bộ lúc ${th}`);
+    setSync('ok', `✅ Số liệu lấy trực tiếp từ Lark · ${ki.nhan}${ki.phu?' ('+ki.phu+')':''} · đồng bộ lúc ${th}`);
   } catch(err){
     setSync('err', '⚠️ Chưa lấy được số từ Lark: ' + err.message);
   } finally { syncing = false; $('btnSync').disabled = false; }
 }
 
-$('btnSync').addEventListener('click', () => sync($('selMonth').value || ''));
-$('selMonth').addEventListener('change', e => sync(e.target.value));
+$('segKy').addEventListener('click', e => {
+  const b = e.target.closest('button[data-ky]');
+  if(!b) return;
+  [...$('segKy').children].forEach(x => x.classList.toggle('on', x === b));
+  KY = b.dataset.ky;
+  capNhatNhanMoc();
+  sync();
+});
+$('btnSync').addEventListener('click', () => sync());
+['selMoc','selTu','selDen'].forEach(id => $(id).addEventListener('change', () => sync()));
 
 (async function khoiDong(){
   let me;
@@ -399,7 +582,13 @@ $('selMonth').addEventListener('change', e => sync(e.target.value));
   $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten||me.email) + '</b>';
   $('tabAdmin').style.display = me.quyen.quan_tri ? '' : 'none';
   document.body.classList.remove('locked');
-  sync(new URLSearchParams(location.search).get('month') || '');
+  const qs = new URLSearchParams(location.search);
+  if(['thang','quy','3thang','nam'].includes(qs.get('ky'))){
+    KY = qs.get('ky');
+    [...$('segKy').children].forEach(x => x.classList.toggle('on', x.dataset.ky === KY));
+    capNhatNhanMoc();
+  }
+  sync();
 })();
 </script>
 </body>

@@ -118,96 +118,226 @@ const fmtTy = n => (n / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 2 
 const fmtPct = n => (n == null ? '—' : n.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%');
 
 /* =====================================================================
-   PHÂN TÍCH TỰ ĐỘNG — đọc số rồi rút ra nhận định, không phải văn mẫu
+   KỲ BÁO CÁO — tháng / quý / 3 tháng / cả năm / tự chọn
 ===================================================================== */
-function phanTich({ shops, tong, chiPhiTong, xuHuong, M, thieuSot }) {
+const thangCua = k => Number(k.split('-')[1]);
+const namCua  = k => Number(k.split('-')[0]);
+const nhanThang = k => `T${thangCua(k)}/${namCua(k)}`;
+
+/* Danh sách tháng từ tu đến den (bao gồm hai đầu) */
+function daiThang(tu, den) {
+  const out = [];
+  let c = tu;
+  for (let i = 0; i < 240 && c <= den; i++) { out.push(c); c = shiftMonth(c, 1); }
+  return out;
+}
+
+function tinhKy(ky, moc, q) {
+  const n = namCua(moc), m = thangCua(moc);
+  switch (ky) {
+    case 'quy': {
+      const q0 = Math.floor((m - 1) / 3) * 3 + 1;
+      const tu = `${n}-${String(q0).padStart(2, '0')}`, den = `${n}-${String(q0 + 2).padStart(2, '0')}`;
+      return { tu, den, nhan: `Quý ${Math.floor((m - 1) / 3) + 1}/${n}`, phu: `T${q0}–T${q0 + 2}` };
+    }
+    case '3thang': {
+      const tu = shiftMonth(moc, -2);
+      return { tu, den: moc, nhan: `3 tháng gần nhất`, phu: `${nhanThang(tu)} – ${nhanThang(moc)}` };
+    }
+    case 'nam':
+      return { tu: `${n}-01`, den: `${n}-12`, nhan: `Cả năm ${n}`, phu: 'Cộng dồn các tháng đã có số' };
+    case 'tuychon': {
+      const tu = monthKey(txt(q.tu)) || moc, den = monthKey(txt(q.den)) || moc;
+      return tu <= den
+        ? { tu, den, nhan: 'Khoảng tự chọn', phu: `${nhanThang(tu)} – ${nhanThang(den)}` }
+        : { tu: den, den: tu, nhan: 'Khoảng tự chọn', phu: `${nhanThang(den)} – ${nhanThang(tu)}` };
+    }
+    default:
+      return { tu: moc, den: moc, nhan: `Tháng ${m}/${n}`, phu: '' };
+  }
+}
+
+/* Gộp nhiều tháng lại theo từng điểm bán */
+function gomTheoShop(list) {
+  const m = new Map();
+  for (const r of list) {
+    const k = norm(r.name);
+    if (!m.has(k)) m.set(k, { name: r.name, grp: r.grp, nguon: r.nguon, dtt: 0, gv: 0, lnGop: 0, lnRong: 0, chiPhi: {} });
+    const o = m.get(k);
+    o.dtt += r.dtt || 0; o.gv += r.gv || 0; o.lnGop += r.lnGop || 0; o.lnRong += r.lnRong || 0;
+    for (const [c, v] of Object.entries(r.chiPhi)) o.chiPhi[c] = (o.chiPhi[c] || 0) + v;
+  }
+  return [...m.values()].map(s => {
+    const tongChiPhi = Object.values(s.chiPhi).reduce((a, b) => a + b, 0);
+    return { ...s, tongChiPhi,
+      gvPct: s.dtt > 0 ? s.gv / s.dtt * 100 : null,
+      gopPct: s.dtt > 0 ? s.lnGop / s.dtt * 100 : null,
+      rongPct: s.dtt > 0 ? s.lnRong / s.dtt * 100 : null };
+  }).filter(s => s.dtt > 0 || s.tongChiPhi > 0)
+    .sort((a, b) => b.dtt - a.dtt);
+}
+const congTong = shops => ({
+  dtt: shops.reduce((a, s) => a + s.dtt, 0), gv: shops.reduce((a, s) => a + s.gv, 0),
+  lnGop: shops.reduce((a, s) => a + s.lnGop, 0), lnRong: shops.reduce((a, s) => a + s.lnRong, 0),
+  tongChiPhi: shops.reduce((a, s) => a + s.tongChiPhi, 0),
+});
+const gomChiPhi = shops => {
+  const g = {};
+  for (const s of shops) for (const [k, v] of Object.entries(s.chiPhi)) g[k] = (g[k] || 0) + v;
+  return g;
+};
+
+/* =====================================================================
+   PHÂN TÍCH CHI PHÍ — so từng khoản với kỳ trước
+===================================================================== */
+function soatChiPhi(nay, truoc, dttNay, dttTruoc, coKyTruoc) {
+  const tenCot = [...new Set([...Object.keys(nay), ...Object.keys(truoc)])];
+  const tongNay = Object.values(nay).reduce((a, b) => a + b, 0) || 1;
+
+  return tenCot.map(ten => {
+    const tien = nay[ten] || 0, tienTruoc = truoc[ten] || 0;
+    const tyTrong = tien / tongNay * 100;
+    const pctDT = dttNay > 0 ? tien / dttNay * 100 : null;
+    const pctDTTruoc = dttTruoc > 0 ? tienTruoc / dttTruoc * 100 : null;
+    const tang = tienTruoc > 0 ? (tien / tienTruoc - 1) * 100 : (tien > 0 ? null : 0);
+    const lechDT = (pctDT != null && pctDTTruoc != null) ? pctDT - pctDTTruoc : null;
+
+    /* Cờ cảnh báo — chỉ bật khi khoản đó đủ lớn để đáng bận tâm (≥3% tổng chi phí) */
+    let co = '', lyDo = '';
+    if (coKyTruoc && tyTrong >= 3) {
+      if (tienTruoc === 0 && tien > 0) { co = 'moi'; lyDo = 'Khoản mới phát sinh, kỳ trước chưa có'; }
+      else if (tang != null && tang >= 40) { co = 'do'; lyDo = `Tăng ${fmtPct(tang)} so với kỳ trước`; }
+      else if (lechDT != null && lechDT >= 1.5) { co = 'do'; lyDo = `Ngốn thêm ${fmtPct(lechDT)} doanh thu so với kỳ trước`; }
+      else if (tang != null && tang >= 20) { co = 'cam'; lyDo = `Tăng ${fmtPct(tang)} so với kỳ trước`; }
+      else if (tang != null && tang <= -20) { co = 'xanh'; lyDo = `Giảm ${fmtPct(Math.abs(tang))} so với kỳ trước`; }
+    }
+    return { ten, tien, tienTruoc, tang, tyTrong, pctDT, pctDTTruoc, lechDT, co, lyDo };
+  }).filter(c => c.tien > 0 || c.tienTruoc > 0)
+    .sort((a, b) => b.tien - a.tien);
+}
+
+/* =====================================================================
+   KÊNH CHỦ LỰC & KÊNH ĐANG LỖ
+===================================================================== */
+function soatKenh(shops, tong) {
+  const coDT = shops.filter(s => s.dtt > 0);
+  let don = 0;
+  const chuLuc = [];
+  for (const s of coDT) {
+    const share = tong.dtt > 0 ? s.dtt / tong.dtt * 100 : 0;
+    if (don < 80) { chuLuc.push({ ...s, share, luyKe: don + share }); don += share; }
+  }
+  const lo = shops.filter(s => s.lnRong < 0).sort((a, b) => a.lnRong - b.lnRong)
+    .map(s => ({ ...s,
+      share: tong.dtt > 0 ? s.dtt / tong.dtt * 100 : 0,
+      keoTut: tong.lnRong !== 0 ? Math.abs(s.lnRong) / Math.abs(tong.lnRong) * 100 : null,
+      cuuDuoc: s.lnGop > 0 }));
+  return { chuLuc, lo };
+}
+
+/* =====================================================================
+   NHẬN ĐỊNH
+===================================================================== */
+function phanTich({ shops, tong, chiPhiChiTiet, kenh, xuHuong, thieuSot, kyNhan, kyTruocNhan, coKyTruoc, tongTruoc }) {
   const nx = [];
   const bienRong = tong.dtt > 0 ? tong.lnRong / tong.dtt * 100 : null;
   const bienGop = tong.dtt > 0 ? tong.lnGop / tong.dtt * 100 : null;
 
-  /* 1. Bức tranh chung */
-  if (bienRong != null) {
+  if (bienRong != null) nx.push({
+    muc: bienRong < 0 ? 'canh-bao' : (bienRong < 5 ? 'luu-y' : 'tot'),
+    tieuDe: bienRong < 0 ? `${kyNhan}: toàn hệ đang lỗ` : `${kyNhan}: biên lợi nhuận ròng ${fmtPct(bienRong)}`,
+    noiDung: `Doanh thu thuần ${fmtTy(tong.dtt)}, lãi gộp ${fmtTy(tong.lnGop)} (${fmtPct(bienGop)}), `
+      + `còn ${fmtTy(tong.lnRong)} sau khi trừ ${fmtTy(tong.lnGop - tong.lnRong)} chi phí. `
+      + (bienRong < 0 ? 'Chi phí đang ăn hết lãi gộp.' : bienRong < 5 ? 'Mức này mỏng, dễ về 0 nếu giá vốn nhích lên.' : 'Mức này lành mạnh.'),
+  });
+
+  /* Kênh chủ lực */
+  if (kenh.chuLuc.length) {
+    const t = kenh.chuLuc;
     nx.push({
-      muc: bienRong < 0 ? 'canh-bao' : (bienRong < 5 ? 'luu-y' : 'tot'),
-      tieuDe: bienRong < 0 ? 'Toàn hệ đang lỗ' : `Biên lợi nhuận ròng ${fmtPct(bienRong)}`,
-      noiDung: `Doanh thu thuần ${fmtTy(tong.dtt)}, lãi gộp ${fmtTy(tong.lnGop)} (${fmtPct(bienGop)}), `
-        + `còn lại ${fmtTy(tong.lnRong)} sau chi phí. `
-        + (bienRong < 0
-            ? 'Chi phí đang ăn hết phần lãi gộp — đây là việc cần xử lý trước mọi việc khác.'
-            : bienRong < 5
-              ? 'Mức này mỏng: chỉ cần một tháng giá vốn nhích lên là về 0.'
-              : 'Mức này lành mạnh, giữ nhịp.'),
+      muc: 'chu-luc',
+      tieuDe: `${t.length} kênh gánh ${fmtPct(t[t.length - 1].luyKe)} doanh thu`,
+      noiDung: t.slice(0, 5).map(s => `${s.name} ${fmtPct(s.share)}`).join(' · ')
+        + (t.length > 5 ? ` · và ${t.length - 5} kênh nữa` : '')
+        + `. Đây là phần xương sống — biến động ở nhóm này ảnh hưởng thẳng tới cả hệ, `
+        + `ưu tiên giữ nguồn hàng và ngân sách cho họ trước.`,
     });
   }
 
-  /* 2. Shop lỗ */
-  const lo = shops.filter(s => s.lnRong != null && s.lnRong < 0).sort((a, b) => a.lnRong - b.lnRong);
-  if (lo.length) {
-    const tongLo = lo.reduce((a, s) => a + s.lnRong, 0);
+  /* Kênh lỗ */
+  if (kenh.lo.length) {
+    const tongLo = kenh.lo.reduce((a, s) => a + s.lnRong, 0);
     nx.push({
       muc: 'canh-bao',
-      tieuDe: `${lo.length} điểm đang lỗ, tổng ${fmtTy(Math.abs(tongLo))}`,
-      noiDung: lo.slice(0, 5).map(s => `${s.name} ${fmtTy(s.lnRong)}`).join(' · ')
-        + (lo.length > 5 ? ` · và ${lo.length - 5} điểm nữa` : '')
-        + `. Nếu cắt hết phần lỗ này, lợi nhuận toàn hệ lên ${fmtTy(tong.lnRong - tongLo)}.`,
+      tieuDe: `${kenh.lo.length} kênh đang lỗ, kéo tụt ${fmtTy(Math.abs(tongLo))}`,
+      noiDung: kenh.lo.slice(0, 5).map(s => `${s.name} ${fmtTy(s.lnRong)}`).join(' · ')
+        + (kenh.lo.length > 5 ? ` · và ${kenh.lo.length - 5} kênh nữa` : '')
+        + `. Đưa hết nhóm này về hoà vốn thì lợi nhuận toàn hệ lên ${fmtTy(tong.lnRong - tongLo)}`
+        + (tong.lnRong > 0 ? ` (tăng ${fmtPct(Math.abs(tongLo) / tong.lnRong * 100)})` : '') + '.',
     });
-  }
-
-  /* 3. Lỗ vì chi phí chứ không phải vì bán lỗ — nhóm cứu được */
-  const cuuDuoc = lo.filter(s => s.lnGop != null && s.lnGop > 0);
-  if (cuuDuoc.length) {
-    nx.push({
+    const cuu = kenh.lo.filter(s => s.cuuDuoc);
+    if (cuu.length) nx.push({
       muc: 'luu-y',
-      tieuDe: `${cuuDuoc.length} điểm lỗ do chi phí, không phải do bán lỗ`,
-      noiDung: cuuDuoc.slice(0, 4).map(s => `${s.name} (lãi gộp ${fmtTy(s.lnGop)} nhưng chi phí ${fmtTy(s.tongChiPhi)})`).join(' · ')
-        + '. Nhóm này bán vẫn có lãi, vấn đề nằm ở chi phí phân bổ — xem lại trước khi tính chuyện đóng điểm.',
+      tieuDe: `${cuu.length} kênh lỗ do chi phí, không phải do bán lỗ`,
+      noiDung: cuu.slice(0, 4).map(s => `${s.name} (lãi gộp ${fmtTy(s.lnGop)} nhưng chi phí ${fmtTy(s.tongChiPhi)})`).join(' · ')
+        + '. Nhóm này bán vẫn có lãi — xem lại cách phân bổ chi phí trước khi tính chuyện đóng điểm.',
     });
   }
 
-  /* 4. Giá vốn bất thường */
+  /* Chi phí bất thường */
+  const batThuong = chiPhiChiTiet.filter(c => c.co === 'do' || c.co === 'moi');
+  if (batThuong.length) nx.push({
+    muc: 'canh-bao',
+    tieuDe: `${batThuong.length} khoản chi phí tăng bất thường so với ${kyTruocNhan}`,
+    noiDung: batThuong.slice(0, 5).map(c => `${c.ten}: ${fmtTy(c.tienTruoc)} → ${fmtTy(c.tien)} (${c.lyDo.toLowerCase()})`).join(' · ')
+      + '. Kiểm tra chứng từ của các khoản này trước khi chốt sổ.',
+  });
+  const giam = chiPhiChiTiet.filter(c => c.co === 'xanh');
+  if (giam.length) nx.push({
+    muc: 'tot',
+    tieuDe: `${giam.length} khoản chi phí giảm được`,
+    noiDung: giam.slice(0, 4).map(c => `${c.ten}: ${fmtTy(c.tienTruoc)} → ${fmtTy(c.tien)}`).join(' · ')
+      + '. Xem cách làm ở đây có nhân rộng sang khoản khác được không.',
+  });
+
+  /* Chi phí tập trung */
+  if (chiPhiChiTiet.length) {
+    const top = chiPhiChiTiet.slice(0, 3);
+    nx.push({
+      muc: '',
+      tieuDe: 'Chi phí tập trung ở đâu',
+      noiDung: top.map(c => `${c.ten} ${fmtTy(c.tien)} (${fmtPct(c.tyTrong)})`).join(' · ')
+        + `. Ba khoản này chiếm ${fmtPct(top.reduce((a, c) => a + c.tyTrong, 0))} tổng chi phí — `
+        + 'cải thiện lợi nhuận thì bắt đầu từ đây, không phải từ các khoản lẻ.',
+    });
+  }
+
+  /* Giá vốn lệch mặt bằng */
   const coGV = shops.filter(s => s.gvPct != null && s.dtt > 0);
   if (coGV.length >= 3) {
     const tb = coGV.reduce((a, s) => a + s.gvPct, 0) / coGV.length;
     const cao = coGV.filter(s => s.gvPct > tb + 8).sort((a, b) => b.gvPct - a.gvPct);
     if (cao.length) nx.push({
-      muc: 'luu-y',
-      tieuDe: 'Giá vốn cao hơn mặt bằng',
+      muc: 'luu-y', tieuDe: 'Giá vốn cao hơn mặt bằng',
       noiDung: `Trung bình toàn hệ ${fmtPct(tb)}. Cao hơn rõ rệt: `
         + cao.slice(0, 4).map(s => `${s.name} ${fmtPct(s.gvPct)}`).join(' · ')
-        + '. Kiểm tra cơ cấu hàng bán hoặc mức chiết khấu đang chạy ở các điểm này.',
+        + '. Kiểm tra cơ cấu hàng bán hoặc mức chiết khấu đang chạy.',
     });
   }
 
-  /* 5. Chi phí lớn nhất */
-  if (chiPhiTong.length) {
-    const top = chiPhiTong.slice(0, 3);
-    const tongCP = chiPhiTong.reduce((a, c) => a + c.tien, 0);
-    nx.push({
-      muc: '',
-      tieuDe: 'Chi phí tập trung ở đâu',
-      noiDung: top.map(c => `${c.ten} ${fmtTy(c.tien)} (${fmtPct(c.tien / tongCP * 100)})`).join(' · ')
-        + `. Ba khoản này chiếm ${fmtPct(top.reduce((a, c) => a + c.tien, 0) / tongCP * 100)} tổng chi phí — `
-        + 'muốn cải thiện lợi nhuận thì bắt đầu từ đây, không phải từ các khoản lẻ.',
+  /* So với kỳ trước */
+  if (coKyTruoc && tongTruoc.dtt > 0 && tong.dtt > 0) {
+    const bNay = tong.lnRong / tong.dtt * 100, bTruoc = tongTruoc.lnRong / tongTruoc.dtt * 100;
+    const lech = bNay - bTruoc, tangDT = (tong.dtt / tongTruoc.dtt - 1) * 100;
+    if (Math.abs(lech) >= 1 || Math.abs(tangDT) >= 10) nx.push({
+      muc: lech >= 0 ? 'tot' : 'canh-bao',
+      tieuDe: `So với ${kyTruocNhan}: biên ${lech >= 0 ? 'tăng' : 'giảm'} ${fmtPct(Math.abs(lech))}`,
+      noiDung: `Doanh thu ${fmtTy(tongTruoc.dtt)} → ${fmtTy(tong.dtt)} (${tangDT >= 0 ? '+' : ''}${fmtPct(tangDT)}), `
+        + `biên ròng ${fmtPct(bTruoc)} → ${fmtPct(bNay)}. `
+        + (lech >= 0 ? 'Giữ nhịp hiện tại.' : 'Doanh thu và chi phí đang không đi cùng tốc độ — truy khoản chi phí nào tăng nhanh hơn.'),
     });
   }
 
-  /* 6. So với tháng trước */
-  if (xuHuong.length >= 2) {
-    const nay = xuHuong[xuHuong.length - 1], truoc = xuHuong[xuHuong.length - 2];
-    if (truoc.dtt > 0 && nay.dtt > 0) {
-      const bNay = nay.lnRong / nay.dtt * 100, bTruoc = truoc.lnRong / truoc.dtt * 100;
-      const lech = bNay - bTruoc;
-      if (Math.abs(lech) >= 1) nx.push({
-        muc: lech > 0 ? 'tot' : 'canh-bao',
-        tieuDe: `Biên lợi nhuận ${lech > 0 ? 'cải thiện' : 'giảm'} ${fmtPct(Math.abs(lech))} so với tháng trước`,
-        noiDung: `Tháng ${truoc.thang}: ${fmtPct(bTruoc)} → tháng ${nay.thang}: ${fmtPct(bNay)}. `
-          + `Doanh thu ${fmtTy(truoc.dtt)} → ${fmtTy(nay.dtt)}. `
-          + (lech > 0 ? 'Giữ cách làm đang có hiệu quả.' : 'Truy nguyên nhân: giá vốn tăng hay chi phí phát sinh?'),
-      });
-    }
-  }
-
-  /* 7. Điểm chưa chốt */
   if (thieuSot.length) nx.push({
     muc: 'chua-chot',
     tieuDe: `${thieuSot.length} điểm dữ liệu chưa chốt`,
@@ -224,7 +354,6 @@ module.exports = async (req, res) => {
   try {
     const toi = await A.canhCong(req, res, 'xem_tai_chinh');
     if (!toi) return;
-
     for (const k of ['LARK_APP_ID', 'LARK_APP_SECRET', 'LARK_APP_TOKEN', 'LARK_TABLE_FINANCE']) {
       if (!process.env[k]) throw new Error(`Thiếu biến môi trường ${k} trên Vercel.`);
     }
@@ -233,16 +362,12 @@ module.exports = async (req, res) => {
     const rows = await readTable(token, process.env.LARK_TABLE_FINANCE, 'Báo Cáo Chi Tiết - 2026');
     if (!rows.length) throw new Error('Bảng Báo Cáo Chi Tiết - 2026 chưa có dòng nào.');
 
-    /* Tự dò cột chi phí từ toàn bộ tên cột xuất hiện trong dữ liệu */
     const tenCot = [...new Set(rows.flatMap(r => Object.keys(r)))];
     const cotChiPhi = tenCot.filter(laCotChiPhi);
 
     const recs = rows.map(r => {
       const chiPhi = {};
-      for (const c of cotChiPhi) {
-        const v = num(r[c]);
-        if (v != null && v !== 0) chiPhi[c] = v;
-      }
+      for (const c of cotChiPhi) { const v = num(r[c]); if (v != null && v !== 0) chiPhi[c] = v; }
       return {
         month: monthKey(pick(r, 'Tháng', 'Thang', 'Month'), pick(r, 'Năm', 'Nam')),
         quy: txt(pick(r, 'Quý', 'Quy')),
@@ -257,65 +382,59 @@ module.exports = async (req, res) => {
       };
     }).filter(x => x.month && x.name);
 
-    /* Bảng có sẵn dòng trống cho các tháng chưa tới, nên "tháng mới nhất" phải là
-       tháng mới nhất CÓ DOANH THU, không phải tháng mới nhất có dòng. */
-    const coSo = [...new Set(recs.filter(r => (r.dtt || 0) > 0).map(r => r.month))].sort();
-    const tatCa = [...new Set(recs.map(r => r.month))].sort();
-    const months = coSo.length ? coSo : tatCa;
-    const askedRaw = txt(req.query && req.query.month);
-    const M = (askedRaw ? monthKey(askedRaw) : '') || months[months.length - 1];
-    const cur = recs.filter(r => r.month === M);
-    if (!cur.length) throw new Error(`Không có dòng nào cho tháng ${M}. Các tháng đang có số: ${months.join(', ')}`);
+    const months = [...new Set(recs.filter(r => (r.dtt || 0) > 0).map(r => r.month))].sort();
+    if (!months.length) throw new Error('Chưa tháng nào có doanh thu trong bảng Báo Cáo Chi Tiết.');
 
-    /* Từng shop */
-    const shops = cur.map(r => {
-      const tongChiPhi = Object.values(r.chiPhi).reduce((a, b) => a + b, 0);
-      return {
-        name: r.name, grp: r.grp, nguon: r.nguon,
-        dtt: r.dtt, gv: r.gv, lnGop: r.lnGop, lnRong: r.lnRong, chiPhi: r.chiPhi, tongChiPhi,
-        gvPct: (r.dtt > 0 && r.gv != null) ? r.gv / r.dtt * 100 : null,
-        gopPct: (r.dtt > 0 && r.lnGop != null) ? r.lnGop / r.dtt * 100 : null,
-        rongPct: (r.dtt > 0 && r.lnRong != null) ? r.lnRong / r.dtt * 100 : null,
-      };
-    }).filter(s => (s.dtt ?? 0) > 0 || (s.tongChiPhi ?? 0) > 0)
-      .sort((a, b) => (b.dtt ?? 0) - (a.dtt ?? 0));
+    const q = req.query || {};
+    const ky = ['thang', 'quy', '3thang', 'nam', 'tuychon'].includes(txt(q.ky)) ? txt(q.ky) : 'thang';
+    const moc = monthKey(txt(q.month)) || months[months.length - 1];
+    const K = tinhKy(ky, moc, q);
 
-    const cong = f => shops.reduce((a, s) => a + (f(s) ?? 0), 0);
-    const tong = { dtt: cong(s => s.dtt), gv: cong(s => s.gv), lnGop: cong(s => s.lnGop),
-                   lnRong: cong(s => s.lnRong), tongChiPhi: cong(s => s.tongChiPhi) };
+    const trongKy = daiThang(K.tu, K.den).filter(m => months.includes(m));
+    if (!trongKy.length) throw new Error(`Khoảng ${K.phu || K.nhan} chưa có tháng nào có số. Các tháng đang có: ${months.map(nhanThang).join(', ')}`);
 
-    /* Cơ cấu chi phí toàn hệ */
-    const gop = {};
-    for (const s of shops) for (const [k, v] of Object.entries(s.chiPhi)) gop[k] = (gop[k] || 0) + v;
-    const chiPhiTong = Object.entries(gop).map(([ten, tien]) => ({ ten, tien }))
-      .filter(c => c.tien > 0).sort((a, b) => b.tien - a.tien);
+    /* Kỳ trước: cùng số tháng, ngay liền trước */
+    const soThang = trongKy.length;
+    const truocDen = shiftMonth(trongKy[0], -1);
+    const truocTu = shiftMonth(truocDen, -(soThang - 1));
+    const trongKyTruoc = daiThang(truocTu, truocDen).filter(m => months.includes(m));
+    const coKyTruoc = trongKyTruoc.length > 0;
 
-    /* Xu hướng 12 tháng */
+    const shops = gomTheoShop(recs.filter(r => trongKy.includes(r.month)));
+    const tong = congTong(shops);
+    const shopsTruoc = coKyTruoc ? gomTheoShop(recs.filter(r => trongKyTruoc.includes(r.month))) : [];
+    const tongTruoc = congTong(shopsTruoc);
+
+    const chiPhiChiTiet = soatChiPhi(gomChiPhi(shops), gomChiPhi(shopsTruoc), tong.dtt, tongTruoc.dtt, coKyTruoc);
+    const kenh = soatKenh(shops, tong);
+
     const xuHuong = months.map(m => {
       const rs = recs.filter(r => r.month === m);
       const s = f => rs.reduce((a, r) => a + (f(r) ?? 0), 0);
-      return { thang: 'T' + Number(m.split('-')[1]), key: m,
-               dtt: s(r => r.dtt), gv: s(r => r.gv), lnGop: s(r => r.lnGop), lnRong: s(r => r.lnRong) };
-    }).filter(x => x.dtt > 0);
+      return { thang: nhanThang(m), key: m, trongKy: trongKy.includes(m),
+               dtt: s(r => r.dtt), gv: s(r => r.gv), lnGop: s(r => r.lnGop), lnRong: s(r => r.lnRong),
+               chiPhi: rs.reduce((a, r) => a + Object.values(r.chiPhi).reduce((x, y) => x + y, 0), 0) };
+    });
 
     /* Điểm chưa chốt */
     const thieuSot = [];
     for (const s of shops) {
       if (!s.dtt) thieuSot.push(`${s.name}: có chi phí nhưng chưa có doanh thu thuần`);
-      else if (s.gv == null || s.gv === 0) thieuSot.push(`${s.name}: chưa có giá vốn`);
+      else if (!s.gv) thieuSot.push(`${s.name}: chưa có giá vốn`);
       else if (!s.tongChiPhi) thieuSot.push(`${s.name}: chưa phân bổ chi phí`);
     }
-    const trongHoanToan = cur.filter(r => !(r.dtt > 0) && !Object.keys(r.chiPhi).length).length;
-    if (trongHoanToan) thieuSot.push(`${trongHoanToan} dòng của tháng ${M} còn trống hoàn toàn (chưa nhập số nào)`);
-    const truoc = recs.filter(r => r.month === shiftMonth(M, -1)).map(r => r.name);
-    for (const n of truoc) if (!shops.some(s => norm(s.name) === norm(n)))
-      thieuSot.push(`${n}: có ở tháng trước nhưng thiếu ở tháng này`);
-
+    if (coKyTruoc) for (const t of shopsTruoc)
+      if (t.dtt > 0 && !shops.some(s => norm(s.name) === norm(t.name)))
+        thieuSot.push(`${t.name}: có ở kỳ trước nhưng thiếu ở kỳ này`);
     const lech = (tong.lnGop - tong.lnRong) - tong.tongChiPhi;
-    if (Math.abs(lech) > tong.dtt * 0.005)
+    if (tong.dtt > 0 && Math.abs(lech) > tong.dtt * 0.005)
       thieuSot.push(`Tổng cột chi phí lệch ${fmtTy(Math.abs(lech))} so với hiệu lãi gộp trừ lãi ròng — có thể một cột đang cộng trùng`);
 
-    const nhanXet = phanTich({ shops, tong, chiPhiTong, xuHuong, M, thieuSot });
+    const kyNhan = K.nhan;
+    const kyTruocNhan = coKyTruoc
+      ? (soThang === 1 ? nhanThang(trongKyTruoc[0]) : `${soThang} tháng trước đó`)
+      : 'kỳ trước';
+    const nhanXet = phanTich({ shops, tong, chiPhiChiTiet, kenh, xuHuong, thieuSot, kyNhan, kyTruocNhan, coKyTruoc, tongTruoc });
 
     const vn = new Date(Date.now() + 7 * 3600 * 1000);
     const p2 = n => String(n).padStart(2, '0');
@@ -323,10 +442,12 @@ module.exports = async (req, res) => {
 
     res.setHeader('Cache-Control', 'private, no-store');
     res.status(200).json({
-      ok: true, month: M, months, quy: cur[0] ? cur[0].quy : '',
+      ok: true, ky, moc, months,
+      kyInfo: { nhan: kyNhan, phu: K.phu, tu: trongKy[0], den: trongKy[trongKy.length - 1],
+                soThang, thangTrongKy: trongKy, coKyTruoc, kyTruocNhan },
       toi: { email: toi.email, ten: toi.ten, quyen: toi.quyen },
       syncedAt: new Date().toISOString(),
-      data: { shops, tong, chiPhiTong, xuHuong, nhanXet, thieuSot, cotChiPhi,
+      data: { shops, tong, tongTruoc, coKyTruoc, chiPhiChiTiet, kenh, xuHuong, nhanXet, thieuSot, cotChiPhi,
               sub: `Số liệu tự động đồng bộ từ Lark — bảng Báo Cáo Chi Tiết ${YEAR} · Cập nhật ${stamp} (giờ VN) · Đơn vị: đồng (VNĐ)` },
     });
   } catch (err) {
