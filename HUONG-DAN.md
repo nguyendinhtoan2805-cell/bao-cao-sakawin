@@ -20,6 +20,7 @@ Sau khi làm xong: team nhập số vào Lark như mọi khi → web tự cập 
 | ⚙️ Quản trị tài khoản | `admin.html` | `/api/users` | Upstash Redis | ✅ đang chạy |
 | 📈 Doanh số & Target | `index.html` | `/api/doanh-so` | `Báo Cáo Doanh Thu - Kênh Bán Hàng` | ✅ đang chạy |
 | 💰 Tài chính & Lãi lỗ | `tai-chinh.html` | `/api/tai-chinh` | `Báo Cáo Chi Tiết - 2026` | ✅ đang chạy |
+| 👥 Quỹ lương | `quy-luong.html` | `/api/quy-luong` | `Lương - Thưởng - Sakawin` | ✅ đang chạy |
 
 ### Nguyên tắc giao diện — áp dụng cho MỌI trang thêm mới
 
@@ -228,6 +229,42 @@ Không phải văn mẫu — mọi câu đều tính từ số của tháng đan
 | Chi phí tập trung ở đâu | Ba khoản lớn nhất và tỷ trọng của chúng |
 | So với tháng trước | Biên ròng lệch từ 1 điểm phần trăm |
 | **Điểm chưa chốt** | Thiếu doanh thu / giá vốn / chi phí · shop có tháng trước mà thiếu tháng này · tổng cột chi phí lệch quá 0,5% doanh thu so với hiệu *lãi gộp − lãi ròng* (dấu hiệu một cột đang cộng trùng) |
+
+---
+
+## Trang Quỹ lương & Lương
+
+Đọc bảng `Lương - Thưởng - Sakawin` (1 dòng = 1 nhân sự × 1 tháng), cần biến
+`LARK_TABLE_SALARY=tblM8JEqeSXjbKH2` và quyền **Xem trang Quỹ lương & Lương**.
+
+> ⚠️ Đây là trang nhạy cảm nhất — có lương từng người. Quyền để **riêng**, không đi kèm
+> quyền Tài chính, và **mặc định tắt** cho mọi tài khoản kể cả người đã xem được lãi lỗ.
+
+### Ba cột bị loại trừ khỏi mọi phép cộng
+
+`Tổng Lương Năm` · `Tổng Lương Tháng` · `% Quỹ Lương` — đây là số cộng sẵn **lặp lại trên
+từng dòng**. Cộng vào là nhân quỹ lương lên hàng trăm lần.
+
+Quỹ lương lấy theo cột **Tổng Cộng**, không tự cộng các cột thành phần.
+
+### Trang gồm
+
+Bốn ô KPI (quỹ lương · số nhân sự · bình quân/người · **quỹ lương trên doanh thu**) ·
+bộ lọc kỳ giống trang Tài chính · khối phân tích · biểu đồ theo bộ phận và theo chức vụ ·
+diễn biến theo tháng kèm số nhân sự · bảng chi tiết theo bộ phận · bảng chi tiết theo nhân sự.
+
+Chỉ số **quỹ lương / doanh thu** lấy doanh thu thuần cùng kỳ từ bảng `Báo Cáo Chi Tiết`,
+nên cần cả `LARK_TABLE_FINANCE`. Thiếu biến đó thì ô này để trống, phần còn lại vẫn chạy.
+
+### Trang tự soát những gì
+
+| Phát hiện | Cách nhận biết |
+|---|---|
+| Cột sai công thức | Một khoản thành phần cộng lại **lớn hơn cả quỹ lương** → gắn nhãn đỏ `SAI` ngay trên tiêu đề cột và làm mờ số |
+| Dòng nhập nhầm | `Thực Nhận` lệch `Tổng Cộng` quá 15% ở cùng một người |
+| Bộ phận phình | Quỹ lương bộ phận tăng trên 15% so với kỳ trước (chỉ xét bộ phận chiếm ≥3% quỹ) |
+| Người vào / người rời | So danh sách nhân sự giữa hai kỳ |
+| Quỹ lương nặng | Trên 25% doanh thu → cảnh báo đỏ, 15–25% → lưu ý |
 
 ---
 

@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sakawin — Tài chính &amp; Lãi lỗ</title>
+<title>Sakawin — Quỹ lương &amp; Lương</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
+
   :root{--red:#C8102E;--red-dark:#8B0A1E;--red-tint:#FDECEF;--ink:#1C1917;--muted:#78716C;
     --line:#E7E5E4;--paper:#FAFAF9;--green:#1A7F4B;--green-tint:#EDF7F0;--amber:#B45309;
     --amber-tint:#FFF7ED;--blue:#1D4ED8;--blue-tint:#EFF4FF;--card:#fff}
@@ -214,6 +215,18 @@
     .tablecard thead th:first-child{z-index:5}
     #gate{margin:8vh auto;padding:34px 24px}
   }
+  /* ===== Riêng trang Quỹ lương ===== */
+  .kpi.fund::before{background:var(--red)}
+  .kpi.head::before{background:#7C3AED}
+  .kpi.avg::before{background:var(--blue)}
+  .kpi.ratio::before{background:var(--amber)}
+  .kpi.ratio.hot::before{background:var(--red)}
+  .kpi.ratio.hot .v{color:var(--red)}
+  .warnbar{background:var(--amber-tint);border:1px solid #FCD9A8;color:#7C4A0A;border-radius:12px;
+    padding:14px 18px;margin-bottom:22px;font-size:13.5px;line-height:1.7}
+  .warnbar b{color:#7C2D12}
+  .riengtu{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);
+    background:#F5F3FF;border:1px solid #DDD6FE;border-radius:9px;padding:10px 14px;margin-bottom:14px}
 </style>
 </head>
 <body class="locked">
@@ -228,8 +241,8 @@
   <nav class="appnav">
     <span class="applogo">Sakawin <b>Reports</b></span>
     <a class="navtab" href="/">📈 Doanh số &amp; Target</a>
-    <a class="navtab active" href="/tai-chinh.html">💰 Tài chính &amp; Lãi lỗ</a>
-    <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none">👥 Quỹ lương</a>
+    <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none">💰 Tài chính &amp; Lãi lỗ</a>
+    <a class="navtab active" href="/quy-luong.html">👥 Quỹ lương</a>
     <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none">⚙️ Quản trị</a>
     <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout">Đăng xuất</a></span>
   </nav>
@@ -239,10 +252,10 @@
       <h1>SAKAWIN <span id="titleMonth"></span></h1>
       <p id="reportSub"></p>
     </div>
-    <div class="toolbar">
-      <button class="btn primary" id="btnSync">🔄 Đồng bộ từ Lark</button>
-    </div>
+    <div class="toolbar"><button class="btn primary" id="btnSync">🔄 Đồng bộ từ Lark</button></div>
   </div>
+
+  <div class="riengtu">🔒 Trang này chứa lương từng người. Chỉ tài khoản được tick quyền <b>Quỹ lương</b> mới mở được.</div>
 
   <div class="filterbar">
     <span class="lb">Kỳ xem</span>
@@ -261,271 +274,197 @@
   </div>
 
   <div class="syncbar" id="syncBar">⏳ Đang lấy số liệu từ Lark…</div>
-
   <div class="kpis" id="kpiRow"></div>
-
-  <div class="flow">
-    <h3>Từ doanh thu xuống lợi nhuận</h3>
-    <div class="flowrows" id="flowRows"></div>
-  </div>
+  <div class="warnbar" id="warnBar" style="display:none"></div>
 
   <div class="analysis">
-    <div class="hd">
-      <h3>🔎 Phân tích tình hình kinh doanh</h3>
-      <span class="tag" id="anTag">Tự động</span>
-    </div>
+    <div class="hd"><h3>🔎 Phân tích quỹ lương</h3><span class="tag">Tự động</span></div>
     <p class="sub" id="anSub"></p>
     <div class="findings" id="findings"></div>
   </div>
 
-  <div class="duo">
-    <div class="box win">
-      <h3>🏆 Kênh chủ lực</h3>
-      <p class="cap" id="capWin"></p>
-      <div class="klist" id="listWin"></div>
-    </div>
-    <div class="box alert">
-      <h3>🚨 Cảnh báo — kênh đang lỗ</h3>
-      <p class="cap" id="capAlert"></p>
-      <div class="klist" id="listAlert"></div>
-    </div>
-  </div>
-
   <div class="grid">
     <div class="card">
-      <h3 id="ttProfit"></h3>
-      <p class="hint">Cột đỏ là điểm đang lỗ. Càng sang phải doanh thu càng nhỏ.</p>
-      <div class="chartbox tall"><canvas id="chartProfit"></canvas></div>
+      <h3>Quỹ lương theo bộ phận</h3>
+      <p class="hint">Cột dài nhất là bộ phận ngốn quỹ lương nhiều nhất trong kỳ.</p>
+      <div class="chartbox tall"><canvas id="chartBoPhan"></canvas></div>
     </div>
     <div class="card">
-      <h3>Cơ cấu chi phí</h3>
-      <p class="hint">Các khoản chi phí toàn hệ trong tháng, xếp từ lớn xuống nhỏ.</p>
-      <div class="chartbox tall"><canvas id="chartCost"></canvas></div>
+      <h3>Cơ cấu theo chức vụ</h3>
+      <p class="hint">Quỹ lương chia theo Chuyên viên / Leader / Part-time.</p>
+      <div class="chartbox tall"><canvas id="chartChucVu"></canvas></div>
     </div>
   </div>
 
   <div class="card" style="margin-bottom:24px">
     <h3>Diễn biến theo tháng</h3>
-    <p class="hint">Cột = doanh thu thuần và lãi gộp · Đường = biên lợi nhuận ròng (trục phải).</p>
+    <p class="hint">Cột = quỹ lương · Đường = số nhân sự (trục phải). Tháng trong kỳ đang xem được tô đậm.</p>
     <div class="chartbox"><canvas id="chartTrend"></canvas></div>
   </div>
 
-  <div class="blocktitle" style="margin-bottom:12px">Chi phí chi tiết <span id="cpSoSanh" style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)"></span></div>
+  <div class="blocktitle" style="margin-bottom:12px">Chi tiết theo bộ phận</div>
   <div class="tablecard" style="margin-bottom:26px"><table>
-    <thead><tr id="theadCP"></tr></thead>
-    <tbody id="tbodyCP"></tbody>
+    <thead><tr id="theadBP"></tr></thead>
+    <tbody id="tbodyBP"></tbody>
   </table></div>
 
-  <div class="blocktitle" style="margin-bottom:12px">Chi tiết theo điểm bán</div>
+  <div class="blocktitle" style="margin-bottom:12px">Chi tiết theo nhân sự <span id="soNguoi" style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)"></span></div>
   <div class="tablecard"><table>
-    <thead><tr id="thead"></tr></thead>
-    <tbody id="tbody"></tbody>
+    <thead><tr id="theadNS"></tr></thead>
+    <tbody id="tbodyNS"></tbody>
   </table></div>
 
   <footer id="reportFooter"></footer>
 </div>
-
 <script>
 const $ = id => document.getElementById(id);
-let DATA = null, charts = {}, syncing = false;
+let DATA = null, charts = {}, syncing = false, KY = 'thang', KY_TRUOC = 'kỳ trước';
 
 const fmt = n => n == null ? '—' : Math.round(n).toLocaleString('vi-VN');
-const ty = n => n == null ? '—' : (n / 1e9).toLocaleString('vi-VN', {maximumFractionDigits:2}) + ' tỷ';
+const ty  = n => n == null ? '—' : (n/1e9).toLocaleString('vi-VN',{maximumFractionDigits:2}) + ' tỷ';
+const tr  = n => n == null ? '—' : (n/1e6).toLocaleString('vi-VN',{maximumFractionDigits:1}) + ' tr';
 const pct = (n,d=1) => n == null ? '—' : n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d}) + '%';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nhanThang = k => { const [y,m] = k.split('-'); return `T${Number(m)}/${y}`; };
+const ICON = {'canh-bao':'⚠️','luu-y':'🟠','tot':'✅','chua-chot':'📌','':'📊'};
 
 function khoa(t, m){ document.body.classList.add('locked'); $('gateTitle').textContent = t; $('gateMsg').textContent = m; }
 function setSync(cls, msg){ const e=$('syncBar'); e.className='syncbar '+cls; e.textContent=msg; }
 
-const ICON = {'canh-bao':'⚠️','luu-y':'🟠','tot':'✅','chua-chot':'📌','':'📊'};
+const MAU_BP = ['#C8102E','#E4657A','#B45309','#1D4ED8','#1A7F4B','#7C3AED','#0891B2','#DB2777',
+                '#65A30D','#EA580C','#4F46E5','#0D9488','#A16207','#BE123C'];
 
 function render(){
   const d = DATA, t = d.tong;
-  const bienGop = t.dtt > 0 ? t.lnGop/t.dtt*100 : null;
-  const bienRong = t.dtt > 0 ? t.lnRong/t.dtt*100 : null;
-  const lo = t.lnRong < 0;
+  const bq = t.soNguoi ? t.tongCong / t.soNguoi : null;
+  const tyLe = d.doanhThu > 0 ? t.tongCong / d.doanhThu * 100 : null;
+  const nang = tyLe != null && tyLe > 25;
 
   $('reportSub').textContent = d.sub;
-  $('reportFooter').textContent = d.sub + ' · Nguồn: bảng Báo Cáo Chi Tiết trong Lark Base. '
-    + 'Phần phân tích được tính trực tiếp từ số liệu của tháng đang xem.';
+  $('reportFooter').textContent = d.sub
+    + ' · Quỹ lương lấy theo cột Tổng Cộng của bảng Lark, không tự cộng các cột thành phần.';
 
   $('kpiRow').innerHTML = `
-    <div class="kpi rev"><div class="l">Doanh thu thuần</div><div class="v">${ty(t.dtt)}</div>
-      <div class="s">${fmt(t.dtt)} đ</div></div>
-    <div class="kpi cogs"><div class="l">Giá vốn hàng bán</div><div class="v">${ty(t.gv)}</div>
-      <div class="s">${pct(t.dtt>0?t.gv/t.dtt*100:null)} doanh thu</div></div>
-    <div class="kpi gross"><div class="l">Lợi nhuận gộp</div><div class="v">${ty(t.lnGop)}</div>
-      <div class="s">Biên gộp ${pct(bienGop)}</div></div>
-    <div class="kpi net${lo?' loss':''}"><div class="l">Lợi nhuận ròng</div><div class="v">${ty(t.lnRong)}</div>
-      <div class="s">Biên ròng ${pct(bienRong)}${lo?' · đang lỗ':''}</div></div>`;
+    <div class="kpi fund"><div class="l">Quỹ lương trong kỳ</div><div class="v">${ty(t.tongCong)}</div>
+      <div class="s">Thực nhận ${ty(t.thucNhan)}</div></div>
+    <div class="kpi head"><div class="l">Số nhân sự</div><div class="v">${fmt(t.soNguoi)}</div>
+      <div class="s">${d.boPhan.length} bộ phận</div></div>
+    <div class="kpi avg"><div class="l">Bình quân mỗi người</div><div class="v">${tr(bq)}</div>
+      <div class="s">${d.soThangKy > 1 ? 'cho cả kỳ '+d.soThangKy+' tháng' : 'trong tháng'}</div></div>
+    <div class="kpi ratio${nang?' hot':''}"><div class="l">Quỹ lương / doanh thu</div><div class="v">${pct(tyLe)}</div>
+      <div class="s">${d.doanhThu > 0 ? 'DT thuần '+ty(d.doanhThu) : 'chưa có số doanh thu'}</div></div>`;
 
-  /* Luồng doanh thu → lợi nhuận */
-  const goc = Math.max(t.dtt, 1);
-  const hang = (nm, ghi, val, mau, am) => {
-    const w = Math.max(0, Math.min(100, Math.abs(val)/goc*100));
-    return `<div class="fr${am?' neg':''}">
-      <div class="nm">${nm}<small>${ghi}</small></div>
-      <div class="track"><div class="fill" style="width:${w}%;background:${mau}"></div></div>
-      <div class="amt">${fmt(val)}</div>
-      <div class="pct">${pct(t.dtt>0?val/t.dtt*100:null,0)}</div></div>`;
-  };
-  $('flowRows').innerHTML =
-      hang('Doanh thu thuần','Số gốc để so mọi tỷ lệ', t.dtt, '#A8A29E')
-    + hang('− Giá vốn hàng bán','Tiền hàng đã bán ra', -t.gv, '#B45309', true)
-    + hang('= Lợi nhuận gộp','Còn lại sau khi trừ giá vốn', t.lnGop, '#1D4ED8')
-    + hang('− Chi phí vận hành','Lương, kho, văn phòng, chi phí chung…', -(t.lnGop-t.lnRong), '#8B0A1E', true)
-    + hang('= Lợi nhuận ròng','Tiền thực sự còn lại', t.lnRong, lo?'#C8102E':'#1A7F4B', lo);
+  /* Cảnh báo lệch tổng cộng vs thực nhận */
+  const lech = t.thucNhan - t.tongCong;
+  if (Math.abs(lech) > t.tongCong * 0.02){
+    $('warnBar').style.display = '';
+    $('warnBar').innerHTML = `⚠️ <b>Tổng Cộng và Thực Nhận đang lệch ${ty(Math.abs(lech))}</b> `
+      + `(${ty(t.tongCong)} so với ${ty(t.thucNhan)}). Chênh lệch lớn thường do một vài dòng nhập nhầm — `
+      + `xem danh sách cụ thể ở mục <b>điểm dữ liệu cần soát lại</b> bên dưới, và cột <b>Lệch</b> ở bảng nhân sự.`;
+  } else $('warnBar').style.display = 'none';
 
-  /* Phân tích */
-  const nCanhBao = d.nhanXet.filter(x=>x.muc==='canh-bao').length;
-  $('anSub').textContent = nCanhBao
-    ? `Đọc số của tháng đang xem và rút ra ${d.nhanXet.length} nhận định, trong đó ${nCanhBao} điểm cần xử lý sớm.`
-    : `Đọc số của tháng đang xem và rút ra ${d.nhanXet.length} nhận định. Không có điểm nào ở mức báo động.`;
+  const nCB = d.nhanXet.filter(x=>x.muc==='canh-bao').length;
+  $('anSub').textContent = nCB
+    ? `Đọc số của kỳ đang xem và rút ra ${d.nhanXet.length} nhận định, trong đó ${nCB} điểm cần xử lý sớm.`
+    : `Đọc số của kỳ đang xem và rút ra ${d.nhanXet.length} nhận định. Không có điểm nào ở mức báo động.`;
   $('findings').innerHTML = d.nhanXet.map(n => `<div class="fd ${n.muc}">
       <div class="t"><span>${ICON[n.muc]||'📊'}</span><span>${esc(n.tieuDe)}</span></div>
       <div class="d">${esc(n.noiDung)}</div></div>`).join('');
 
-  /* ===== Kênh chủ lực ===== */
-  const cl = d.kenh.chuLuc;
-  $('capWin').textContent = cl.length
-    ? `${cl.length} kênh này gánh ${pct(cl[cl.length-1].luyKe)} doanh thu của kỳ. Biến động ở đây ảnh hưởng thẳng tới cả hệ.`
-    : 'Chưa đủ dữ liệu để xác định.';
-  $('listWin').innerHTML = cl.map(k => `<div class="kr">
-      <div class="nm"><span class="tn">${esc(k.name)}</span>
-        ${k.lnRong<0?'<i style="background:#FEE2E2;color:#991B1B">đang lỗ</i>':''}</div>
-      <div class="val">${pct(k.share)}<small>${ty(k.dtt)}</small></div>
-      <div class="bar"><i style="width:${Math.min(100,k.share)}%;background:${k.lnRong<0?'#C8102E':'#1A7F4B'}"></i></div>
-    </div>`).join('');
-
-  /* ===== Kênh đang lỗ ===== */
-  const kl = d.kenh.lo;
-  const tongLo = kl.reduce((a,k)=>a+k.lnRong,0);
-  $('capAlert').innerHTML = kl.length
-    ? `${kl.length} kênh đang lỗ tổng <b>${ty(Math.abs(tongLo))}</b>. Đưa hết về hoà vốn thì lợi nhuận toàn hệ lên <b>${ty(t.lnRong-tongLo)}</b>.`
-    : 'Không có kênh nào lỗ trong kỳ này.';
-  // Thanh so các kênh lỗ VỚI NHAU (kênh lỗ nặng nhất = 100%), chứ không so với
-  // tổng lợi nhuận — chia theo tổng thì thanh nào cũng bé tí, nhìn không ra gì
-  const loNangNhat = Math.max(...kl.map(k => Math.abs(k.lnRong)), 1);
-  $('listAlert').innerHTML = kl.length
-    ? kl.map(k => `<div class="kr neg">
-      <div class="nm"><span class="tn">${esc(k.name)}</span>
-        ${k.cuuDuoc?'<i style="background:#FEF3C7;color:#92400E">lỗ do chi phí</i>':'<i style="background:#FEE2E2;color:#991B1B">bán đã lỗ</i>'}</div>
-      <div class="val">${ty(k.lnRong)}<small>${pct(k.rongPct)} doanh thu</small></div>
-      <div class="bar"><i style="width:${Math.abs(k.lnRong)/loNangNhat*100}%;background:#C8102E"></i></div>
-    </div>`).join('')
-    : '<div class="empty">✅ Toàn bộ kênh đều có lãi trong kỳ này.</div>';
-
-  /* ===== Bảng chi phí chi tiết ===== */
-  $('cpSoSanh').textContent = d.coKyTruoc ? `— so với ${KY_TRUOC}` : '— chưa có kỳ trước để so sánh';
-  $('theadCP').innerHTML = '<th>Khoản chi phí</th><th>Kỳ này</th><th>% chi phí</th><th>% doanh thu</th>'
-    + (d.coKyTruoc ? '<th>Kỳ trước</th><th>Thay đổi</th><th class="note-cell">Ghi chú</th>' : '');
-  const tongCP = d.chiPhiChiTiet.reduce((a,c)=>a+c.tien,0);
-  $('tbodyCP').innerHTML = d.chiPhiChiTiet.map(c => {
-    const t2 = c.tang;
-    const cls = t2 == null ? '' : (t2 > 0 ? 'up' : 'down');
-    const mui = t2 == null ? '—' : (t2>0?'▲ ':'▼ ') + pct(Math.abs(t2),0);
-    return `<tr class="${c.co?'co-'+c.co:''}">
-      <td>${esc(c.ten)}${c.co?` <span class="flag ${c.co}">${c.co==='moi'?'MỚI':c.co==='xanh'?'GIẢM':c.co==='cam'?'TĂNG':'TĂNG MẠNH'}</span>`:''}</td>
-      <td>${fmt(c.tien)}</td><td>${pct(c.tyTrong)}</td><td>${pct(c.pctDT)}</td>
-      ${d.coKyTruoc ? `<td>${fmt(c.tienTruoc)}</td><td class="${cls}">${mui}</td><td class="note-cell">${esc(c.lyDo)}</td>` : ''}</tr>`;
-  }).join('') + `<tr class="tot"><td>TỔNG CHI PHÍ</td><td>${fmt(tongCP)}</td><td>100,0%</td>
-      <td>${pct(t.dtt>0?tongCP/t.dtt*100:null)}</td>
-      ${d.coKyTruoc ? `<td>${fmt(d.chiPhiChiTiet.reduce((a,c)=>a+c.tienTruoc,0))}</td><td></td><td class="note-cell"></td>` : ''}</tr>`;
-
-  /* Biểu đồ lợi nhuận theo shop */
-  const sp = d.shops.filter(s => s.dtt > 0);
-  $('ttProfit').textContent = `Lợi nhuận ròng theo điểm bán (${sp.length} điểm)`;
-  charts.profit && charts.profit.destroy();
-  charts.profit = new Chart($('chartProfit'), {
+  /* Biểu đồ bộ phận */
+  charts.bp && charts.bp.destroy();
+  charts.bp = new Chart($('chartBoPhan'), {
     type:'bar',
-    data:{ labels: sp.map(s=>s.name),
-      datasets:[{ data: sp.map(s=>s.lnRong),
-        backgroundColor: sp.map(s => s.lnRong < 0 ? '#C8102E' : '#1A7F4B'), borderRadius:4 }]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false},
-        tooltip:{callbacks:{label:c=>' Lợi nhuận ròng: '+fmt(c.raw)+' đ'}}},
-      scales:{ y:{ticks:{callback:v=>(v/1e6).toLocaleString('vi-VN')+' tr',font:{size:11}},grid:{color:'#F0EEEC'}},
-               x:{ticks:{font:{size:10},maxRotation:60,minRotation:35},grid:{display:false}}}}});
-
-  /* Cơ cấu chi phí — tô đỏ khoản đang tăng bất thường */
-  charts.cost && charts.cost.destroy();
-  const MAU_CO = {do:'#C8102E', cam:'#E8A33D', xanh:'#1A7F4B', moi:'#7C3AED', '':'#B45309'};
-  const cp = d.chiPhiChiTiet.filter(c=>c.tien>0).slice(0, 12);
-  charts.cost = new Chart($('chartCost'), {
-    type:'bar',
-    data:{ labels: cp.map(c=>c.ten),
-      datasets:[{ data: cp.map(c=>c.tien), backgroundColor: cp.map(c=>MAU_CO[c.co]||MAU_CO['']), borderRadius:4 }]},
+    data:{ labels: d.boPhan.map(b=>b.ten),
+      datasets:[{ data: d.boPhan.map(b=>b.tongCong),
+        backgroundColor: d.boPhan.map((_,i)=>MAU_BP[i%MAU_BP.length]), borderRadius:4 }]},
     options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' '+fmt(c.raw)+' đ'}}},
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>{
+        const b = d.boPhan[c.dataIndex];
+        return ` ${fmt(c.raw)} đ · ${b.soNguoi} người · ${pct(c.raw/t.tongCong*100)} quỹ`;}}}},
       scales:{ x:{ticks:{callback:v=>(v/1e6).toLocaleString('vi-VN')+' tr',font:{size:10}},grid:{color:'#F0EEEC'}},
                y:{ticks:{font:{size:11}},grid:{display:false}}}}});
 
+  /* Biểu đồ chức vụ */
+  charts.cv && charts.cv.destroy();
+  charts.cv = new Chart($('chartChucVu'), {
+    type:'doughnut',
+    data:{ labels: d.chucVu.map(c=>`${c.ten} (${c.soNguoi})`),
+      datasets:[{ data: d.chucVu.map(c=>c.tongCong),
+        backgroundColor: d.chucVu.map((_,i)=>MAU_BP[i%MAU_BP.length]), borderWidth:2, borderColor:'#fff' }]},
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'58%',
+      plugins:{ legend:{position:'bottom',labels:{font:{size:11.5},boxWidth:12}},
+        tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} đ · ${pct(c.raw/t.tongCong*100)}`}}}}});
+
   /* Diễn biến theo tháng */
-  charts.trend && charts.trend.destroy();
+  charts.tr && charts.tr.destroy();
   const xh = d.xuHuong;
-  charts.trend = new Chart($('chartTrend'), {
+  charts.tr = new Chart($('chartTrend'), {
     data:{ labels: xh.map(x=>x.thang),
       datasets:[
-        {type:'bar', label:'Doanh thu thuần', data: xh.map(x=>x.dtt), backgroundColor:'#E4657A', borderRadius:4, yAxisID:'y'},
-        {type:'bar', label:'Lợi nhuận gộp', data: xh.map(x=>x.lnGop), backgroundColor:'#1D4ED8', borderRadius:4, yAxisID:'y'},
-        {type:'line', label:'Biên lợi nhuận ròng', yAxisID:'y2', borderColor:'#1C1917', backgroundColor:'#1C1917',
-          borderWidth:2, pointRadius:4, tension:0, data: xh.map(x=> x.dtt>0 ? x.lnRong/x.dtt*100 : null)},
+        {type:'bar', label:'Quỹ lương', yAxisID:'y', borderRadius:4, data: xh.map(x=>x.tongCong),
+         backgroundColor: xh.map(x=> x.trongKy ? '#C8102E' : '#F0C6CE')},
+        {type:'line', label:'Số nhân sự', yAxisID:'y2', borderColor:'#1C1917', backgroundColor:'#1C1917',
+         borderWidth:2, pointRadius:4, tension:0, data: xh.map(x=>x.soNguoi)},
       ]},
     options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
       plugins:{ legend:{position:'top'}, tooltip:{callbacks:{label:c=>
-        c.dataset.yAxisID==='y2' ? ' '+c.dataset.label+': '+pct(c.raw) : ' '+c.dataset.label+': '+fmt(c.raw)+' đ'}}},
-      scales:{ y:{ticks:{callback:v=>(v/1e9).toLocaleString('vi-VN')+' tỷ',font:{size:11}},grid:{color:'#F0EEEC'}},
-               y2:{position:'right',ticks:{callback:v=>v+'%',font:{size:11}},grid:{display:false}},
+        c.dataset.yAxisID==='y2' ? ' '+c.dataset.label+': '+c.raw+' người' : ' '+c.dataset.label+': '+fmt(c.raw)+' đ'}}},
+      scales:{ y:{ticks:{callback:v=>(v/1e6).toLocaleString('vi-VN')+' tr',font:{size:11}},grid:{color:'#F0EEEC'}},
+               y2:{position:'right',ticks:{precision:0,font:{size:11}},grid:{display:false}},
                x:{grid:{display:false}}}}});
 
-  /* Bảng chi tiết */
-  $('thead').innerHTML = '<th>Điểm bán</th><th>Doanh thu thuần</th><th>Giá vốn</th><th>% Giá vốn</th>'
-    + '<th>Lợi nhuận gộp</th><th>% Gộp</th><th>Chi phí</th><th>Lợi nhuận ròng</th><th>% Ròng</th>';
-  const row = s => `<tr>
-    <td>${esc(s.name)}${s.nguon?`<span class="chip">${esc(s.nguon)}</span>`:''}</td>
-    <td>${fmt(s.dtt)}</td><td>${fmt(s.gv)}</td><td>${pct(s.gvPct)}</td>
-    <td>${fmt(s.lnGop)}</td><td>${pct(s.gopPct)}</td><td>${fmt(s.tongChiPhi)}</td>
-    <td class="${s.lnRong<0?'neg':'pos'}">${fmt(s.lnRong)}</td>
-    <td class="${s.lnRong<0?'neg':'pos'}">${pct(s.rongPct)}</td></tr>`;
-  $('tbody').innerHTML = d.shops.map(row).join('') + `<tr class="tot">
-    <td>TỔNG HỆ THỐNG</td><td>${fmt(t.dtt)}</td><td>${fmt(t.gv)}</td><td>${pct(t.dtt>0?t.gv/t.dtt*100:null)}</td>
-    <td>${fmt(t.lnGop)}</td><td>${pct(bienGop)}</td><td>${fmt(t.lnGop-t.lnRong)}</td>
-    <td>${fmt(t.lnRong)}</td><td>${pct(bienRong)}</td></tr>`;
+  /* Bảng bộ phận */
+  const ng = d.nghiNgo || [];
+  const dau = ma => ng.includes(ma) ? ' <span class="flag do" title="Cột này đang sai công thức trong bảng Lark">SAI</span>' : '';
+  $('theadBP').innerHTML = '<th>Bộ phận</th><th>Số người</th><th>Quỹ lương</th><th>% quỹ</th><th>Bình quân/người</th>'
+    + '<th>Lương cứng' + dau('luongCung') + '</th><th>Lương TN' + dau('luongTN') + '</th>'
+    + '<th>Phụ cấp' + dau('phuCap') + '</th><th>Hoa hồng' + dau('hoaHong') + '</th>'
+    + '<th>Thưởng' + dau('thuong') + '</th><th>Giảm trừ' + dau('giamTru') + '</th><th>Thực nhận</th>';
+  const oNghi = ma => ng.includes(ma) ? ' style="color:#A8A29E"' : '';
+  $('tbodyBP').innerHTML = d.boPhan.map(b => `<tr>
+      <td>${esc(b.ten)}</td><td>${fmt(b.soNguoi)}</td><td>${fmt(b.tongCong)}</td>
+      <td>${pct(b.tongCong/t.tongCong*100)}</td><td>${fmt(b.tongCong/b.soNguoi)}</td>
+      <td>${fmt(b.luongCung)}</td><td>${fmt(b.luongTN)}</td><td>${fmt(b.phuCap)}</td>
+      <td${oNghi('hoaHong')}>${fmt(b.hoaHong)}</td><td${oNghi('thuong')}>${fmt(b.thuong)}</td>
+      <td>${fmt(b.giamTru)}</td><td>${fmt(b.thucNhan)}</td></tr>`).join('')
+    + `<tr class="tot"><td>TỔNG</td><td>${fmt(t.soNguoi)}</td><td>${fmt(t.tongCong)}</td><td>100,0%</td>
+       <td>${fmt(bq)}</td><td>${fmt(t.luongCung)}</td><td>${fmt(t.luongTN)}</td><td>${fmt(t.phuCap)}</td>
+       <td>${fmt(t.hoaHong)}</td><td>${fmt(t.thuong)}</td><td>${fmt(t.giamTru)}</td><td>${fmt(t.thucNhan)}</td></tr>`;
+
+  /* Bảng nhân sự */
+  $('soNguoi').textContent = `— ${d.nguoi.length} người, xếp theo quỹ lương giảm dần`;
+  $('theadNS').innerHTML = '<th>Nhân sự</th><th>Bộ phận</th><th>Chức vụ</th><th>Tổng cộng</th>'
+    + '<th>Thực nhận</th><th>Lệch</th><th class="note-cell">Ghi chú</th>';
+  $('tbodyNS').innerHTML = d.nguoi.map(n => {
+    const l = n.thucNhan - n.tongCong;
+    const nghiNgo = n.tongCong > 0 && Math.abs(l) / n.tongCong > 0.15;
+    return `<tr class="${nghiNgo ? 'co-do' : ''}">
+      <td>${esc(n.ten)}</td><td>${esc(n.boPhan)}</td><td>${esc(n.chucVu)}</td>
+      <td>${fmt(n.tongCong)}</td><td>${fmt(n.thucNhan)}</td>
+      <td class="${l > 0 ? 'up' : (l < 0 ? 'down' : '')}">${l === 0 ? '—' : (l > 0 ? '+' : '') + fmt(l)}</td>
+      <td class="note-cell">${nghiNgo ? '<span class="flag do">SOÁT LẠI</span> ' : ''}${esc(n.ghiChu)}</td></tr>`;
+  }).join('');
 }
 
-/* =====================================================================
-   BỘ LỌC KỲ — tháng / quý / 3 tháng / cả năm / tự chọn
-===================================================================== */
-let KY = 'thang', MOC = '', MONTHS = [], KY_TRUOC = 'kỳ trước';
-
-const nhanThang = k => { const [y,m] = k.split('-'); return `T${Number(m)}/${y}`; };
-
+/* ===== Bộ lọc kỳ ===== */
 function nạpChonThang(months, moc){
-  MONTHS = months;
   const opts = months.slice().reverse().map(m => `<option value="${m}">${nhanThang(m)}</option>`).join('');
-  const optsXuoi = months.map(m => `<option value="${m}">${nhanThang(m)}</option>`).join('');
-  $('selMoc').innerHTML = opts;
-  $('selMoc').value = moc;
+  const xuoi = months.map(m => `<option value="${m}">${nhanThang(m)}</option>`).join('');
+  $('selMoc').innerHTML = opts; $('selMoc').value = moc;
   if(!$('selTu').innerHTML){
-    $('selTu').innerHTML = optsXuoi;
-    $('selDen').innerHTML = optsXuoi;
-    $('selTu').value = months[0];
-    $('selDen').value = months[months.length-1];
+    $('selTu').innerHTML = xuoi; $('selDen').innerHTML = xuoi;
+    $('selTu').value = months[0]; $('selDen').value = months[months.length-1];
   }
-  capNhatNhanMoc();
+  capNhat();
 }
-
-/* Nhãn ô chọn mốc đổi theo kỳ cho đỡ khó hiểu */
-function capNhatNhanMoc(){
-  const tuChon = KY === 'tuychon';
-  $('selMoc').style.display = tuChon ? 'none' : '';
-  $('rangeWrap').style.display = tuChon ? '' : 'none';
-  const nhan = {thang:'Tháng', quy:'Quý chứa tháng', '3thang':'Kết thúc ở tháng', nam:'Năm của tháng'}[KY];
-  $('selMoc').title = nhan || '';
+function capNhat(){
+  const tc = KY === 'tuychon';
+  $('selMoc').style.display = tc ? 'none' : '';
+  $('rangeWrap').style.display = tc ? '' : 'none';
 }
-
 function truyVan(){
-  const p = new URLSearchParams();
-  p.set('ky', KY);
+  const p = new URLSearchParams(); p.set('ky', KY);
   if(KY === 'tuychon'){ p.set('tu', $('selTu').value); p.set('den', $('selDen').value); }
   else if($('selMoc').value) p.set('month', $('selMoc').value);
   return p.toString();
@@ -536,26 +475,23 @@ async function sync(){
   syncing = true; $('btnSync').disabled = true;
   setSync('', '⏳ Đang lấy số liệu từ Lark…');
   try {
-    const r = await fetch('/api/tai-chinh?' + truyVan(), {cache:'no-store'});
+    const r = await fetch('/api/quy-luong?' + truyVan(), {cache:'no-store'});
     const j = await r.json().catch(()=>({ok:false,error:'HTTP '+r.status}));
     if(r.status === 401) return khoa('Phiên đã hết hạn','Đăng nhập lại để tiếp tục.');
     if(r.status === 403){
-      if(j.phaiDoiMatKhau) return location.href = '/';   // trang chủ có form đổi mật khẩu
-      return khoa('Không đủ quyền', j.error || 'Tài khoản chưa được cấp quyền xem trang Tài chính.');
+      if(j.phaiDoiMatKhau) return location.href = '/';
+      return khoa('Không đủ quyền', j.error || 'Tài khoản chưa được cấp quyền xem trang Quỹ lương.');
     }
     if(!j.ok) throw new Error(j.error || 'Lỗi không xác định');
 
-    DATA = j.data;
+    DATA = j.data; DATA.soThangKy = j.kyInfo.soThang;
     KY_TRUOC = j.kyInfo.kyTruocNhan;
-    MOC = j.moc;
     nạpChonThang(j.months, j.moc);
-
-    $('titleMonth').innerHTML = '· <span>TÀI CHÍNH &amp; LÃI LỖ · ' + esc(j.kyInfo.nhan.toUpperCase()) + '</span>';
+    $('titleMonth').innerHTML = '· <span>QUỸ LƯƠNG · ' + esc(j.kyInfo.nhan.toUpperCase()) + '</span>';
     const ki = j.kyInfo;
     $('kyInfo').innerHTML = `Đang xem <b>${esc(ki.nhan)}</b>`
       + (ki.soThang > 1 ? ` · gộp <b>${ki.soThang} tháng</b> (${nhanThang(ki.tu)} – ${nhanThang(ki.den)})` : '')
       + (ki.coKyTruoc ? ` · so với <b>${esc(ki.kyTruocNhan)}</b>` : ' · chưa có kỳ trước để so');
-
     render();
     const th = new Date(j.syncedAt).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
     setSync('ok', `✅ Số liệu lấy trực tiếp từ Lark · ${ki.nhan}${ki.phu?' ('+ki.phu+')':''} · đồng bộ lúc ${th}`);
@@ -568,9 +504,7 @@ $('segKy').addEventListener('click', e => {
   const b = e.target.closest('button[data-ky]');
   if(!b) return;
   [...$('segKy').children].forEach(x => x.classList.toggle('on', x === b));
-  KY = b.dataset.ky;
-  capNhatNhanMoc();
-  sync();
+  KY = b.dataset.ky; capNhat(); sync();
 });
 $('btnSync').addEventListener('click', () => sync());
 ['selMoc','selTu','selDen'].forEach(id => $(id).addEventListener('change', () => sync()));
@@ -580,18 +514,19 @@ $('btnSync').addEventListener('click', () => sync());
   try { me = await (await fetch('/api/auth/me',{cache:'no-store'})).json(); }
   catch(err){ return khoa('Không kết nối được máy chủ','Thử tải lại trang.'); }
   if(!me.dangNhap){ $('gateTitle').textContent='Cần đăng nhập'; return location.href='/'; }
-  if(!me.quyen.xem_tai_chinh){
-    return khoa('Không đủ quyền', (me.ten||me.email) + ' chưa được cấp quyền xem trang Tài chính & Lãi lỗ. Liên hệ quản trị viên nếu cần.');
+  if(!me.quyen.xem_luong){
+    return khoa('Không đủ quyền', (me.ten||me.email) + ' chưa được cấp quyền xem trang Quỹ lương. '
+      + 'Đây là dữ liệu lương từng người nên phải được tick riêng.');
   }
   $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten||me.email) + '</b>';
   $('tabAdmin').style.display = me.quyen.quan_tri ? '' : 'none';
-  $('tabQuyLuong').style.display = me.quyen.xem_luong ? '' : 'none';
+  $('tabTaiChinh').style.display = me.quyen.xem_tai_chinh ? '' : 'none';
   document.body.classList.remove('locked');
   const qs = new URLSearchParams(location.search);
   if(['thang','quy','3thang','nam'].includes(qs.get('ky'))){
     KY = qs.get('ky');
     [...$('segKy').children].forEach(x => x.classList.toggle('on', x.dataset.ky === KY));
-    capNhatNhanMoc();
+    capNhat();
   }
   sync();
 })();
