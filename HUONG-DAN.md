@@ -51,11 +51,11 @@ không tạo bảng mới, không nhập lại tên kênh, không nhập lại t
 
 | Cột | Kiểu | Bắt buộc | Ghi chú |
 |---|---|:--:|---|
-| Lên báo cáo | Ô tick (Checkbox) | ✅ | Tick kênh nào thì kênh đó hiện trên web |
-| Target | Số | ✅ | Target của chính tháng đó |
-| % tăng trưởng KH | Số | | Kế hoạch tăng trưởng tháng sau, vd `40` |
-| Số đơn KH | Số | | Số đơn kế hoạch tháng sau |
-| Trần Ads % KH | Số | | vd `6` hoặc `4.5` |
+| LÊN BÁO CÁO | Ô tick (Checkbox) | ✅ | Tick kênh nào thì kênh đó hiện trên web |
+| TARGET | Số | ✅ | Target của chính tháng đó |
+| % Tăng trưởng | Số hoặc Văn bản | | Kế hoạch tăng trưởng tháng sau, vd `40` |
+| SỐ ĐƠN (target) | Số hoặc Văn bản | | Số đơn kế hoạch tháng sau |
+| % Trần ADS | Số hoặc Văn bản | | vd `6` hoặc `4.5` |
 | Nhãn | Văn bản | | vd `TOP SALE 🔥`, `VỀ SỐ ✓`. Có 🔥 hoặc chữ "top" → nhãn đỏ, còn lại nhãn xanh. Mỗi tháng chỉ gắn cho 2-3 kênh đáng chú ý |
 | Ghi chú | Văn bản | | Hiện dưới tên shop |
 
@@ -65,6 +65,9 @@ Hai cột dưới đây **không cần tạo** — chỉ thêm khi thật sự c
 |---|---|---|
 | Thứ tự | Số | Muốn ghim thứ tự dòng cố định. Không có cột này thì web tự xếp theo doanh thu giảm dần trong từng khối — tự cập nhật mỗi tháng, không phải sửa tay |
 | Tên hiển thị | Văn bản | Muốn web gọi tên khác với `Kênh Kinh Doanh`. Không có cột này thì web lấy thẳng tên kênh |
+
+> Tên cột **không phân biệt hoa thường và dấu tiếng Việt** — `TARGET`, `Target`,
+> `target` đều đọc được như nhau.
 
 > **Bảng trông rộng ra?** Tạo một chế độ xem (View) riêng tên `Nhập số hằng ngày`
 > và ẩn mấy cột này đi. Team vận hành vẫn thấy bảng gọn như cũ.
@@ -100,10 +103,11 @@ Cái này thì đúng là bảng mới, vì không gắn với kênh nào cả. 
 5. ⚠️ **Bước hay bị quên nhất:** mở Base → góc phải bấm **⋯** → **Add document application**
    → tìm app `Web bao cao doanh so` → thêm vào.
    Thiếu bước này thì API luôn báo `permission denied`, dù mọi thứ khác đúng hết.
-6. Lấy mã từ URL của Base — bấm vào từng bảng rồi copy phần `table=`:
+6. Lấy mã từ URL — Base nằm trong Wiki nên URL có dạng `/wiki/`, và đoạn ngay sau
+   `/wiki/` dùng thẳng làm `APP_TOKEN`, **không cần thêm quyền `wiki:*`**:
    ```
-   https://xxx.larksuite.com/base/bascnAAAAAAAA?table=tblBBBBBBBB&view=...
-                                   └ APP_TOKEN         └ TABLE_ID
+   https://sakawinvietnam.sg.larksuite.com/wiki/HObGw4...?table=tblRJx...&view=...
+                                                 └ APP_TOKEN     └ TABLE_ID
    ```
 
 ---

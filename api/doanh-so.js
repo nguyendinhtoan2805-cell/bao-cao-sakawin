@@ -8,8 +8,9 @@
       → Doanh thu bán hàng · Số đơn · Ngân sách ADS · Nền tảng
       → và cả Target + kế hoạch tháng sau, nếu thêm mấy cột dưới đây vào
         chính bảng này (cách gọn nhất — không phải nhập lại tên kênh/tháng):
-            Target · % tăng trưởng KH · Số đơn KH · Trần Ads % KH
-            Lên báo cáo (ô tick) · Tên hiển thị · Nhãn · Ghi chú · Thứ tự
+            LÊN BÁO CÁO (ô tick) · TARGET · % Tăng trưởng
+            SỐ ĐƠN (target) · % Trần ADS · Nhãn · Ghi chú
+        (tên cột không phân biệt hoa thường và dấu tiếng Việt)
    2) "Nhận xét"  (tuỳ chọn) → nhận xét & định hướng cuối trang
 
    Muốn để Target ở bảng riêng thì khai LARK_TABLE_TARGET trỏ sang bảng đó;
@@ -182,9 +183,9 @@ module.exports = async (req, res) => {
       kenh: txt(pick(r, 'Kênh Kinh Doanh', 'Kenh Kinh Doanh', 'Kênh', 'Shop')),
       hienThi: txt(pick(r, 'Tên hiển thị', 'Ten hien thi', 'Tên trên báo cáo')),
       tgt: num(pick(r, 'Target', 'Chỉ tiêu', 'Mục tiêu')),
-      tt: num(pick(r, '% tăng trưởng KH', 'Tăng trưởng KH', '%TT KH')),
-      donNext: num(pick(r, 'Số đơn KH', 'So don KH', 'Đơn KH')),
-      adsPctNext: num(pick(r, 'Trần Ads % KH', 'Tran Ads % KH', 'Ads % KH')),
+      tt: num(pick(r, '% Tăng trưởng', '% tăng trưởng KH', 'Tăng trưởng KH', '%TT KH')),
+      donNext: num(pick(r, 'SỐ ĐƠN (target)', 'Số đơn target', 'Số đơn KH', 'Đơn KH')),
+      adsPctNext: num(pick(r, '% Trần ADS', 'Trần Ads % KH', 'Trần Ads', 'Ads % KH')),
       badge: txt(pick(r, 'Nhãn', 'Nhan', 'Badge')),
       note: txt(pick(r, 'Ghi chú', 'Ghi chu', 'Note')),
       order: num(pick(r, 'Thứ tự', 'STT', 'Order')),
