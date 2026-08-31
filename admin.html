@@ -116,8 +116,10 @@
       <button class="btn primary" id="btnAdd">+ Thêm tài khoản</button>
     </div>
     <p class="hint">
-      Email phải trùng với email tài khoản Lark của họ. Thêm xong, mặc định chỉ có quyền
-      <b>Xem trang Doanh số &amp; Target</b> — tick thêm ở bảng dưới nếu cần.
+      Email phải trùng với email tài khoản Lark của họ. Thêm xong, mặc định họ thấy
+      <b>đầy đủ trang Doanh số &amp; Target</b> (gồm cả target, % hoàn thành và ngân sách ADS),
+      nhưng <b>không</b> thấy trang Tài chính &amp; Lãi lỗ.
+      Muốn giấu bớt của riêng ai thì bỏ tick ở bảng dưới.
     </p>
   </div>
 
@@ -217,7 +219,9 @@ $('btnAdd').addEventListener('click', async () => {
   const ten = $('newName').value.trim();
   if(!email) return baoTin('Chưa nhập email.', true);
   if(USERS.some(u => u.email.toLowerCase() === email)) return baoTin('Email này đã có trong danh sách.', true);
-  const j = await goi('POST', {email, ten, quyen:{xem_doanh_so:true}, kichHoat:true});
+  // Mặc định: thấy đầy đủ trang Doanh số & Target. KHÔNG thấy trang Tài chính.
+  const j = await goi('POST', {email, ten,
+    quyen:{xem_doanh_so:true, xem_target:true, xem_ads:true}, kichHoat:true});
   if(!j.ok) return baoTin(j.error, true);
   await taiLai();
   $('newEmail').value = ''; $('newName').value = '';

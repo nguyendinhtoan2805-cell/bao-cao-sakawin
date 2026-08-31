@@ -162,6 +162,11 @@ Ai nghỉ việc, khoá tài khoản Lark là mất quyền vào web luôn.
 | Được sửa số trực tiếp trên web | Hiện nút "Nhập số liệu" (sửa tạm, không ghi ngược về Lark) |
 | Quản trị tài khoản | Vào được trang `/admin.html` để cấp quyền cho người khác |
 
+**Mặc định khi thêm tài khoản mới:** thấy đầy đủ trang Doanh số & Target (cả target lẫn
+ngân sách ADS), **không** thấy trang Tài chính & Lãi lỗ. Đúng chính sách đang áp dụng —
+nhân sự xem doanh số thoải mái, chỉ số liệu tài chính là hạn chế.
+Hai quyền "Xem Target" và "Xem ngân sách ADS" để dành cho trường hợp cần giấu bớt của riêng ai đó.
+
 > **Bỏ tick là số liệu không rời khỏi máy chủ**, chứ không phải chỉ ẩn trên màn hình.
 > `/api/doanh-so` kiểm tra quyền rồi mới trả dữ liệu; người không có quyền xem Target
 > nhận về `tgt7: null` — mở DevTools cũng không thấy gì.
