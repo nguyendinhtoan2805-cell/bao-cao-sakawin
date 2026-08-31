@@ -27,7 +27,16 @@
   .kpi.hot{background:var(--red);border-color:var(--red)}
   .kpi.hot .v,.kpi.hot .l{color:#fff}
 
-  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+  select.btn{padding:8px 12px}
+  .syncbar{font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:8px;margin:0 0 16px;
+    border:1px solid var(--line);background:#fff;color:var(--muted)}
+  .syncbar.loading{border-color:#D6D3D1}
+  .syncbar.ok{background:var(--green-tint);border-color:#BFE3CD;color:var(--green)}
+  .syncbar.err{background:#FFF7ED;border-color:#FCD9A8;color:var(--amber)}
+  .theme-dark .syncbar{background:#171514;border-color:#2A2724;color:#A39D95}
+  .theme-dark .syncbar.ok{background:#122019;border-color:#1F3A2A;color:#3DBE7B}
+  .theme-dark .syncbar.err{background:#241C10;border-color:#4A3618;color:#E8B24A}
   .btn{font-family:inherit;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px;border:1.5px solid var(--red);background:#fff;color:var(--red);cursor:pointer}
   .btn:hover{background:var(--red-tint)}
   .btn.primary{background:var(--red);color:#fff}
@@ -169,12 +178,16 @@
   </div>
 
   <div class="toolbar">
-    <button class="btn primary" id="btnEdit">✏️ Nhập số liệu</button>
+    <button class="btn primary" id="btnSync">🔄 Đồng bộ từ Lark</button>
+    <select class="btn" id="selMonth" style="display:none" title="Chọn tháng đã chốt để xem lại báo cáo"></select>
+    <button class="btn" id="btnEdit">✏️ Nhập số liệu</button>
     <button class="btn" id="btnCopy">📋 Sao chép dữ liệu</button>
     <button class="btn" id="btnPaste">📥 Dán dữ liệu tháng trước</button>
     <button class="btn" id="btnTheme">🎨 Giao diện: Executive Dark</button>
-    <span class="editnote" id="editHint">Chế độ xem — bấm "Nhập số liệu" để điền số từng shop, mọi dòng tổng / KPI / biểu đồ / xếp hạng tự tính lại.</span>
+    <span class="editnote" id="editHint">Chế độ xem — số liệu tự lấy từ Lark. Bấm "Nhập số liệu" nếu cần sửa tay (chỉ tạm thời, không ghi ngược về Lark).</span>
   </div>
+
+  <div class="syncbar loading" id="syncBar">⏳ Đang lấy số liệu từ Lark Base…</div>
   <div class="metapanel" id="metaPanel">
     <h4>📅 THÔNG TIN KỲ BÁO CÁO — sửa ở đây, mọi tiêu đề trên trang tự đổi theo</h4>
     <div class="metarow">
@@ -521,7 +534,61 @@ $('btnTheme').addEventListener('click', () => {
   applyTheme(); render();
 });
 applyTheme();
+
+/* =====================================================================
+   ĐỒNG BỘ TỰ ĐỘNG TỪ LARK BASE  (qua /api/data)
+   - Mở trang: hiện ngay số lưu sẵn (EMBEDDED) rồi gọi Lark thay số thật.
+   - Lark hỏng / chưa cấu hình: giữ nguyên số lưu sẵn, báo cảnh báo, web KHÔNG trắng.
+===================================================================== */
+const EMBEDDED = JSON.parse(JSON.stringify(DATA));
+let syncing = false;
+
+function setSync(cls, msg){
+  const el = $('syncBar');
+  el.className = 'syncbar ' + cls;
+  el.textContent = msg;
+}
+
+function buildMonthSelect(months, current){
+  const sel = $('selMonth');
+  if(!months || months.length < 2){ sel.style.display = 'none'; return; }
+  sel.innerHTML = months.slice().reverse().map(m => {
+    const [y, mm] = m.split('-');
+    return `<option value="${m}"${m===current?' selected':''}>Chốt T${Number(mm)}/${y}</option>`;
+  }).join('');
+  sel.style.display = '';
+}
+
+async function syncFromLark(month){
+  if(syncing) return;
+  syncing = true;
+  $('btnSync').disabled = true;
+  setSync('loading', '⏳ Đang lấy số liệu từ Lark Base…');
+  try{
+    const url = '/api/data' + (month ? ('?month=' + encodeURIComponent(month)) : '');
+    const r = await fetch(url, {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error || 'Lỗi không xác định');
+    DATA = j.data;
+    buildMonthSelect(j.months, j.month);
+    if(editMode) loadMeta();
+    render();
+    const t = new Date(j.syncedAt).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit', year:'numeric'});
+    setSync('ok', '✅ Số liệu lấy trực tiếp từ Lark Base · chốt tháng ' + j.month + ' · đồng bộ lúc ' + t);
+  }catch(err){
+    setSync('err', '⚠️ Chưa lấy được số từ Lark (' + err.message + ') — trang đang hiển thị số lưu sẵn trong mã nguồn.');
+  }finally{
+    syncing = false;
+    $('btnSync').disabled = false;
+  }
+}
+
+$('btnSync').addEventListener('click', () => syncFromLark($('selMonth').value || ''));
+$('selMonth').addEventListener('change', e => syncFromLark(e.target.value));
+
 render();
+syncFromLark(new URLSearchParams(location.search).get('month') || '');
 </script>
 </body>
 </html>
