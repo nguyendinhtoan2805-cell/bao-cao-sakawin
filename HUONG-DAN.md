@@ -56,20 +56,26 @@ không tạo bảng mới, không nhập lại tên kênh, không nhập lại t
 | % tăng trưởng KH | Số | | Kế hoạch tăng trưởng tháng sau, vd `40` |
 | Số đơn KH | Số | | Số đơn kế hoạch tháng sau |
 | Trần Ads % KH | Số | | vd `6` hoặc `4.5` |
-| Tên hiển thị | Văn bản | | Tên muốn hiện trên web, vd `Sakawin Hà Nội`. Bỏ trống thì lấy tên kênh |
-| Thứ tự | Số | | Thứ tự dòng. Bỏ trống thì tự xếp theo doanh thu giảm dần |
-| Nhãn | Văn bản | | vd `TOP SALE 🔥`, `VỀ SỐ ✓`. Có 🔥 hoặc chữ "top" → nhãn đỏ, còn lại nhãn xanh |
+| Nhãn | Văn bản | | vd `TOP SALE 🔥`, `VỀ SỐ ✓`. Có 🔥 hoặc chữ "top" → nhãn đỏ, còn lại nhãn xanh. Mỗi tháng chỉ gắn cho 2-3 kênh đáng chú ý |
 | Ghi chú | Văn bản | | Hiện dưới tên shop |
+
+Hai cột dưới đây **không cần tạo** — chỉ thêm khi thật sự cần:
+
+| Cột | Kiểu | Khi nào cần |
+|---|---|---|
+| Thứ tự | Số | Muốn ghim thứ tự dòng cố định. Không có cột này thì web tự xếp theo doanh thu giảm dần trong từng khối — tự cập nhật mỗi tháng, không phải sửa tay |
+| Tên hiển thị | Văn bản | Muốn web gọi tên khác với `Kênh Kinh Doanh`. Không có cột này thì web lấy thẳng tên kênh |
 
 > **Bảng trông rộng ra?** Tạo một chế độ xem (View) riêng tên `Nhập số hằng ngày`
 > và ẩn mấy cột này đi. Team vận hành vẫn thấy bảng gọn như cũ.
 
 ### Điền số
 
-Chỉ cần điền cho **các dòng tháng 7** của 15 kênh đang lên báo cáo.
+Chỉ cần điền cho **các dòng tháng 7 đã có sẵn** của 15 kênh lên báo cáo — tick
+`Lên báo cáo`, điền `Target` và 3 cột kế hoạch. Không tạo dòng mới.
+
 File `lark-import/Target-T7-de-dien.csv` là bảng tra: mở bằng Excel/Numbers,
-có sẵn Target · % tăng trưởng · Số đơn KH · Trần Ads % · Ghi chú đang chạy trên web,
-đã ghi kèm tên kênh bên Lark để bạn dò cho đúng dòng.
+có sẵn toàn bộ số đang chạy trên web, kèm tên kênh bên Lark để dò đúng dòng.
 
 ### Bảng `Nhận xét` (tuỳ chọn)
 Cái này thì đúng là bảng mới, vì không gắn với kênh nào cả. Nhập từ `lark-import/Nhan-xet.csv`.
@@ -116,6 +122,7 @@ Mở web, thanh trạng thái dưới hàng nút phải hiện:
 
 1. Team nhập doanh thu / số đơn / ngân sách ADS vào `Báo Cáo Doanh Thu - Kênh Bán Hàng` **như bình thường**.
 2. Trên chính dòng đó: tick `Lên báo cáo`, điền `Target` và 3 cột kế hoạch tháng sau.
+   Gắn `Nhãn` cho 2-3 kênh đáng chú ý.
 3. Thêm vài dòng vào bảng `Nhận xét`.
 4. Mở web → bấm **🔄 Đồng bộ từ Lark**. Xong.
 
