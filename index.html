@@ -27,6 +27,23 @@
   .kpi.hot{background:var(--red);border-color:var(--red)}
   .kpi.hot .v,.kpi.hot .l{color:#fff}
 
+  .appnav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);margin:-8px 0 18px;padding-bottom:0}
+  .applogo{font-size:12px;font-weight:800;letter-spacing:1.2px;color:var(--muted);
+    text-transform:uppercase;margin-right:14px;padding-bottom:10px}
+  .applogo b{color:var(--red)}
+  .navtab{font-size:13.5px;font-weight:700;padding:8px 14px 10px;border-bottom:2.5px solid transparent;
+    color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:7px}
+  .navtab:hover{color:var(--ink)}
+  .navtab.active{color:var(--red);border-bottom-color:var(--red)}
+  .navtab.soon{color:#A8A29E;cursor:default}
+  .navtab.soon:hover{color:#A8A29E}
+  .navtab em{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.4px;
+    background:var(--line);color:var(--muted);padding:2px 6px;border-radius:4px;text-transform:uppercase}
+  .theme-dark .appnav{border-bottom-color:#2A2724}
+  .theme-dark .navtab.soon,.theme-dark .navtab.soon:hover{color:#57534E}
+  .theme-dark .navtab em{background:#26231F;color:#A39D95}
+
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
   select.btn{padding:8px 12px}
   .syncbar{font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:8px;margin:0 0 16px;
@@ -173,6 +190,12 @@
 </head>
 <body>
 <div class="wrap">
+  <nav class="appnav">
+    <span class="applogo">Sakawin <b>Reports</b></span>
+    <a class="navtab active" href="/">📈 Doanh số &amp; Target</a>
+    <span class="navtab soon">💰 Tài chính &amp; Lãi lỗ <em>sắp có</em></span>
+  </nav>
+
   <div class="masthead">
     <div class="brand">
       <h1>SAKAWIN <span id="titleMonth"></span></h1>
@@ -256,6 +279,7 @@
 ===================================================================== */
 /* Giao diện mặc định khi mở trang: 'light' (sáng) hoặc 'dark' (Executive Dark) */
 let THEME = 'light';
+try { const t = localStorage.getItem('sakawin-theme'); if (t === 'dark' || t === 'light') THEME = t; } catch(e){}
 const PALETTES = {
   light: { text:'#57534E', grid:'#F0EEEC', line100:'#8B0A1E',
     bar6:'#F0C6CE', bar7:'#E4657A', bar8:'#C8102E', pctLine:'#1C1917',
@@ -535,6 +559,7 @@ function applyTheme(){
 }
 $('btnTheme').addEventListener('click', () => {
   THEME = THEME==='dark' ? 'light' : 'dark';
+  try { localStorage.setItem('sakawin-theme', THEME); } catch(e){}
   applyTheme(); render();
 });
 applyTheme();
@@ -569,7 +594,7 @@ async function syncFromLark(month){
   $('btnSync').disabled = true;
   setSync('loading', '⏳ Đang lấy số liệu từ Lark Base…');
   try{
-    const url = '/api/data' + (month ? ('?month=' + encodeURIComponent(month)) : '');
+    const url = '/api/doanh-so' + (month ? ('?month=' + encodeURIComponent(month)) : '');
     const r = await fetch(url, {cache:'no-store'});
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();

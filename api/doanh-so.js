@@ -1,14 +1,19 @@
 /* =====================================================================
-   /api/data — Vercel Serverless Function
-   Đọc số liệu từ Base "TỔNG QUAN DOANH SỐ 2026 - SAKAWIN" trên Lark
-   và trả về đúng định dạng DATA mà trang báo cáo đang dùng.
+   /api/doanh-so — Vercel Serverless Function
+   TRANG: Doanh số & Target   (Sakawin Reports)
 
-   ĐỌC 2 BẢNG:
-   1) "Báo Cáo Doanh Thu - Kênh Bán Hàng"  (bảng có sẵn, KHÔNG sửa gì)
-      → Doanh thu · Số đơn · Ngân sách ADS · Nền tảng
+   Nguồn số DUY NHẤT của trang này là Base "TỔNG QUAN DOANH SỐ 2026 - SAKAWIN":
+
+   1) "Báo Cáo Doanh Thu - Kênh Bán Hàng"  (bảng có sẵn, chỉ đọc, KHÔNG sửa)
+      → Doanh thu bán hàng · Số đơn · Ngân sách ADS · Nền tảng
    2) "Target & Kế hoạch"                   (bảng tạo mới)
-      → Target · 3 cột kế hoạch tháng sau · quyết định shop nào lên báo cáo,
+      → Target · kế hoạch tháng sau · quyết định kênh nào lên báo cáo,
         tên hiển thị và thứ tự dòng
+   3) "Nhận xét"                            (tuỳ chọn)
+
+   KHÔNG đọc bảng "Báo Cáo Chi Tiết - 2026". Bảng đó là doanh thu thuần,
+   lãi lỗ và chi phí — thuộc về trang Tài chính sẽ làm sau, trộn vào đây
+   là sai bản chất chỉ số.
 
    BIẾN MÔI TRƯỜNG trên Vercel (Settings → Environment Variables):
      LARK_APP_ID          cli_xxxxxxxx
@@ -17,17 +22,12 @@
      LARK_TABLE_REVENUE   table_id bảng "Báo Cáo Doanh Thu - Kênh Bán Hàng"
      LARK_TABLE_TARGET    table_id bảng "Target & Kế hoạch"
      LARK_TABLE_NOTES     (tuỳ chọn) table_id bảng "Nhận xét"
-     LARK_TABLE_REVENUE2  (tuỳ chọn) table_id bảng "Báo Cáo Chi Tiết - 2026".
-                          CHỈ dùng để vá lỗ hổng: tháng nào Sheet 1 chưa nhập
-                          doanh thu thì lấy tạm "Doanh Thu Thuần" của sheet này,
-                          và ghi rõ cảnh báo trong kết quả trả về.
      LARK_HOST            (tuỳ chọn) mặc định https://open.larksuite.com
-     REPORT_YEAR          (tuỳ chọn) mặc định 2026 — dùng khi cột Tháng chỉ ghi 1..12
+     REPORT_YEAR          (tuỳ chọn) mặc định 2026 — cột Tháng ở Base chỉ ghi 1..12
      REPORT_AUTHOR        (tuỳ chọn) tên người lập ở chân trang
 
-   Gọi thử:  /api/data              → tháng chốt mới nhất có target
-             /api/data?month=7      → chốt T7, lên kế hoạch T8
-             /api/data?month=2026-07
+   Gọi thử:  /api/doanh-so              → tháng chốt mới nhất có target
+             /api/doanh-so?month=7      → chốt T7, lên kế hoạch T8
 ===================================================================== */
 
 const HOST = (process.env.LARK_HOST || 'https://open.larksuite.com').replace(/\/$/, '');
@@ -145,12 +145,9 @@ module.exports = async (req, res) => {
     }
 
     const token = await larkToken();
-    const [revRaw, tgtRaw, rev2Raw] = await Promise.all([
+    const [revRaw, tgtRaw] = await Promise.all([
       readTable(token, process.env.LARK_TABLE_REVENUE, 'Báo Cáo Doanh Thu - Kênh Bán Hàng'),
       readTable(token, process.env.LARK_TABLE_TARGET, 'Target & Kế hoạch'),
-      process.env.LARK_TABLE_REVENUE2
-        ? readTable(token, process.env.LARK_TABLE_REVENUE2, 'Báo Cáo Chi Tiết - 2026')
-        : Promise.resolve([]),
     ]);
 
     /* --- Bảng doanh thu: khoá theo (tháng, tên kênh đã chuẩn hoá) --- */
@@ -167,16 +164,6 @@ module.exports = async (req, res) => {
       });
     }
     if (!rev.size) throw new Error('Bảng doanh thu không có dòng nào hợp lệ (cần cột Tháng + Kênh Kinh Doanh).');
-
-    /* --- Doanh thu dự phòng từ "Báo Cáo Chi Tiết - 2026" (nếu có khai biến) --- */
-    const rev2 = new Map();
-    for (const r of rev2Raw) {
-      const mk = monthKey(pick(r, 'Tháng', 'Thang', 'Month'), pick(r, 'Năm', 'Nam', 'Year'));
-      const shop = txt(pick(r, 'Shop', 'Kênh Kinh Doanh', 'Kênh'));
-      if (!mk || !shop) continue;
-      const dt = num(pick(r, 'Doanh Thu Thuần', 'Doanh Thu Thuan', 'Doanh Thu'));
-      if (dt != null) rev2.set(mk + '|' + norm(shop), dt);
-    }
 
     /* --- Bảng target: quyết định shop nào lên báo cáo, tên hiển thị, thứ tự --- */
     const tgts = tgtRaw.map(r => ({
@@ -207,19 +194,13 @@ module.exports = async (req, res) => {
 
     const warnings = [];
     const shops = cur.map(t => {
-      const key = M + '|' + norm(t.kenh);
-      const now = rev.get(key);
+      const now = rev.get(M + '|' + norm(t.kenh));
       const before = rev.get(P + '|' + norm(t.kenh));
       if (!now) warnings.push(`Không tìm thấy "${t.kenh}" tháng ${M} trong bảng doanh thu — kiểm tra tên kênh có khớp nhau không.`);
 
-      // Sheet 1 chưa nhập doanh thu → vá tạm bằng Doanh Thu Thuần của bảng chi tiết
-      let dt7 = now ? now.dt : null;
-      if (dt7 == null && rev2.has(key)) {
-        dt7 = rev2.get(key);
-        warnings.push(`"${t.kenh}" tháng ${M}: bảng Kênh Bán Hàng chưa có doanh thu, đang tạm dùng Doanh Thu Thuần của bảng Báo Cáo Chi Tiết.`);
-      }
-      let dt6 = before ? before.dt : null;
-      if (dt6 == null && rev2.has(P + '|' + norm(t.kenh))) dt6 = rev2.get(P + '|' + norm(t.kenh));
+      const dt7 = now ? now.dt : null;
+      const dt6 = before ? before.dt : null;
+      if (now && dt7 == null) warnings.push(`"${t.kenh}" tháng ${M}: đã có dòng trong bảng doanh thu nhưng cột "Doanh Thu Kinh Doanh (số thực)" đang để trống.`);
 
       const s = {
         name: t.hienThi || t.kenh,

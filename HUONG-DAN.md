@@ -1,4 +1,4 @@
-# Nối web báo cáo doanh số với Lark Base — Hướng dẫn cài đặt
+# Sakawin Reports — Hướng dẫn cài đặt
 
 Base dùng: **TỔNG QUAN DOANH SỐ 2026 - SAKAWIN** (Sakawin Việt Nam › Wiki Đình Toàn)
 
@@ -9,11 +9,26 @@ Sau khi làm xong: team nhập số vào Lark như mọi khi → web tự cập 
 
 ---
 
+## Cấu trúc webapp
+
+Đây là webapp nhiều trang, mỗi trang một chủ đề và một nguồn số riêng.
+
+| Trang | File | API | Nguồn số | Tình trạng |
+|---|---|---|---|---|
+| 📈 Doanh số & Target | `index.html` | `/api/doanh-so` | `Báo Cáo Doanh Thu - Kênh Bán Hàng` + `Target & Kế hoạch` | ✅ đang chạy |
+| 💰 Tài chính & Lãi lỗ | `tai-chinh.html` | `/api/tai-chinh` | `Báo Cáo Chi Tiết - 2026` (doanh thu thuần, giá vốn, chi phí) | 🔜 làm sau |
+
+Hai trang **không dùng chung số**. Trang doanh số nói về *doanh thu bán hàng*,
+trang tài chính nói về *doanh thu thuần và lãi lỗ* — hai chỉ số khác nhau,
+cố tình tách để không ai đọc nhầm. Thanh điều hướng ở đầu trang để chuyển qua lại.
+
+---
+
 ## Web lấy số ở đâu
 
 | Số trên báo cáo | Lấy từ |
 |---|---|
-| Doanh thu thực tế | `Báo Cáo Doanh Thu - Kênh Bán Hàng` → cột **Doanh Thu Kinh Doanh (số thực)** |
+| Doanh thu bán hàng | `Báo Cáo Doanh Thu - Kênh Bán Hàng` → cột **Doanh Thu Kinh Doanh (số thực)** |
 | Số đơn | cùng bảng → **Số Lượng Đơn Hàng** |
 | Ngân sách ADS | cùng bảng → **Ngân Sách ADS** |
 | Nhóm kênh (Shopee/TikTok/Khác/Offline) | cùng bảng → **Nền Tảng** |
@@ -99,6 +114,9 @@ Mở web, thanh trạng thái dưới hàng nút phải hiện:
 
 ### Mẹo
 - **Xem lại tháng cũ:** dùng ô chọn `Chốt T…/…` cạnh nút đồng bộ, hoặc mở link `?month=7`.
+- **Cột doanh thu để trống ở bảng Kênh Bán Hàng** → báo cáo hiện dấu `—` và ghi rõ trong thanh
+  vàng. Web **không** đi mượn số của bảng tài chính để lấp — số bán hàng và số tài chính là
+  hai chỉ số khác nhau. Muốn có số thì nhập vào bảng Kênh Bán Hàng.
 - **Thanh vàng "N điểm cần kiểm tra":** bấm vào để xem chi tiết — thường là tên kênh ở 2 bảng
   viết khác nhau, hoặc tháng đó chưa nhập doanh thu. Đây là bộ soát lỗi, không phải lỗi web.
 - **Số chưa đổi:** web cache 5 phút. Đợi hoặc bấm đồng bộ lại.
@@ -117,4 +135,4 @@ Mở web, thanh trạng thái dưới hàng nút phải hiện:
 | `code 91402` / `NOTEXIST` | Sai `LARK_APP_TOKEN` hoặc `TABLE_ID` | Copy lại từ URL Base |
 | `Bảng Target & Kế hoạch chưa có dòng nào hợp lệ` | Thiếu cột `Tháng` hoặc `Kênh Kinh Doanh` | Kiểm tra tên cột |
 | `Không tìm thấy "X" tháng … trong bảng doanh thu` | Tên kênh 2 bảng lệch nhau | Sửa cho trùng tên |
-| `HTTP 404` khi gọi /api/data | Thư mục `api/` chưa lên repo | Push lại |
+| `HTTP 404` khi gọi /api/doanh-so | Thư mục `api/` chưa lên repo | Push lại |
