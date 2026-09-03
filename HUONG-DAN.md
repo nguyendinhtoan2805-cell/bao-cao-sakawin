@@ -286,6 +286,17 @@ nên cần cả `LARK_TABLE_FINANCE`. Thiếu biến đó thì ô này để tr�
 | Người vào / người rời | So danh sách nhân sự giữa hai kỳ |
 | Quỹ lương nặng | Trên 25% doanh thu → cảnh báo đỏ, 15–25% → lưu ý |
 
+### Chỉ cần điền thông tin nhân sự MỘT tháng
+
+`Ảnh` · `Bộ Phận` · `Chức Vụ` là thông tin của con người, không đổi theo tháng — nên
+**điền một tháng bất kỳ là đủ**, các tháng còn lại web tự lấy theo.
+
+Quy tắc lấy: tháng gần nhất **đứng trước** có điền; không có thì lấy tháng gần nhất đứng sau.
+Nhờ vậy vẫn giữ đúng lịch sử — ai đổi bộ phận giữa năm thì các tháng trước vẫn giữ bộ phận cũ,
+không bị ghi đè bằng bộ phận mới nhất.
+
+Trang ghi rõ đã tự điền bao nhiêu ô, ngay dưới tiêu đề bảng nhân sự.
+
 ### Ảnh nhân sự
 
 Thêm vào bảng `Lương - Thưởng - Sakawin` một cột kiểu **Tệp đính kèm** rồi tải ảnh lên từng dòng.

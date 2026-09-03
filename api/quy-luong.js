@@ -294,8 +294,8 @@ module.exports = async (req, res) => {
       _tho: r,
       month: monthKey(pick(r, 'Tháng', 'Thang'), pick(r, 'Năm', 'Nam')),
       ten: txt(pick(r, 'Tên Nhân Sự', 'Ten Nhan Su', 'Họ tên', 'Nhân sự')),
-      boPhan: txt(pick(r, 'Bộ Phận', 'Bo Phan', 'Phòng ban')) || '(chưa ghi)',
-      chucVu: txt(pick(r, 'Chức Vụ', 'Chuc Vu', 'Vị trí')) || '(chưa ghi)',
+      boPhan: txt(pick(r, 'Bộ Phận', 'Bo Phan', 'Phòng ban')),
+      chucVu: txt(pick(r, 'Chức Vụ', 'Chuc Vu', 'Vị trí')),
       cong: num(pick(r, 'Ngày Công', 'Công', 'Ngay Cong')),
       heSo: num(pick(r, 'Hệ Số Lương', 'He So Luong', 'Hệ Số L')),
       luongCung: num(pick(r, 'Lương Cứng (Thực tế)', 'Luong Cung (Thuc te)')) || 0,
@@ -309,6 +309,45 @@ module.exports = async (req, res) => {
       ghiChu: txt(pick(r, 'Ghi Chú', 'Ghi Chu')),
       anh: timAnh(r),
     })).filter(x => x.month && x.ten);
+
+    /* =====================================================================
+       SUY THÔNG TIN NHÂN SỰ TỪ THÁNG ĐÃ ĐIỀN
+       Ảnh, bộ phận, chức vụ vốn không đổi theo tháng — bắt điền lại cho từng
+       tháng là thừa việc. Chỉ cần điền một tháng bất kỳ, các tháng còn lại
+       lấy theo giá trị của THÁNG GẦN NHẤT có điền:
+         - Ưu tiên tháng gần nhất ĐỨNG TRƯỚC (mang thông tin xuôi về sau)
+         - Không có thì lấy tháng gần nhất đứng sau (mang ngược về trước)
+       Cách này giữ đúng lịch sử: ai đổi bộ phận giữa năm thì các tháng trước
+       vẫn giữ bộ phận cũ, không bị ghi đè bằng bộ phận mới nhất.
+    ===================================================================== */
+    const soThangCua = k => Number(k.split('-')[0]) * 12 + Number(k.split('-')[1]);
+    const hoSo = new Map();          // người -> { truong -> [{thang, giaTri}] }
+    for (const r of recs) {
+      const k = norm(r.ten);
+      if (!hoSo.has(k)) hoSo.set(k, { anh: [], boPhan: [], chucVu: [] });
+      const h = hoSo.get(k);
+      for (const truong of ['anh', 'boPhan', 'chucVu'])
+        if (r[truong]) h[truong].push({ thang: soThangCua(r.month), giaTri: r[truong] });
+    }
+    const layGanNhat = (ds, moc) => {
+      if (!ds.length) return '';
+      const truoc = ds.filter(x => x.thang <= moc).sort((a, b) => b.thang - a.thang)[0];
+      if (truoc) return truoc.giaTri;
+      return ds.slice().sort((a, b) => a.thang - b.thang)[0].giaTri;
+    };
+    const daSuy = { anh: 0, boPhan: 0, chucVu: 0 };
+    for (const r of recs) {
+      const h = hoSo.get(norm(r.ten));
+      const moc = soThangCua(r.month);
+      for (const truong of ['anh', 'boPhan', 'chucVu']) {
+        if (!r[truong]) {
+          const v = layGanNhat(h[truong], moc);
+          if (v) { r[truong] = v; daSuy[truong]++; }
+        }
+      }
+      if (!r.boPhan) r.boPhan = '(chưa ghi)';
+      if (!r.chucVu) r.chucVu = '(chưa ghi)';
+    }
 
     const months = [...new Set(recs.filter(r => r.tongCong > 0 || r.thucNhan > 0).map(r => r.month))].sort();
     if (!months.length) throw new Error('Chưa tháng nào có số lương trong bảng.');
@@ -451,6 +490,7 @@ module.exports = async (req, res) => {
       data: { tong, tongTruoc, coKyTruoc, boPhan, chucVu, nguoi, xuHuong, nhanXet, thieuSot, doanhThu,
               thanhPhan: THANH_PHAN, nghiNgo,
               coCotAnh: recs.some(r => !!r.anh),
+              daSuy, soNguoiCoAnh: [...new Set(recs.filter(r => r.anh).map(r => norm(r.ten)))].length,
               sub: `Số liệu tự động đồng bộ từ Lark — bảng Lương - Thưởng - Sakawin · Cập nhật ${stamp} (giờ VN) · Đơn vị: đồng (VNĐ)` },
     });
   } catch (err) {

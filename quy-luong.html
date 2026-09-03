@@ -324,7 +324,8 @@
     <div class="toolbar"><button class="btn primary" id="btnSync">🔄 Đồng bộ từ Lark</button></div>
   </div>
 
-  <div class="riengtu">🔒 Trang này chứa lương từng người. Chỉ tài khoản được tick quyền <b>Quỹ lương</b> mới mở được.</div>
+  <div class="riengtu">🔒 Trang này chứa lương từng người. Chỉ tài khoản được tick quyền <b>Quỹ lương</b> mới mở được.
+    <span style="margin-left:auto;color:#7C3AED">✨ Ảnh · Bộ phận · Chức vụ chỉ cần điền <b>một tháng</b>, các tháng khác tự lấy theo.</span></div>
 
   <div class="filterbar">
     <span class="lb">Kỳ xem</span>
@@ -502,9 +503,16 @@ function render(){
        <td>${fmt(t.hoaHong)}</td><td>${fmt(t.thuong)}</td><td>${fmt(t.giamTru)}</td><td>${fmt(t.thucNhan)}</td></tr>`;
 
   /* Bảng nhân sự */
+  const thieuAnh = d.nguoi.filter(n => !n.anh).length;
+  const suy = d.daSuy || {};
+  const tongSuy = (suy.anh||0) + (suy.boPhan||0) + (suy.chucVu||0);
   $('soNguoi').innerHTML = `— ${d.nguoi.length} người, xếp theo quỹ lương giảm dần`
-    + (d.coCotAnh ? '' : ' · <span title="Thêm cột tệp đính kèm tên Ảnh vào bảng Lark là ảnh tự hiện">'
-        + 'thêm cột <b>Ảnh</b> vào bảng Lark để hiện ảnh nhân sự</span>');
+    + (d.coCotAnh
+        ? (thieuAnh ? ` · <span title="Điền ảnh ở một tháng bất kỳ là đủ">${thieuAnh} người chưa có ảnh</span>` : '')
+        : ' · <span title="Thêm cột tệp đính kèm vào bảng Lark là ảnh tự hiện">'
+          + 'thêm cột <b>Ảnh</b> vào bảng Lark để hiện ảnh nhân sự</span>')
+    + (tongSuy ? ` · <span title="Ảnh, bộ phận và chức vụ được lấy từ tháng gần nhất có điền — không cần điền lại từng tháng">`
+        + `đã tự điền ${tongSuy.toLocaleString('vi-VN')} ô thông tin nhân sự</span>` : '');
   $('theadNS').innerHTML = '<th>Nhân sự</th><th>Bộ phận</th><th>Chức vụ</th><th>Tổng cộng</th>'
     + '<th>Thực nhận</th><th>Lệch</th><th class="note-cell">Ghi chú</th>';
   const chuDau = ten => {
