@@ -38,6 +38,25 @@ xếp cảnh báo lên trước, mỗi mục gắn nhãn nguồn (Doanh số / T
 > Đường dẫn cũ đổi: `/` giờ là **Tổng quan**, trang doanh số chuyển sang `/doanh-so.html`.
 > Ai đã lưu địa chỉ gốc thì vào thẳng Tổng quan — đúng ý đồ.
 
+### 📸 Chế độ chụp — gửi báo cáo cho đội
+
+Nút tròn đỏ góc dưới bên phải ở ba trang báo cáo. Bấm vào là màn hình dọn sạch để chụp:
+
+- Ẩn thanh điều hướng, nút bấm, bộ lọc, thanh trạng thái
+- **Phóng chữ to lên** (15px thay vì 13.5px), giãn dòng ra
+- Trang Doanh số **giấu 5 cột phụ** (Ads, Target đơn, AOV, CPO) — đội bán chỉ cần doanh thu,
+  target và % hoàn thành. Bớt 5 cột là bảng vừa một màn hình, chữ đọc được trên điện thoại
+- Hiện một dòng tiêu đề thay cho thanh điều hướng, ghi rõ báo cáo gì và kỳ nào
+- Ghi chú xuống dòng thay vì kéo dài
+
+Bấm lại hoặc nhấn **Esc** để thoát.
+
+### Ghim tiêu đề bảng
+
+Bảng dài thì cuộn xuống là mất tiêu đề cột, không biết đang đọc số gì. Nay khung bảng có
+chiều cao tối đa `calc(100vh - 90px)` nên cuộn bên trong bảng, và tiêu đề dính lại ở trên.
+Chế độ chụp bỏ giới hạn này để chụp được cả bảng.
+
 ### Nguyên tắc giao diện — áp dụng cho MỌI trang thêm mới
 
 Ba trang dùng chung một bộ khung. Trang mới phải copy đúng bộ này, không tự đặt số khác:

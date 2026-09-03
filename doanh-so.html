@@ -394,6 +394,50 @@
     .kpis{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
     .findings{grid-template-columns:repeat(auto-fit,minmax(430px,1fr))}
   }
+
+  /* =====================================================================
+     GHIM TIÊU ĐỀ BẢNG
+     Tiêu đề đã có position:sticky nhưng chỉ dính trong khung cuộn của bảng.
+     Khung không giới hạn chiều cao thì cả bảng trôi theo trang, tiêu đề mất.
+     Đặt chiều cao tối đa để bảng tự cuộn dọc — lúc đó tiêu đề mới dính lại.
+  ===================================================================== */
+  .tablecard{max-height:calc(100vh - 90px)}
+  body.chup .tablecard{max-height:none}
+
+  /* =====================================================================
+     CHẾ ĐỘ CHỤP — dọn màn hình để chụp gửi cho đội
+     Ẩn thanh điều hướng, nút bấm, bộ lọc; giấu các cột phụ; phóng chữ to lên
+     để ảnh chụp đọc được trên điện thoại.
+  ===================================================================== */
+  body.chup .appnav,body.chup .toolbar,body.chup .filterbar,body.chup .syncbar,
+  body.chup .editnote,body.chup .riengtu,body.chup .chugiai,body.chup footer{display:none!important}
+  body.chup .masthead{margin-bottom:18px}
+  body.chup{padding:22px 20px 30px}
+  body.chup table{font-size:15px}
+  body.chup thead th{padding:14px 12px!important;font-size:12.5px!important}
+  body.chup tbody td{padding:15px 12px!important}
+  body.chup .tablecard{border-width:2px}
+  /* Ghi chú xuống dòng thay vì kéo dài, nếu không nó ép cả bảng rộng ra */
+  body.chup td.note,body.chup td.note-cell{white-space:normal!important;max-width:230px;line-height:1.4}
+  body.chup thead th{white-space:normal;line-height:1.3}
+  body.chup .khungchup{display:block}
+  /* Giấu cột Ads, Target đơn, AOV, CPO — đội bán hàng chỉ cần doanh thu,
+     target và % hoàn thành. Bỏ 5 cột này là bảng vừa một màn hình, chữ đọc được. */
+  body.chup thead th:nth-child(6), body.chup tbody td:nth-child(6),
+  body.chup thead th:nth-child(10),body.chup tbody td:nth-child(10),
+  body.chup thead th:nth-child(11),body.chup tbody td:nth-child(11),
+  body.chup thead th:nth-child(12),body.chup tbody td:nth-child(12),
+  body.chup thead th:nth-child(13),body.chup tbody td:nth-child(13){display:none}
+  .khungchup{display:none;margin:0 0 14px;font-size:13px;color:var(--muted);font-weight:600}
+  .khungchup b{color:var(--ink)}
+
+  /* Nút bật/tắt chế độ chụp, nổi ở góc để bấm lại được khi đang ở chế độ chụp */
+  #btnChup{position:fixed;right:18px;bottom:18px;z-index:99;font-family:inherit;font-size:13.5px;
+    font-weight:700;padding:11px 18px;border-radius:99px;border:none;cursor:pointer;
+    background:var(--red);color:#fff;box-shadow:0 6px 20px rgba(200,16,46,.35);
+    transition:transform .15s ease,box-shadow .15s ease}
+  #btnChup:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(200,16,46,.42)}
+  @media print{#btnChup{display:none}}
 </style>
 </head>
 <body class="locked">
@@ -1098,6 +1142,41 @@ async function khoiDong(){
 }
 
 khoiDong();
+
+/* =====================================================================
+   CHẾ ĐỘ CHỤP — dọn màn hình, giấu cột phụ, phóng chữ để chụp gửi đội
+   Trạng thái nhớ trong phiên, không lưu lâu dài: đây là thao tác nhất thời.
+===================================================================== */
+(function(){
+  const nut = document.createElement('button');
+  nut.id = 'btnChup';
+  nut.textContent = '📸 Chế độ chụp';
+  document.body.appendChild(nut);
+
+  /* Dòng tiêu đề thay cho thanh điều hướng bị ẩn, để ảnh chụp vẫn biết là báo cáo gì */
+  const khung = document.createElement('div');
+  khung.className = 'khungchup';
+  const neo = document.querySelector('.masthead');
+  if(neo) neo.parentNode.insertBefore(khung, neo.nextSibling);
+
+  nut.addEventListener('click', () => {
+    const bat = !document.body.classList.contains('chup');
+    document.body.classList.toggle('chup', bat);
+    nut.textContent = bat ? '✕ Thoát chế độ chụp' : '📸 Chế độ chụp';
+    if(bat){
+      const ky = (document.getElementById('kyInfo') || {}).textContent || '';
+      khung.innerHTML = 'SAKAWIN REPORTS · <b>' + (document.title.split('—')[1] || '').trim() + '</b>'
+        + (ky ? ' · ' + ky.replace('Đang xem ', '') : '');
+      window.scrollTo(0, 0);
+    }
+  });
+
+  /* Esc để thoát nhanh */
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && document.body.classList.contains('chup')) nut.click();
+  });
+})();
+
 </script>
 </body>
 </html>
