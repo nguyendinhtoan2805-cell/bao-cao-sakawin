@@ -479,6 +479,7 @@
     <a class="navtab active" href="/doanh-so.html">📈 Doanh số &amp; Target</a>
     <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none">💰 Tài chính &amp; Lãi lỗ</a>
     <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none">👥 Quỹ lương</a>
+    <a class="navtab" id="tabNhanSu" href="/nhan-su.html" style="display:none">🧭 Nhân sự</a>
     <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none">⚙️ Quản trị</a>
     <span class="navuser">
       <span class="who" id="navWho"></span>
@@ -1113,6 +1114,7 @@ async function khoiDong(){
   $('tabAdmin').style.display = me.quyen.quan_tri ? '' : 'none';
   $('tabTaiChinh').style.display = me.quyen.xem_tai_chinh ? '' : 'none';
   $('tabQuyLuong').style.display = me.quyen.xem_luong ? '' : 'none';
+  if($('tabNhanSu')) $('tabNhanSu').style.display = me.quyen.xem_nhan_su ? '' : 'none';
 
   if(!me.quyen.xem_doanh_so){
     return khoaLai('Tài khoản chưa được cấp quyền',

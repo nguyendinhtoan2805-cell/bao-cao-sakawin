@@ -20,11 +20,12 @@ const COOKIE = 'sakawin_session';
 const HAN = 12 * 3600; // giây — hết 12 tiếng phải đăng nhập lại
 
 /* ---------- Quyền ---------- */
-const QUYEN = ['xem_doanh_so', 'xem_tai_chinh', 'xem_luong', 'xem_target', 'xem_ads', 'duoc_sua', 'quan_tri'];
+const QUYEN = ['xem_doanh_so', 'xem_tai_chinh', 'xem_luong', 'xem_nhan_su', 'xem_target', 'xem_ads', 'duoc_sua', 'quan_tri'];
 const NHAN_QUYEN = {
   xem_doanh_so: 'Xem trang Doanh số & Target',
   xem_tai_chinh: 'Xem trang Tài chính & Lãi lỗ',
   xem_luong: 'Xem trang Quỹ lương & Lương',
+  xem_nhan_su: 'Xem trang Quản trị Nhân sự',
   xem_target: 'Xem Target và % hoàn thành',
   xem_ads: 'Xem ngân sách ADS, %Ads và CPO',
   duoc_sua: 'Được sửa số trực tiếp trên web',
@@ -149,6 +150,7 @@ async function nguoiDung(req) {
     email, ten: u.ten || p.ten || email,
     quyen: { ...quyenRong(), ...(u.quyen || {}) },
     loai: u.loai === 'mk' ? 'mk' : 'lark',
+    boPhan: u.boPhan || '',
     phaiDoiMatKhau: u.loai === 'mk' && u.phaiDoi === true,
   };
 }

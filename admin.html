@@ -68,6 +68,7 @@
   .pill{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
     padding:3px 8px;border-radius:5px;background:var(--red-tint);color:var(--red-dark);margin-left:7px}
   input[type=checkbox]{width:23px;height:23px;accent-color:var(--red);cursor:pointer}
+  .bpin{width:128px;padding:5px 8px;border:1px solid #E7E5E4;border-radius:6px;font:inherit;font-size:12px;text-align:center}
   input[type=checkbox]:disabled{cursor:not-allowed}
 
   .segs2{display:flex;background:#F5F5F4;border-radius:9px;padding:3px;gap:2px}
@@ -197,6 +198,7 @@
     <a class="navtab" id="tabDoanhSo" href="/doanh-so.html" style="display:none">📈 Doanh số &amp; Target</a>
     <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none">💰 Tài chính &amp; Lãi lỗ</a>
     <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none">👥 Quỹ lương</a>
+    <a class="navtab" id="tabNhanSu" href="/nhan-su.html" style="display:none">🧭 Nhân sự</a>
     <a class="navtab active" href="/admin.html">⚙️ Quản trị</a>
     <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout">Đăng xuất</a></span>
   </nav>
@@ -262,7 +264,7 @@ let DANH_MUC = [], USERS = [], ADMIN_GOC = [];
 /* Nhãn ngắn cho tiêu đề cột — nhãn đầy đủ đưa vào tooltip.
    Không rút gọn thì trên điện thoại tiêu đề cao tới 5 dòng. */
 const NHAN_NGAN = {
-  xem_doanh_so:'Doanh số', xem_tai_chinh:'Tài chính', xem_luong:'Quỹ lương', xem_target:'Target',
+  xem_doanh_so:'Doanh số', xem_tai_chinh:'Tài chính', xem_luong:'Quỹ lương', xem_nhan_su:'Nhân sự', xem_target:'Target',
   xem_ads:'Ngân sách ADS', duoc_sua:'Được sửa', quan_tri:'Quản trị',
 };
 
@@ -284,6 +286,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;
 function ve(){
   $('thead').innerHTML = '<th>Người dùng</th>'
     + DANH_MUC.map(q => `<th class="v" title="${esc(q.nhan)}">${esc(NHAN_NGAN[q.ma] || q.nhan)}</th>`).join('')
+    + '<th class="v" title="Giới hạn phạm vi trang Nhân sự. Để trống là thấy toàn bộ.">Chỉ xem bộ phận</th>'
     + '<th class="v">Kích hoạt</th><th></th>';
 
   $('tbody').innerHTML = USERS.map((u, i) => {
@@ -295,6 +298,8 @@ function ve(){
         ${u.phaiDoi ? '<span class="kind warn">chưa đổi mật khẩu</span>' : ''}
         ${u.bikhoa ? '<span class="kind lock">đang bị khoá tạm</span>' : ''}</td>
       ${DANH_MUC.map(q => `<td><input type="checkbox" data-i="${i}" data-q="${q.ma}"${u.quyen[q.ma] ? ' checked' : ''}${o}></td>`).join('')}
+      <td><input class="bpin" data-i="${i}" value="${esc(u.boPhan || '')}" placeholder="tất cả"${o}
+        title="Để trống = thấy toàn bộ nhân sự. Điền đúng tên một bộ phận = chỉ thấy người của bộ phận đó."></td>
       <td><input type="checkbox" data-i="${i}" data-q="__kichHoat"${u.kichHoat ? ' checked' : ''}${o}></td>
       <td style="white-space:nowrap">${goc ? '' : `
         ${u.loai === 'mk' ? `<button class="btn mini" data-dl="${esc(u.email)}">Đặt lại MK</button> ` : ''}
@@ -309,6 +314,8 @@ function ve(){
     + 'đây là lối vào lần đầu và cũng là lối thoát nếu lỡ tự gỡ quyền của mình.';
 
   document.querySelectorAll('#tbody input[type=checkbox]').forEach(cb => cb.addEventListener('change', doiQuyen));
+  document.querySelectorAll('#tbody .bpin').forEach(ip => ip.addEventListener('change', e => {
+    const u = USERS[+e.target.dataset.i]; u.boPhan = e.target.value.trim(); luu(u); }));
   document.querySelectorAll('#tbody button[data-xoa]').forEach(b => b.addEventListener('click', () => xoa(b.dataset.xoa)));
   document.querySelectorAll('#tbody button[data-dl]').forEach(b => b.addEventListener('click', () => datLai(b.dataset.dl)));
 }
@@ -348,6 +355,7 @@ async function xoa(email){
 const chuanHoa = u => ({
   email: u.email, ten: u.ten || '', kichHoat: u.kichHoat !== false,
   loai: u.loai === 'mk' ? 'mk' : 'lark', phaiDoi: !!u.phaiDoi, bikhoa: !!u.bikhoa,
+  boPhan: u.boPhan || '',
   quyen: Object.fromEntries(DANH_MUC.map(q => [q.ma, !!(u.quyen && u.quyen[q.ma])])),
 });
 
@@ -437,6 +445,7 @@ async function taiLai(){
   $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten || me.email) + '</b>';
   $('tabTaiChinh').style.display = me.quyen.xem_tai_chinh ? '' : 'none';
   $('tabQuyLuong').style.display = me.quyen.xem_luong ? '' : 'none';
+  if($('tabNhanSu')) $('tabNhanSu').style.display = me.quyen.xem_nhan_su ? '' : 'none';
   $('tabDoanhSo').style.display = me.quyen.xem_doanh_so ? '' : 'none';
   try { if(await taiLai()) document.body.classList.remove('locked'); }
   catch(err){ /* goi() đã hiện thông báo */ }

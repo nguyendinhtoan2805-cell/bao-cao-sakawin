@@ -41,6 +41,7 @@ module.exports = async (req, res) => {
           loai: u.loai === 'mk' ? 'mk' : 'lark',
           phaiDoi: u.phaiDoi === true,
           bikhoa: !!(u.khoaDen && Date.now() < u.khoaDen),
+          boPhan: u.boPhan || '',
           quyen: { ...A.quyenRong(), ...(u.quyen || {}) },
         })),
       });
@@ -64,6 +65,7 @@ module.exports = async (req, res) => {
         ...(cu || {}),
         email, ten: String(b.ten || (cu && cu.ten) || '').trim(),
         kichHoat: b.kichHoat !== false, quyen,
+        boPhan: String(b.boPhan || '').trim(),
       };
 
       let matKhauMoi = null;

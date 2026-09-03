@@ -462,3 +462,88 @@ Email nằm trong `ADMIN_EMAILS` luôn toàn quyền, không gỡ được từ 
 | `Chưa kết nối kho lưu tài khoản` | Chưa tạo Upstash Redis | Xem mục Đăng nhập & phân quyền, bước 1 |
 | Lark báo `redirect_uri mismatch` | Chưa khai Redirect URL trong Lark App | Thêm đúng `https://<tên-miền>/api/auth/callback` |
 | `Tài khoản Lark không có email` | Thiếu scope `contact:user.email:readonly` | Thêm scope, tạo version mới, submit |
+
+---
+
+## Trang Quản trị Nhân sự
+
+Trang này đọc **một Base khác** với các trang kia — Base quản lý nhân sự, không phải Base báo cáo kinh doanh.
+
+Cần khai thêm **một** biến trên Vercel:
+
+```
+LARK_APP_TOKEN_HR = X1hIwxnaziZo0mk8BIal4Ljggxe
+```
+
+Không cần khai `table_id` nào cả. Trang tự dò bốn bảng theo tên:
+
+| Tên bảng trong Lark | Dùng để |
+|---|---|
+| `QUẢN LÝ THÔNG TIN NHÂN SỰ` | hồ sơ gốc, ảnh, thâm niên — **bắt buộc** |
+| `THÔNG TIN HĐLĐ` | cảnh báo hợp đồng sắp hết hạn |
+| `Đánh giá Nhân sự` | ma trận Skill-Will |
+| `Đào tạo` | khoá đã học |
+
+Ba bảng sau thiếu cũng không sao, trang vẫn chạy và tự báo là đang thiếu gì.
+
+### Cột nào web được đọc
+
+Base nhân sự chứa CCCD, số điện thoại, địa chỉ, tình trạng BHXH và lương. **Không cột nào trong số đó được đọc** — kể cả khi Lark App có quyền truy cập.
+
+Cơ chế: `api/nhan-su.js` có hằng số `COT_DUOC_DOC` liệt kê đúng 16 cột. Mọi bản ghi vừa đọc từ Lark về là bị lọc xuống đúng danh sách này ngay lập tức, trước khi bất kỳ đoạn code nào khác chạm vào. Muốn thêm cột thì sửa danh sách đó — đừng đọc thẳng ở chỗ khác.
+
+Mười sáu cột được phép: `Mã NV` · `Họ và tên` · `Giới tính` · `Trạng thái` · `Chức vụ` · `Phòng ban/Bộ phận` · `Đội/Nhóm` · `Vị trí Chuyên môn` · `Onboarding date` · `Offboarding date` · `Số năm` · `Thâm niên` · `Loại tuổi` · `Hình ảnh` · `Cơ chế KPIs` · `Ghi Chú`
+
+### Trưởng bộ phận chỉ thấy team mình
+
+Trong trang **Quản trị**, mỗi tài khoản có ô **Chỉ xem bộ phận**. Để trống là thấy toàn bộ. Điền đúng tên một bộ phận là tài khoản đó chỉ thấy người của bộ phận ấy.
+
+Giới hạn này chặn ở **máy chủ**: nhân sự bộ phận khác không được gửi xuống trình duyệt, chứ không phải bị ẩn bằng CSS. Gọi thẳng API cũng không vượt được.
+
+### Trọng số chấm điểm
+
+Chốt ngày 03/09/2026. Thang điểm mỗi tiêu chí là **1–10**.
+
+| | S1 Kết quả | S2 Chuyên môn | S3 Tốc độ | S4 Tự xử lý | S5 Đào tạo |
+|---|---|---|---|---|---|
+| Nhân viên | 35% | 25% | 15% | 20% | **5%** |
+| Quản lý | 30% | 20% | 15% | 15% | **20%** |
+
+| W1 Chủ động | W2 Áp lực | W3 Học hỏi | W4 Gắn bó | W5 Team |
+|---|---|---|---|---|
+| 30% | 20% | 25% | 10% | 15% |
+
+**Vì sao S5 chỉ 5% với nhân viên:** đào tạo người khác không nằm trong vai trò của họ. Ở kỳ Q2/2026, S5 trung bình 3,44 trong khi bốn tiêu chí Skill kia khoảng 6,0 — tính nặng là phạt oan cả công ty và kéo tụt điểm của cả người giỏi nhất.
+
+Web tự nhận ai là quản lý qua cột `Chức vụ`, không cần đánh dấu thêm.
+
+Đổi trọng số thì sửa `TS_S` và `TS_W` ở đầu `api/nhan-su.js` — Lark không lưu công thức nào nên không phải sửa hai nơi.
+
+### Ngưỡng phân ô và người "sát vạch"
+
+Ngưỡng **5,5 cố định** cho cả hai trục.
+
+Không dùng trung vị, vì trung vị luôn cho đúng 50% mỗi bên ở mọi kỳ — cả đội cùng tiến bộ thì biểu đồ vẫn 50/50, không nhìn ra được gì. Ngưỡng cố định mới so sánh được giữa các quý.
+
+Cái giá của ngưỡng cứng: ai có điểm lệch mốc dưới **0,3** thì chỉ cần một tiêu chí chấm lệch một điểm là nhảy sang ô khác. Kỳ Q2/2026 có **10/27 người** rơi vào vùng này.
+
+Web đánh dấu họ là **sát vạch** — điểm rỗng trên biểu đồ, chip viền đứt trong danh sách. Với nhóm này, đừng ra quyết định dựa vào ô; đọc phần ghi chép buổi review.
+
+### Bốn ô
+
+| Ô | Tên | Chiến lược |
+|---|---|---|
+| 1 | Ngôi sao | Delegate — giao việc khó, giữ chân |
+| 2 | Tân binh nhiệt huyết | Guide — đào tạo, kèm cặp |
+| 3 | Vấn đề | Direct — chỉ đạo hoặc thay thế |
+| 4 | Cao thủ chán nản | Excite — khơi lại động lực |
+
+### Khảo sát cấu trúc một Base bất kỳ
+
+Khi cần thiết kế trang cho một Base chưa từng đọc:
+
+```
+/api/nhan-su?kham-pha=<app_token>
+```
+
+Chỉ quản trị viên gọi được. Trả về tên bảng, tên cột, kiểu dữ liệu — **không đọc giá trị ô nào**, nên dùng an toàn với Base chứa thông tin cá nhân. Cột nào nhìn tên là biết nhạy cảm thì tự gắn nhãn.
