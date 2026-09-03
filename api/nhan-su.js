@@ -92,14 +92,22 @@ const NGAY = 86400000;
 const soThangGiua = (a, b) => !a || !b ? null : Math.max(0, Math.round((b - a) / NGAY / 30.44));
 
 /* ---------- Lark ---------- */
+/* Token sống ~2 tiếng bên Lark nhưng trước đây mỗi lần gọi larkToken() là xin
+   mới — trang có ảnh thì mỗi bức ảnh một request riêng, 53 người là 53 lần xin
+   token dồn dập, dễ chạm giới hạn tốc độ của Lark. Giữ tạm trong bộ nhớ của
+   tiến trình (còn hạn thì dùng lại) để một lượt tải trang chỉ xin token 1 lần
+   dù có bao nhiêu ảnh. */
+let _tokenCache = { tk: '', het: 0 };
 async function larkToken() {
+  if (_tokenCache.tk && Date.now() < _tokenCache.het) return _tokenCache.tk;
   const r = await fetch(`${HOST}/open-apis/auth/v3/tenant_access_token/internal`, {
     method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
     body: JSON.stringify({ app_id: process.env.LARK_APP_ID, app_secret: process.env.LARK_APP_SECRET }),
   });
   const j = await r.json();
   if (j.code !== 0) throw new Error(`Lấy token Lark thất bại (${j.code}): ${j.msg}`);
-  return j.tenant_access_token;
+  _tokenCache = { tk: j.tenant_access_token, het: Date.now() + 100 * 60 * 1000 };
+  return _tokenCache.tk;
 }
 async function dsBang(tk, base) {
   const out = []; let page = '';
@@ -169,20 +177,30 @@ module.exports = async (req, res) => {
   try {
     const q = req.query || {};
 
-    /* ===== Ảnh nhân sự: /api/nhan-su?anh=<file_token> ===== */
+    /* ===== Ảnh nhân sự: /api/nhan-su?anh=<file_token> =====
+       Nhánh này PHẢI tự bắt lỗi và trả đúng mã HTTP lỗi (4xx/5xx) — nếu để lỗi
+       rơi xuống khối catch() chung ở cuối file, nó trả JSON kèm status 200. Với
+       thẻ <img>, một phản hồi 200 dù nội dung không phải ảnh vẫn coi là "tải
+       thành công" ở tầng HTTP nên onerror không chắc chắn được gọi — người dùng
+       thấy icon ảnh vỡ mà không rơi về avatar chữ cái dự phòng. Đã gặp thật khi
+       53 ảnh cùng lúc làm token bị giới hạn tốc độ. */
     if (q.anh) {
-      const toi = await A.canhCong(req, res, 'xem_nhan_su');
-      if (!toi) return;
-      const ft = String(q.anh).replace(/[^A-Za-z0-9_-]/g, '');
-      if (!ft) return res.status(400).end('token không hợp lệ');
-      const tk = await larkToken();
-      const r = await fetch(`${HOST}/open-apis/drive/v1/medias/${ft}/download`,
-        { headers: { Authorization: `Bearer ${tk}` } });
-      if (!r.ok) return res.status(404).end('không tải được ảnh');
-      const buf = Buffer.from(await r.arrayBuffer());
-      res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
-      res.setHeader('Cache-Control', 'private, max-age=86400');
-      return res.status(200).end(buf);
+      try {
+        const toi = await A.canhCong(req, res, 'xem_nhan_su');
+        if (!toi) return;
+        const ft = String(q.anh).replace(/[^A-Za-z0-9_-]/g, '');
+        if (!ft) return res.status(400).end('token không hợp lệ');
+        const tk = await larkToken();
+        const r = await fetch(`${HOST}/open-apis/drive/v1/medias/${ft}/download`,
+          { headers: { Authorization: `Bearer ${tk}` } });
+        if (!r.ok) return res.status(404).end('không tải được ảnh');
+        const buf = Buffer.from(await r.arrayBuffer());
+        res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
+        res.setHeader('Cache-Control', 'private, max-age=86400');
+        return res.status(200).end(buf);
+      } catch (err) {
+        return res.status(502).end('lỗi tải ảnh: ' + String(err.message || err));
+      }
     }
 
     /* ===== Khảo sát cấu trúc Base: /api/nhan-su?kham-pha=<app_token> =====

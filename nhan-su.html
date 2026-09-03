@@ -579,11 +579,24 @@ function thamNien(m){
 const mauTen = t => MAU_BP[[...norm(t)].reduce((a,c)=>a+c.charCodeAt(0),0) % MAU_BP.length];
 const tatTen = t => (String(t||'').trim().split(/\s+/).slice(-2).map(x=>x[0]||'').join('') || '?').toUpperCase();
 
+/* onerror gọi hàm toàn cục avaLoi() thay vì dựng chuỗi HTML lồng trong thuộc tính
+   — kiểu cũ (this.outerHTML='<div ...>') từng vỡ, không phải vì escaping sai mà
+   vì lỗi ảnh rơi vào JSON 200 ở API, trình duyệt coi là "tải thành công" nên
+   onerror không chắc được gọi (đã sửa ở API). Đổi cách này cho chắc luôn, và để
+   tên nhân sự đi qua data-attribute (được HTML escape sẵn) thay vì chèn thẳng
+   vào JS string. */
+function avaLoi(img){
+  const d = img.dataset;
+  const div = document.createElement('div');
+  div.className = d.cls + 'f';
+  div.style.background = d.bg;
+  div.textContent = d.txt;
+  img.replaceWith(div);
+}
 function avatar(p, cls){
-  return p.anh
-    ? `<img class="${cls}" src="/api/nhan-su?anh=${encodeURIComponent(p.anh)}" alt="" loading="lazy"
-         onerror="this.outerHTML='<div class=\\'${cls}f\\' style=\\'background:${mauTen(p.ten)}\\'>${tatTen(p.ten)}</div>'">`
-    : `<div class="${cls}f" style="background:${mauTen(p.ten)}">${tatTen(p.ten)}</div>`;
+  if (!p.anh) return `<div class="${cls}f" style="background:${mauTen(p.ten)}">${esc(tatTen(p.ten))}</div>`;
+  return `<img class="${cls}" src="/api/nhan-su?anh=${encodeURIComponent(p.anh)}" alt="" loading="lazy"
+    data-cls="${cls}" data-bg="${mauTen(p.ten)}" data-txt="${esc(tatTen(p.ten))}" onerror="avaLoi(this)">`;
 }
 
 /* ================= Vẽ ================= */
