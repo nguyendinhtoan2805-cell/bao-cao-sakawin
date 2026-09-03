@@ -288,7 +288,7 @@ nên cần cả `LARK_TABLE_FINANCE`. Thiếu biến đó thì ô này để tr�
 
 ### Chỉ cần điền thông tin nhân sự MỘT tháng
 
-`Ảnh` · `Bộ Phận` · `Chức Vụ` là thông tin của con người, không đổi theo tháng — nên
+`Ảnh` · `Bộ Phận` · `Chức Vụ` · `Giới Tính` là thông tin của con người, không đổi theo tháng — nên
 **điền một tháng bất kỳ là đủ**, các tháng còn lại web tự lấy theo.
 
 Quy tắc lấy: tháng gần nhất **đứng trước** có điền; không có thì lấy tháng gần nhất đứng sau.
@@ -296,6 +296,19 @@ Nhờ vậy vẫn giữ đúng lịch sử — ai đổi bộ phận giữa năm
 không bị ghi đè bằng bộ phận mới nhất.
 
 Trang ghi rõ đã tự điền bao nhiêu ô, ngay dưới tiêu đề bảng nhân sự.
+
+### Bảng nhân sự có gì
+
+| Cột | Ghi chú |
+|---|---|
+| Nhân sự | Ảnh + tên, kèm số thứ tự |
+| Giới tính | Đọc từ cột `Giới Tính` trong Lark. Chưa có cột thì hiện `—` kèm gợi ý thêm |
+| Bộ phận | Nhãn màu, **mỗi phòng một màu cố định** suy từ tên nên không nhảy màu khi thêm bộ phận mới |
+| Chức vụ | |
+| *(kỳ trước)* | Lương cùng kỳ liền trước — tiêu đề cột đổi theo kỳ đang xem |
+| Tổng cộng | Cột trục chính, tô nền kem |
+| Thay đổi | ▲ đỏ khi tăng, ▼ xanh khi giảm, nhãn `MỚI` cho người chưa có ở kỳ trước |
+| Thực nhận · Lệch | Lệch quá 15% thì tô đỏ dòng kèm nhãn `SOÁT LẠI` |
 
 ### Ảnh nhân sự
 

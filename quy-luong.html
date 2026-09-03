@@ -228,6 +228,25 @@
   .riengtu{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);
     background:#F5F3FF;border:1px solid #DDD6FE;border-radius:9px;padding:10px 14px;margin-bottom:14px}
 
+  /* ===== Bề rộng cột: không để bảng dồn hết chỗ thừa vào ô tên ===== */
+  #tbodyNS td:nth-child(1),#theadNS th:nth-child(1){width:24%;min-width:230px}
+  #tbodyNS td:nth-child(2),#theadNS th:nth-child(2){width:70px}
+  #tbodyNS td:nth-child(3),#theadNS th:nth-child(3){width:190px}
+  #tbodyNS td:nth-child(4),#theadNS th:nth-child(4){width:120px}
+  #tbodyNS td:nth-child(n+5),#theadNS th:nth-child(n+5){width:130px}
+  #tbodyNS td:last-child,#theadNS th:last-child{width:auto;min-width:170px}
+  #tbodyBP td:nth-child(1),#theadBP th:nth-child(1){width:200px}
+
+  /* ===== Nhãn bộ phận, mỗi phòng một màu cố định ===== */
+  .bp{display:inline-block;font-size:12px;font-weight:800;padding:5px 11px;border-radius:7px;
+    white-space:nowrap;letter-spacing:.2px;line-height:1.25}
+  .gt{display:inline-block;font-size:11.5px;font-weight:800;padding:4px 9px;border-radius:6px;white-space:nowrap}
+  .gt.nam{background:#EFF4FF;color:#1D4ED8}
+  .gt.nu{background:#FDF2F8;color:#BE185D}
+  .gt.khac{background:#F5F5F4;color:var(--muted)}
+  .theme-dark .gt.nam{background:#14203A;color:#7FA7FF}
+  .theme-dark .gt.nu{background:#2C1220;color:#F07BB0}
+
   /* ===== Ảnh nhân sự ===== */
   .ns{display:flex;align-items:center;gap:11px;min-width:0}
   .av{width:38px;height:38px;border-radius:50%;flex:0 0 auto;object-fit:cover;
@@ -325,7 +344,7 @@
   </div>
 
   <div class="riengtu">🔒 Trang này chứa lương từng người. Chỉ tài khoản được tick quyền <b>Quỹ lương</b> mới mở được.
-    <span style="margin-left:auto;color:#7C3AED">✨ Ảnh · Bộ phận · Chức vụ chỉ cần điền <b>một tháng</b>, các tháng khác tự lấy theo.</span></div>
+    <span style="margin-left:auto;color:#7C3AED">✨ Ảnh · Bộ phận · Chức vụ · Giới tính chỉ cần điền <b>một tháng</b>, các tháng khác tự lấy theo.</span></div>
 
   <div class="filterbar">
     <span class="lb">Kỳ xem</span>
@@ -484,6 +503,30 @@ function render(){
                y2:{position:'right',ticks:{precision:0,font:{size:11}},grid:{display:false}},
                x:{grid:{display:false}}}}});
 
+  /* Mỗi bộ phận một màu cố định, suy từ tên nên đổi thứ tự hay thêm bộ phận
+     cũng không làm màu nhảy lung tung */
+  const PALETTE = [
+    ['#FEE2E2','#991B1B'], ['#DBEAFE','#1E40AF'], ['#DCFCE7','#166534'], ['#FEF3C7','#92400E'],
+    ['#EDE9FE','#5B21B6'], ['#CFFAFE','#155E75'], ['#FCE7F3','#9D174D'], ['#ECFCCB','#3F6212'],
+    ['#FFEDD5','#9A3412'], ['#E0E7FF','#3730A3'], ['#CCFBF1','#115E59'], ['#FEF9C3','#854D0E'],
+  ];
+  const mauBoPhan = ten => {
+    let h = 0;
+    for (let i = 0; i < ten.length; i++) h = (h * 31 + ten.charCodeAt(i)) >>> 0;
+    return PALETTE[h % PALETTE.length];
+  };
+  const chipBP = ten => {
+    const [nen, chu] = mauBoPhan(ten);
+    return `<span class="bp" style="background:${nen};color:${chu}">${esc(ten)}</span>`;
+  };
+  const chipGT = g => {
+    const n = String(g || '').toLowerCase();
+    if (!n) return '<span class="gt khac">—</span>';
+    const nam = /^(nam|male|m|anh)$/.test(n.trim());
+    const nu  = /^(n(ữ|u)|female|f|ch(ị|i))$/.test(n.trim());
+    return `<span class="gt ${nam?'nam':nu?'nu':'khac'}">${esc(g)}</span>`;
+  };
+
   /* Bảng bộ phận */
   const ng = d.nghiNgo || [];
   const dau = ma => ng.includes(ma) ? ' <span class="flag do" title="Cột này đang sai công thức trong bảng Lark">SAI</span>' : '';
@@ -493,7 +536,7 @@ function render(){
     + '<th>Thưởng' + dau('thuong') + '</th><th>Giảm trừ' + dau('giamTru') + '</th><th>Thực nhận</th>';
   const oNghi = ma => ng.includes(ma) ? ' style="color:#A8A29E"' : '';
   $('tbodyBP').innerHTML = d.boPhan.map(b => `<tr>
-      <td>${esc(b.ten)}</td><td>${fmt(b.soNguoi)}</td><td class="trongtam manh">${fmt(b.tongCong)}</td>
+      <td>${chipBP(b.ten)}</td><td>${fmt(b.soNguoi)}</td><td class="trongtam manh">${fmt(b.tongCong)}</td>
       <td>${pct(b.tongCong/t.tongCong*100)}</td><td>${fmt(b.tongCong/b.soNguoi)}</td>
       <td>${fmt(b.luongCung)}</td><td>${fmt(b.luongTN)}</td><td>${fmt(b.phuCap)}</td>
       <td${oNghi('hoaHong')}>${fmt(b.hoaHong)}</td><td${oNghi('thuong')}>${fmt(b.thuong)}</td>
@@ -511,9 +554,12 @@ function render(){
         ? (thieuAnh ? ` · <span title="Điền ảnh ở một tháng bất kỳ là đủ">${thieuAnh} người chưa có ảnh</span>` : '')
         : ' · <span title="Thêm cột tệp đính kèm vào bảng Lark là ảnh tự hiện">'
           + 'thêm cột <b>Ảnh</b> vào bảng Lark để hiện ảnh nhân sự</span>')
-    + (tongSuy ? ` · <span title="Ảnh, bộ phận và chức vụ được lấy từ tháng gần nhất có điền — không cần điền lại từng tháng">`
+    + (d.coCotGioiTinh ? '' : ' · <span title="Thêm cột Giới Tính vào bảng Lark, điền một tháng là đủ">'
+        + 'thêm cột <b>Giới Tính</b> vào bảng Lark</span>')
+    + (tongSuy ? ` · <span title="Ảnh, bộ phận, chức vụ và giới tính được lấy từ tháng gần nhất có điền — không cần điền lại từng tháng">`
         + `đã tự điền ${tongSuy.toLocaleString('vi-VN')} ô thông tin nhân sự</span>` : '');
-  $('theadNS').innerHTML = '<th>Nhân sự</th><th>Bộ phận</th><th>Chức vụ</th><th>Tổng cộng</th>'
+  $('theadNS').innerHTML = '<th>Nhân sự</th><th>Giới tính</th><th>Bộ phận</th><th>Chức vụ</th>'
+    + `<th>${esc(KY_TRUOC)}</th><th>Tổng cộng</th><th>Thay đổi</th>`
     + '<th>Thực nhận</th><th>Lệch</th><th class="note-cell">Ghi chú</th>';
   const chuDau = ten => {
     const p = String(ten).trim().split(/\s+/);
@@ -526,10 +572,19 @@ function render(){
       ? `<span class="av"><img src="/api/quy-luong?anh=${encodeURIComponent(n.anh)}" alt="" loading="lazy"
            onerror="this.parentNode.textContent='${esc(chuDau(n.ten))}'"></span>`
       : `<span class="av">${esc(chuDau(n.ten))}</span>`;
+    const tg = n.tangGiam;
+    const oTang = n.laMoi
+      ? '<span class="flag moi">MỚI</span>'
+      : (tg == null ? '—'
+        : `<span style="font-weight:800;color:${tg > 0.5 ? 'var(--red)' : tg < -0.5 ? 'var(--green)' : 'var(--muted)'}">`
+          + `${tg > 0 ? '▲ +' : tg < 0 ? '▼ ' : ''}${pct(tg, 1)}</span>`);
     return `<tr class="${nghiNgo ? 'co-do' : ''}">
       <td><span class="ns">${av}<span class="tn">${esc(n.ten)}</span></span></td>
-      <td>${esc(n.boPhan)}</td><td>${esc(n.chucVu)}</td>
-      <td class="trongtam manh">${fmt(n.tongCong)}</td><td>${fmt(n.thucNhan)}</td>
+      <td>${chipGT(n.gioiTinh)}</td><td>${chipBP(n.boPhan)}</td><td>${esc(n.chucVu)}</td>
+      <td>${n.tongCongTruoc == null ? '—' : fmt(n.tongCongTruoc)}</td>
+      <td class="trongtam manh">${fmt(n.tongCong)}</td>
+      <td>${oTang}</td>
+      <td>${fmt(n.thucNhan)}</td>
       <td class="${l === 0 ? '' : (l > 0 ? 'duong' : 'am')}">${l === 0 ? '—' : (l > 0 ? '+' : '') + fmt(l)}</td>
       <td class="note-cell">${nghiNgo ? '<span class="flag do">SOÁT LẠI</span> ' : ''}${esc(n.ghiChu)}</td></tr>`;
   }).join('');

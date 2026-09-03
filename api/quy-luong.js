@@ -296,6 +296,7 @@ module.exports = async (req, res) => {
       ten: txt(pick(r, 'Tên Nhân Sự', 'Ten Nhan Su', 'Họ tên', 'Nhân sự')),
       boPhan: txt(pick(r, 'Bộ Phận', 'Bo Phan', 'Phòng ban')),
       chucVu: txt(pick(r, 'Chức Vụ', 'Chuc Vu', 'Vị trí')),
+      gioiTinh: txt(pick(r, 'Giới Tính', 'Gioi Tinh', 'Giới tính', 'Gender', 'Phái')),
       cong: num(pick(r, 'Ngày Công', 'Công', 'Ngay Cong')),
       heSo: num(pick(r, 'Hệ Số Lương', 'He So Luong', 'Hệ Số L')),
       luongCung: num(pick(r, 'Lương Cứng (Thực tế)', 'Luong Cung (Thuc te)')) || 0,
@@ -324,9 +325,9 @@ module.exports = async (req, res) => {
     const hoSo = new Map();          // người -> { truong -> [{thang, giaTri}] }
     for (const r of recs) {
       const k = norm(r.ten);
-      if (!hoSo.has(k)) hoSo.set(k, { anh: [], boPhan: [], chucVu: [] });
+      if (!hoSo.has(k)) hoSo.set(k, { anh: [], boPhan: [], chucVu: [], gioiTinh: [] });
       const h = hoSo.get(k);
-      for (const truong of ['anh', 'boPhan', 'chucVu'])
+      for (const truong of ['anh', 'boPhan', 'chucVu', 'gioiTinh'])
         if (r[truong]) h[truong].push({ thang: soThangCua(r.month), giaTri: r[truong] });
     }
     const layGanNhat = (ds, moc) => {
@@ -335,11 +336,11 @@ module.exports = async (req, res) => {
       if (truoc) return truoc.giaTri;
       return ds.slice().sort((a, b) => a.thang - b.thang)[0].giaTri;
     };
-    const daSuy = { anh: 0, boPhan: 0, chucVu: 0 };
+    const daSuy = { anh: 0, boPhan: 0, chucVu: 0, gioiTinh: 0 };
     for (const r of recs) {
       const h = hoSo.get(norm(r.ten));
       const moc = soThangCua(r.month);
-      for (const truong of ['anh', 'boPhan', 'chucVu']) {
+      for (const truong of ['anh', 'boPhan', 'chucVu', 'gioiTinh']) {
         if (!r[truong]) {
           const v = layGanNhat(h[truong], moc);
           if (v) { r[truong] = v; daSuy[truong]++; }
@@ -387,10 +388,11 @@ module.exports = async (req, res) => {
       const m = new Map();
       for (const r of list) {
         const k = norm(r.ten);
-        if (!m.has(k)) m.set(k, { ten: r.ten, boPhan: r.boPhan, chucVu: r.chucVu, soThang: 0, tongCong: 0, thucNhan: 0, ghiChu: '', anh: '',
+        if (!m.has(k)) m.set(k, { ten: r.ten, boPhan: r.boPhan, chucVu: r.chucVu, gioiTinh: r.gioiTinh || '', soThang: 0, tongCong: 0, thucNhan: 0, ghiChu: '', anh: '',
           luongCung: 0, luongTN: 0, phuCap: 0, hoaHong: 0, thuong: 0, giamTru: 0 });
         const o = m.get(k);
         if (r.anh) o.anh = r.anh;
+        if (r.gioiTinh && !o.gioiTinh) o.gioiTinh = r.gioiTinh;
         o.soThang++; o.tongCong += r.tongCong; o.thucNhan += r.thucNhan;
         if (r.ghiChu && !o.ghiChu) o.ghiChu = r.ghiChu;
         for (const t of THANH_PHAN) o[t.ma] += r[t.ma];
@@ -398,6 +400,15 @@ module.exports = async (req, res) => {
       return [...m.values()].sort((a, b) => b.tongCong - a.tongCong);
     };
     const nguoi = gomNguoi(trong), nguoiTruoc = gomNguoi(truoc);
+
+    /* Gắn lương kỳ trước để so ngay trên bảng — thấy ai vừa được tăng, ai vừa bị giảm */
+    const banDoTruoc = new Map(nguoiTruoc.map(n => [norm(n.ten), n]));
+    for (const n of nguoi) {
+      const t2 = banDoTruoc.get(norm(n.ten));
+      n.tongCongTruoc = t2 ? t2.tongCong : null;
+      n.tangGiam = (t2 && t2.tongCong > 0) ? (n.tongCong / t2.tongCong - 1) * 100 : null;
+      n.laMoi = !t2;
+    }
 
     /* Doanh thu thuần cùng kỳ, để tính quỹ lương / doanh thu */
     let doanhThu = 0;
@@ -490,7 +501,7 @@ module.exports = async (req, res) => {
       data: { tong, tongTruoc, coKyTruoc, boPhan, chucVu, nguoi, xuHuong, nhanXet, thieuSot, doanhThu,
               thanhPhan: THANH_PHAN, nghiNgo,
               coCotAnh: recs.some(r => !!r.anh),
-              daSuy, soNguoiCoAnh: [...new Set(recs.filter(r => r.anh).map(r => norm(r.ten)))].length,
+              daSuy, coCotGioiTinh: recs.some(r => !!r.gioiTinh), soNguoiCoAnh: [...new Set(recs.filter(r => r.anh).map(r => norm(r.ten)))].length,
               sub: `Số liệu tự động đồng bộ từ Lark — bảng Lương - Thưởng - Sakawin · Cập nhật ${stamp} (giờ VN) · Đơn vị: đồng (VNĐ)` },
     });
   } catch (err) {
