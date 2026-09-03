@@ -14,10 +14,10 @@
     --amber-tint:#FFF7ED;--blue:#1D4ED8;--blue-tint:#EFF4FF;--card:#fff}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--paper);color:var(--ink);
-    padding:24px 28px 60px;-webkit-text-size-adjust:100%}
+    padding:24px clamp(14px, 1.8vw, 46px) 60px;-webkit-text-size-adjust:100%}
   body.locked .wrap{display:none}
   /* Khung chung của cả 3 trang */
-  .wrap{max-width:1760px;width:100%;margin:0 auto}
+  .wrap{max-width:none;width:100%;margin:0}
 
   .appnav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:-8px 0 20px}
   .applogo{font-size:12px;font-weight:800;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;margin-right:14px;padding-bottom:10px}
@@ -338,6 +338,12 @@
     .hero p{font-size:13.5px}
     .khoi>h3 a{margin-left:0}
   }
+
+  /* ===== Màn hình siêu rộng: nới ô ra thay vì chẻ thành quá nhiều cột nhỏ ===== */
+  @media(min-width:1900px){
+    .kpis{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+    .findings{grid-template-columns:repeat(auto-fit,minmax(430px,1fr))}
+  }
 </style>
 </head>
 <body class="locked">
@@ -575,10 +581,41 @@ async function goiAPI(duong){
   } catch(e){ return null; }
 }
 
+
+/* Nhớ kỳ xem lần trước, lưu trong trình duyệt từng người, mỗi trang một khoá */
+const KHOA_KY = 'sakawin-ky-' + location.pathname;
+let KY_MOC_NHO = '';
+function luuKy(){
+  try { localStorage.setItem(KHOA_KY, JSON.stringify({ky: KY, month: $('selMoc').value})); } catch(e){}
+}
+function docKy(){
+  try { const d = JSON.parse(localStorage.getItem(KHOA_KY) || 'null');
+        return (d && typeof d.ky === 'string') ? d : null; } catch(e){ return null; }
+}
+/* Tên hàm cập nhật ô chọn khác nhau giữa các trang nên gọi theo cái nào đang có */
+function capNhatOChonKy(){
+  for (const t of ['capNhat','capNhatNhanMoc','capNhatOChon'])
+    if (typeof window[t] === 'function') { window[t](); return; }
+}
+function apDungKyNho(){
+  const qs = new URLSearchParams(location.search);
+  const luu = docKy();
+  const hopLe = k => ['thang','quy','3thang','nam','tuychon'].includes(k);
+  const k = hopLe(qs.get('ky')) ? qs.get('ky') : (luu && hopLe(luu.ky) ? luu.ky : null);
+  if(k){
+    KY = k;
+    [...$('segKy').children].forEach(x => x.classList.toggle('on', x.dataset.ky === KY));
+    capNhatOChonKy();
+  }
+  KY_MOC_NHO = qs.get('month') || (luu ? luu.month : '');
+}
+
 function truyVan(){
   const p = new URLSearchParams();
   p.set('ky', KY);
-  if($('selMoc').value) p.set('month', $('selMoc').value);
+  const m = $('selMoc').value || KY_MOC_NHO;
+  if(m) p.set('month', m);
+  KY_MOC_NHO = '';
   return p.toString();
 }
 
@@ -614,6 +651,7 @@ async function tai(){
     + (ki.soThang > 1 ? ` · gộp <b>${ki.soThang} tháng</b>` : '');
   $('reportFooter').textContent = (nguon.data && nguon.data.sub) || '';
 
+  luuKy();
   veKPI(ds, tc, ql, ki);
   veCanhBao(ds, tc, ql);
   veDoanhSo(ds);
@@ -859,6 +897,7 @@ $('selMoc').addEventListener('change', () => tai());
       (me.ten||me.email) + ' đăng nhập thành công nhưng chưa được cấp quyền xem báo cáo nào.', false);
   }
   moKhoa();
+  apDungKyNho();
   tai();
 })();
 </script>

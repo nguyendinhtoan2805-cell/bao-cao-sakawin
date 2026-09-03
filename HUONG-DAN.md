@@ -44,8 +44,8 @@ Ba trang dùng chung một bộ khung. Trang mới phải copy đúng bộ này,
 
 | Thành phần | Giá trị chuẩn |
 |---|---|
-| Khung nội dung | `.wrap{max-width:1760px;width:100%;margin:0 auto}` |
-| Lề trang (desktop) | `padding:24px 28px 60px` |
+| Khung nội dung | `.wrap{max-width:none;width:100%;margin:0}` — dùng hết bề ngang màn hình |
+| Lề trang (desktop) | `padding:24px clamp(14px, 1.8vw, 46px) 60px` — lề tự co giãn theo màn hình |
 | Lề trang (điện thoại) | `padding:15px 13px 50px` |
 | Tiêu đề trang | `27px / 800` |
 | Thanh điều hướng | `.navtab` `14.5px / 700`, chữ `SAKAWIN REPORTS` bên trái, chip người dùng bên phải |
@@ -54,6 +54,12 @@ Ba trang dùng chung một bộ khung. Trang mới phải copy đúng bộ này,
 Trên điện thoại, mọi trang đều: thanh điều hướng vuốt ngang (`flex-wrap:nowrap`),
 cột đầu của bảng dính bên trái và tự cắt nội dung, ô nhập cỡ chữ `16px` để iPhone
 không tự phóng to.
+
+**Kỳ xem được nhớ lại** trong `localStorage`, mỗi trang một khoá `sakawin-ky-<đường dẫn>`.
+Mở lại trang là về đúng kỳ đang xem dở. Tham số `?ky=` trên URL vẫn thắng giá trị đã nhớ.
+
+**Kỳ mặc định** luôn là tháng mới nhất **thực sự có số**, không phải tháng cuối cùng có dòng —
+bảng Lark thường tạo sẵn dòng cho cả 12 tháng nên nếu lấy tháng cuối sẽ mở vào T12 trống trơn.
 
 Hai lỗi flexbox đã mắc một lần, đừng lặp lại: khối cuộn ngang phải có `min-width:0`
 (không thì kéo giãn cả trang), và đổi `flex-direction:column` thì phải đặt luôn

@@ -243,9 +243,22 @@ module.exports = async (req, res) => {
     const months = [...new Set(tgts.filter(duocLen).map(t => t.month))].sort();
     if (!months.length) throw new Error('Chưa tháng nào có kênh lên báo cáo.');
 
+    /* Bảng Lark thường đã tạo sẵn dòng cho cả 12 tháng và tick luôn, nên "tháng
+       mới nhất được tick" có thể là T12 chưa có số nào. Mặc định phải mở tháng
+       mới nhất THỰC SỰ CÓ DOANH THU. */
+    const thangCoSo = [...new Set(
+      tgts.filter(t => {
+        if (!duocLen(t)) return false;
+        const r = rev.get(t.month + '|' + norm(t.kenh));
+        return r && r.dt > 0;
+      }).map(t => t.month)
+    )].sort();
+
     const q = req.query || {};
     const ky = ['thang', 'quy', '3thang', 'nam', 'tuychon'].includes(txt(q.ky)) ? txt(q.ky) : 'thang';
-    const moc = monthKey(txt(q.month)) || months[months.length - 1];
+    const moc = monthKey(txt(q.month))
+      || thangCoSo[thangCoSo.length - 1]
+      || months[months.length - 1];
     const K = tinhKy(ky, moc, q);
     const trongKy = daiThang(K.tu, K.den).filter(m => months.includes(m));
     if (!trongKy.length) throw new Error(`Khoảng ${K.phu || K.nhan} chưa có tháng nào có số. Các tháng đang có: ${months.map(nhanThang).join(', ')}`);
@@ -423,7 +436,7 @@ module.exports = async (req, res) => {
     // Có người dùng riêng nên không dùng cache dùng chung của Vercel
     res.setHeader('Cache-Control', 'private, no-store');
     res.status(200).json({
-      ok: true, ky, moc, month: M, months, warnings, an,
+      ok: true, ky, moc, month: M, months: (thangCoSo.length ? thangCoSo : months), warnings, an,
       kyInfo: { nhan: K.nhan, ngan: K.ngan, phu: K.phu, tu: trongKy[0], den: M, soThang,
                 coKyTruoc: trongKyTruoc.some(m => months.includes(m)) },
       toi: { email: toi.email, ten: toi.ten, quyen: toi.quyen },

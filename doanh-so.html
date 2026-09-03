@@ -15,9 +15,9 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--paper);color:var(--ink);
-    padding:24px 28px 60px;-webkit-text-size-adjust:100%}
+    padding:24px clamp(14px, 1.8vw, 46px) 60px;-webkit-text-size-adjust:100%}
   /* Khung chung của cả 3 trang — đổi ở đây thì đổi đồng loạt */
-  .wrap{max-width:1760px;width:100%;margin:0 auto}
+  .wrap{max-width:none;width:100%;margin:0}
   .masthead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:3px solid var(--red);padding-bottom:18px;margin-bottom:14px}
   .brand h1{font-size:27px;font-weight:800;letter-spacing:-.4px}
   .brand h1 span{color:var(--red)}
@@ -388,6 +388,12 @@
   .btn{transition:background .15s ease,color .15s ease,border-color .15s ease,transform .1s ease}
   .btn:active{transform:translateY(1px)}
   .segs button{transition:background .15s ease,color .15s ease}
+
+  /* ===== Màn hình siêu rộng: nới ô ra thay vì chẻ thành quá nhiều cột nhỏ ===== */
+  @media(min-width:1900px){
+    .kpis{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+    .findings{grid-template-columns:repeat(auto-fit,minmax(430px,1fr))}
+  }
 </style>
 </head>
 <body class="locked">
@@ -852,11 +858,27 @@ function setSync(cls, msg){
 }
 
 /* ===== Bộ lọc kỳ: tháng / quý / 3 tháng / cả năm / tự chọn ===== */
-let KY = 'thang';
+let KY = 'thang', MONTHS = [];
+/* =====================================================================
+   NHỚ KỲ XEM LẦN TRƯỚC
+   Lưu trong trình duyệt của từng người, mỗi trang một khoá riêng. Mở lại là
+   về đúng kỳ đang xem dở, khỏi phải chọn lại. Tháng đã lưu mà không còn
+   trong danh sách (dữ liệu Lark đổi) thì bỏ qua, quay về mặc định.
+===================================================================== */
+const KHOA_KY = 'sakawin-ky-' + location.pathname;
+function luuKy(){
+  try { localStorage.setItem(KHOA_KY, JSON.stringify({ky: KY, month: $('selMoc').value})); } catch(e){}
+}
+function docKy(){
+  try { const d = JSON.parse(localStorage.getItem(KHOA_KY) || 'null');
+        return (d && typeof d.ky === 'string') ? d : null; } catch(e){ return null; }
+}
+
 const nhanThangNgan = k => { const [y,m] = k.split('-'); return `T${Number(m)}/${y}`; };
 
 function nạpChonThang(months, moc){
   if(!months || !months.length) return;
+  MONTHS = months;
   const nguoc = months.slice().reverse().map(m => `<option value="${m}">${nhanThangNgan(m)}</option>`).join('');
   const xuoi  = months.map(m => `<option value="${m}">${nhanThangNgan(m)}</option>`).join('');
   $('selMoc').innerHTML = nguoc; $('selMoc').value = moc;
@@ -871,10 +893,15 @@ function capNhatOChon(){
   $('selMoc').style.display = tc ? 'none' : '';
   $('rangeWrap').style.display = tc ? '' : 'none';
 }
+let KY_MOC_NHO = '';
 function truyVanKy(){
   const p = new URLSearchParams(); p.set('ky', KY);
   if(KY === 'tuychon'){ p.set('tu', $('selTu').value); p.set('den', $('selDen').value); }
-  else if($('selMoc').value) p.set('month', $('selMoc').value);
+  else {
+    const m = $('selMoc').value || KY_MOC_NHO;
+    if(m) p.set('month', m);
+  }
+  KY_MOC_NHO = '';                      // chỉ dùng cho lần gọi đầu
   return p.toString();
 }
 
@@ -905,6 +932,7 @@ async function syncFromLark(){
       + (ki.soThang > 1 ? ` · gộp <b>${ki.soThang} tháng</b> (${nhanThangNgan(ki.tu)} – ${nhanThangNgan(ki.den)})` : '');
 
     if(editMode) loadMeta();
+    luuKy();
     render();
     const t = new Date(j.syncedAt).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit', year:'numeric'});
     const base = '✅ Số liệu lấy trực tiếp từ Lark · ' + (ki.nhan || '') + (ki.phu ? ' ('+ki.phu+')' : '') + ' · đồng bộ lúc ' + t;
@@ -1057,11 +1085,15 @@ async function khoiDong(){
   moKhoa();
   render();
   const qs = new URLSearchParams(location.search);
-  if(['thang','quy','3thang','nam'].includes(qs.get('ky'))){
-    KY = qs.get('ky');
+  const luu = docKy();
+  const kyDau = ['thang','quy','3thang','nam','tuychon'].includes(qs.get('ky')) ? qs.get('ky')
+              : (luu && ['thang','quy','3thang','nam','tuychon'].includes(luu.ky) ? luu.ky : null);
+  if(kyDau){
+    KY = kyDau;
     [...$('segKy').children].forEach(x => x.classList.toggle('on', x.dataset.ky === KY));
     capNhatOChon();
   }
+  KY_MOC_NHO = qs.get('month') || (luu ? luu.month : '');
   syncFromLark();
 }
 

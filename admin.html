@@ -11,10 +11,10 @@
     --line:#E7E5E4;--paper:#FAFAF9;--green:#1A7F4B;--green-tint:#EDF7F0;--amber:#B45309}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--paper);color:var(--ink);
-    padding:24px 28px 60px;font-size:15px;-webkit-text-size-adjust:100%}
+    padding:24px clamp(14px, 1.8vw, 46px) 60px;font-size:15px;-webkit-text-size-adjust:100%}
   body.locked .wrap{display:none}
   /* Khung chung của cả 3 trang */
-  .wrap{max-width:1760px;width:100%;margin:0 auto}
+  .wrap{max-width:none;width:100%;margin:0}
 
   .appnav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:-8px 0 22px}
   .applogo{font-size:12px;font-weight:800;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;margin-right:14px;padding-bottom:10px}
@@ -174,6 +174,12 @@
   .btn{transition:background .15s ease,color .15s ease,border-color .15s ease,transform .1s ease}
   .btn:active{transform:translateY(1px)}
   .segs button{transition:background .15s ease,color .15s ease}
+
+  /* ===== Màn hình siêu rộng: nới ô ra thay vì chẻ thành quá nhiều cột nhỏ ===== */
+  @media(min-width:1900px){
+    .kpis{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+    .findings{grid-template-columns:repeat(auto-fit,minmax(430px,1fr))}
+  }
 </style>
 </head>
 <body class="locked">
