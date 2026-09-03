@@ -172,6 +172,13 @@
   .flag.xanh{background:#DCFCE7;color:#166534}
   .flag.moi{background:#EDE9FE;color:#5B21B6}
   td.up{color:var(--red);font-weight:700} td.down{color:var(--green);font-weight:700}
+  td.batthuong{background:#FFF7E6!important;color:#92400E;font-weight:800;
+    box-shadow:inset 0 0 0 1.5px #FCD9A8}
+  .theme-dark td.batthuong{background:#2A2010!important;color:#E8B24A;box-shadow:inset 0 0 0 1.5px #4A3618}
+  .chugiai{font-size:12.5px;color:var(--muted);margin-top:12px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+  .chugiai i{font-style:normal;display:inline-flex;align-items:center;gap:7px}
+  .chugiai .o{width:15px;height:15px;border-radius:4px;display:inline-block}
+
   .note-cell{text-align:left!important;font-size:12.5px;color:var(--muted);white-space:normal!important;min-width:190px}
 
   @media(max-width:1100px){.grid{grid-template-columns:1fr}.duo{grid-template-columns:1fr}}
@@ -225,6 +232,53 @@
     font-variant-numeric:tabular-nums}
   tbody tr.tot td:first-child::before{content:none}
   .theme-dark tbody td:first-child::before{color:#57534E}
+
+  /* ===== Thanh điều hướng: tab dạng viên thuốc, nổi rõ khi trỏ chuột ===== */
+  .appnav{gap:4px!important;padding-bottom:0}
+  .navtab{padding:10px 16px 12px!important;border-radius:10px 10px 0 0;
+    border-bottom:3px solid transparent!important;position:relative;
+    transition:background .16s ease,color .16s ease,border-color .16s ease}
+  .navtab:hover{color:var(--red)!important;background:var(--red-tint)}
+  .navtab.active{color:var(--red)!important;border-bottom-color:var(--red)!important;
+    background:linear-gradient(180deg,rgba(200,16,46,0) 0%,var(--red-tint) 100%)}
+  .navtab.soon:hover{background:transparent}
+  .applogo{padding-bottom:12px!important}
+  .navuser a{transition:background .16s ease,color .16s ease,border-color .16s ease}
+  .navuser a:hover{background:var(--red-tint)}
+  .theme-dark .navtab:hover{background:#2A1216}
+  .theme-dark .navtab.active{background:linear-gradient(180deg,rgba(255,77,106,0) 0%,#2A1216 100%)}
+  .theme-dark .navuser a:hover{background:#2A1216}
+
+  /* ===== Bảng: giãn ra cho dễ đọc, có phản hồi khi rê chuột ===== */
+  thead th{padding:15px 13px!important;font-size:12px!important;letter-spacing:.45px!important}
+  tbody td{padding:15px 13px!important;line-height:1.45}
+  tbody tr{transition:background .12s ease}
+  tbody tr:not(.tot):not(.grand):hover td{background:#FFF8F9!important}
+  .theme-dark tbody tr:not(.tot):not(.grand):hover td{background:#211B1C!important}
+  tbody td:first-child{font-weight:600}
+
+  /* ===== Nhấn mạnh con số quan trọng ===== */
+  td.manh{font-weight:800;font-size:1.04em}
+  td.trongtam{background:#FFFBF5!important}
+  .theme-dark td.trongtam{background:#1E1A16!important}
+  td.am{color:var(--red);font-weight:800;background:#FFF4F4!important}
+  td.duong{color:var(--green);font-weight:800;background:#F4FBF6!important}
+  .theme-dark td.am{background:#241417!important}
+  .theme-dark td.duong{background:#12201A!important}
+  tr.dinhcao td{background:#FFFDF3!important}
+  .theme-dark tr.dinhcao td{background:#1F1C13!important}
+
+  /* ===== Thẻ và ô số: bóng nhẹ cho có chiều sâu ===== */
+  .card,.tablecard,.box,.flow,.analysis,.kpi,.filterbar{
+    box-shadow:0 1px 2px rgba(28,25,23,.04),0 6px 20px rgba(28,25,23,.045)}
+  .kpi{transition:transform .16s ease,box-shadow .16s ease}
+  .kpi:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(28,25,23,.07),0 12px 30px rgba(28,25,23,.07)}
+  .theme-dark .card,.theme-dark .tablecard,.theme-dark .box,.theme-dark .flow,
+  .theme-dark .analysis,.theme-dark .kpi,.theme-dark .filterbar{box-shadow:0 10px 30px rgba(0,0,0,.45)}
+
+  .btn{transition:background .15s ease,color .15s ease,border-color .15s ease,transform .1s ease}
+  .btn:active{transform:translateY(1px)}
+  .segs button{transition:background .15s ease,color .15s ease}
 </style>
 </head>
 <body class="locked">
@@ -311,7 +365,7 @@
     <div class="card">
       <h3>Cơ cấu chi phí</h3>
       <p class="hint">Các khoản chi phí toàn hệ trong tháng, xếp từ lớn xuống nhỏ.</p>
-      <div class="chartbox tall"><canvas id="chartCost"></canvas></div>
+      <div class="chartbox" id="boxCost"><canvas id="chartCost"></canvas></div>
     </div>
   </div>
 
@@ -332,6 +386,13 @@
     <thead><tr id="thead"></tr></thead>
     <tbody id="tbody"></tbody>
   </table></div>
+  <div class="chugiai">
+    <i><span class="o" style="background:#FFF7E6;box-shadow:inset 0 0 0 1.5px #FCD9A8"></span>
+       Khoản chi phí chiếm tỷ trọng doanh thu <b>gấp đôi mặt bằng toàn hệ</b></i>
+    <i><span class="o" style="background:#FFF4F4"></span> Lỗ</i>
+    <i><span class="o" style="background:#F4FBF6"></span> Lãi</i>
+    <i>Kéo ngang bảng để xem hết các khoản chi phí</i>
+  </div>
 
   <footer id="reportFooter"></footer>
 </div>
@@ -437,7 +498,7 @@ function render(){
     const mui = t2 == null ? '—' : (t2>0?'▲ ':'▼ ') + pct(Math.abs(t2),0);
     return `<tr class="${c.co?'co-'+c.co:''}">
       <td>${esc(c.ten)}${c.co?` <span class="flag ${c.co}">${c.co==='moi'?'MỚI':c.co==='xanh'?'GIẢM':c.co==='cam'?'TĂNG':'TĂNG MẠNH'}</span>`:''}</td>
-      <td>${fmt(c.tien)}</td><td>${pct(c.tyTrong)}</td><td>${pct(c.pctDT)}</td>
+      <td class="manh">${fmt(c.tien)}</td><td>${pct(c.tyTrong)}</td><td class="trongtam">${pct(c.pctDT)}</td>
       ${d.coKyTruoc ? `<td>${fmt(c.tienTruoc)}</td><td class="${cls}">${mui}</td><td class="note-cell">${esc(c.lyDo)}</td>` : ''}</tr>`;
   }).join('') + `<tr class="tot"><td>TỔNG CHI PHÍ</td><td>${fmt(tongCP)}</td><td>100,0%</td>
       <td>${pct(t.dtt>0?tongCP/t.dtt*100:null)}</td>
@@ -460,7 +521,8 @@ function render(){
   /* Cơ cấu chi phí — tô đỏ khoản đang tăng bất thường */
   charts.cost && charts.cost.destroy();
   const MAU_CO = {do:'#C8102E', cam:'#E8A33D', xanh:'#1A7F4B', moi:'#7C3AED', '':'#B45309'};
-  const cp = d.chiPhiChiTiet.filter(c=>c.tien>0).slice(0, 12);
+  const cp = d.chiPhiChiTiet.filter(c=>c.tien>0);   // hiện đủ, không cắt bớt
+  $('boxCost').style.height = Math.max(310, 34 + cp.length * 30) + 'px';
   charts.cost = new Chart($('chartCost'), {
     type:'bar',
     data:{ labels: cp.map(c=>c.ten),
@@ -489,17 +551,37 @@ function render(){
                x:{grid:{display:false}}}}});
 
   /* Bảng chi tiết */
+  /* Cột chi phí xếp theo khoản lớn nhất toàn hệ, để nhìn từ trái sang là từ nặng tới nhẹ */
+  const LOAI = d.chiPhiChiTiet.filter(c => c.tien > 0).map(c => c.ten);
+
+  /* Tỷ trọng chuẩn của từng khoản trên doanh thu toàn hệ — dùng làm mốc so sánh.
+     Điểm bán nào ngốn gấp đôi mốc đó (và khoản đó đáng kể) thì tô vàng cảnh báo. */
+  const mocChuan = {};
+  for (const c of d.chiPhiChiTiet) mocChuan[c.ten] = t.dtt > 0 ? c.tien / t.dtt : 0;
+  const oBatThuong = (s, ten) => {
+    const v = s.chiPhi[ten] || 0;
+    if (!s.dtt || v <= 0) return false;
+    const tyTrong = v / s.dtt;
+    return tyTrong > (mocChuan[ten] || 0) * 2 && tyTrong > 0.01;
+  };
+
   $('thead').innerHTML = '<th>Điểm bán</th><th>Doanh thu thuần</th><th>Giá vốn</th><th>% Giá vốn</th>'
-    + '<th>Lợi nhuận gộp</th><th>% Gộp</th><th>Chi phí</th><th>Lợi nhuận ròng</th><th>% Ròng</th>';
+    + '<th>Lợi nhuận gộp</th><th>% Gộp</th><th>Tổng chi phí</th>'
+    + LOAI.map(c => `<th title="Ô tô vàng = khoản này chiếm tỷ trọng doanh thu gấp đôi mặt bằng toàn hệ">${esc(c)}</th>`).join('')
+    + '<th>Lợi nhuận ròng</th><th>% Ròng</th>';
+
   const row = s => `<tr>
     <td>${esc(s.name)}${s.nguon?`<span class="chip">${esc(s.nguon)}</span>`:''}</td>
-    <td>${fmt(s.dtt)}</td><td>${fmt(s.gv)}</td><td>${pct(s.gvPct)}</td>
-    <td>${fmt(s.lnGop)}</td><td>${pct(s.gopPct)}</td><td>${fmt(s.tongChiPhi)}</td>
-    <td class="${s.lnRong<0?'neg':'pos'}">${fmt(s.lnRong)}</td>
-    <td class="${s.lnRong<0?'neg':'pos'}">${pct(s.rongPct)}</td></tr>`;
+    <td class="trongtam manh">${fmt(s.dtt)}</td><td>${fmt(s.gv)}</td><td>${pct(s.gvPct)}</td>
+    <td>${fmt(s.lnGop)}</td><td>${pct(s.gopPct)}</td><td class="manh">${fmt(s.tongChiPhi)}</td>
+    ${LOAI.map(c => `<td class="${oBatThuong(s,c)?'batthuong':''}">${s.chiPhi[c] ? fmt(s.chiPhi[c]) : '—'}</td>`).join('')}
+    <td class="${s.lnRong<0?'am':'duong'}">${fmt(s.lnRong)}</td>
+    <td class="${s.lnRong<0?'am':'duong'}">${pct(s.rongPct)}</td></tr>`;
+
   $('tbody').innerHTML = d.shops.map(row).join('') + `<tr class="tot">
     <td>TỔNG HỆ THỐNG</td><td>${fmt(t.dtt)}</td><td>${fmt(t.gv)}</td><td>${pct(t.dtt>0?t.gv/t.dtt*100:null)}</td>
     <td>${fmt(t.lnGop)}</td><td>${pct(bienGop)}</td><td>${fmt(t.lnGop-t.lnRong)}</td>
+    ${LOAI.map(c => { const x = d.chiPhiChiTiet.find(y => y.ten === c); return `<td>${fmt(x ? x.tien : 0)}</td>`; }).join('')}
     <td>${fmt(t.lnRong)}</td><td>${pct(bienRong)}</td></tr>`;
 }
 

@@ -211,6 +211,16 @@ Bốn ô KPI · sơ đồ *từ doanh thu xuống lợi nhuận* · khối phân
 biểu đồ lợi nhuận theo điểm bán · cơ cấu chi phí · diễn biến theo tháng ·
 **bảng chi phí chi tiết** · bảng chi tiết theo điểm bán.
 
+### Đọc bảng chi tiết theo điểm bán
+
+Bảng này có **một cột cho từng khoản chi phí**, xếp từ khoản nặng nhất toàn hệ sang trái.
+Ô nào tô **vàng viền cam** nghĩa là khoản đó ở điểm bán này chiếm tỷ trọng doanh thu
+**gấp đôi mặt bằng toàn hệ** (và chiếm trên 1% doanh thu của chính điểm đó) — đây là chỗ
+đáng hỏi trước tiên khi đi truy chi phí.
+
+Cột **Lợi nhuận ròng** và **% Ròng** tô nền xanh khi lãi, đỏ khi lỗ. Cột **Doanh thu thuần**
+tô nền kem để dễ bám mắt khi kéo ngang.
+
 ### Soát chi phí bất thường
 
 Bảng chi phí so từng khoản với kỳ trước. Cờ chỉ bật cho khoản chiếm **từ 3% tổng chi phí**

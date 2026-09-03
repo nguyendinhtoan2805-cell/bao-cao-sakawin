@@ -127,6 +127,53 @@
     thead th:first-child{z-index:4}
     tbody td{padding:13px 8px}
   }
+
+  /* ===== Thanh điều hướng: tab dạng viên thuốc, nổi rõ khi trỏ chuột ===== */
+  .appnav{gap:4px!important;padding-bottom:0}
+  .navtab{padding:10px 16px 12px!important;border-radius:10px 10px 0 0;
+    border-bottom:3px solid transparent!important;position:relative;
+    transition:background .16s ease,color .16s ease,border-color .16s ease}
+  .navtab:hover{color:var(--red)!important;background:var(--red-tint)}
+  .navtab.active{color:var(--red)!important;border-bottom-color:var(--red)!important;
+    background:linear-gradient(180deg,rgba(200,16,46,0) 0%,var(--red-tint) 100%)}
+  .navtab.soon:hover{background:transparent}
+  .applogo{padding-bottom:12px!important}
+  .navuser a{transition:background .16s ease,color .16s ease,border-color .16s ease}
+  .navuser a:hover{background:var(--red-tint)}
+  .theme-dark .navtab:hover{background:#2A1216}
+  .theme-dark .navtab.active{background:linear-gradient(180deg,rgba(255,77,106,0) 0%,#2A1216 100%)}
+  .theme-dark .navuser a:hover{background:#2A1216}
+
+  /* ===== Bảng: giãn ra cho dễ đọc, có phản hồi khi rê chuột ===== */
+  thead th{padding:15px 13px!important;font-size:12px!important;letter-spacing:.45px!important}
+  tbody td{padding:15px 13px!important;line-height:1.45}
+  tbody tr{transition:background .12s ease}
+  tbody tr:not(.tot):not(.grand):hover td{background:#FFF8F9!important}
+  .theme-dark tbody tr:not(.tot):not(.grand):hover td{background:#211B1C!important}
+  tbody td:first-child{font-weight:600}
+
+  /* ===== Nhấn mạnh con số quan trọng ===== */
+  td.manh{font-weight:800;font-size:1.04em}
+  td.trongtam{background:#FFFBF5!important}
+  .theme-dark td.trongtam{background:#1E1A16!important}
+  td.am{color:var(--red);font-weight:800;background:#FFF4F4!important}
+  td.duong{color:var(--green);font-weight:800;background:#F4FBF6!important}
+  .theme-dark td.am{background:#241417!important}
+  .theme-dark td.duong{background:#12201A!important}
+  tr.dinhcao td{background:#FFFDF3!important}
+  .theme-dark tr.dinhcao td{background:#1F1C13!important}
+
+  /* ===== Thẻ và ô số: bóng nhẹ cho có chiều sâu ===== */
+  .card,.tablecard,.box,.flow,.analysis,.kpi,.filterbar{
+    box-shadow:0 1px 2px rgba(28,25,23,.04),0 6px 20px rgba(28,25,23,.045)}
+  .kpi{transition:transform .16s ease,box-shadow .16s ease}
+  .kpi:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(28,25,23,.07),0 12px 30px rgba(28,25,23,.07)}
+  .theme-dark .card,.theme-dark .tablecard,.theme-dark .box,.theme-dark .flow,
+  .theme-dark .analysis,.theme-dark .kpi,.theme-dark .filterbar{box-shadow:0 10px 30px rgba(0,0,0,.45)}
+
+  .btn{transition:background .15s ease,color .15s ease,border-color .15s ease,transform .1s ease}
+  .btn:active{transform:translateY(1px)}
+  .segs button{transition:background .15s ease,color .15s ease}
 </style>
 </head>
 <body class="locked">
