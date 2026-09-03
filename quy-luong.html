@@ -229,7 +229,13 @@
     background:#F5F3FF;border:1px solid #DDD6FE;border-radius:9px;padding:10px 14px;margin-bottom:14px}
 
   /* ===== Bề rộng cột: không để bảng dồn hết chỗ thừa vào ô tên ===== */
-  #tbodyNS td:nth-child(1),#theadNS th:nth-child(1){width:24%;min-width:230px}
+  /* Bề rộng cố định, KHÔNG dùng % — trên màn hình rộng 24% thành gần 500px,
+     phần tên chỉ chiếm nửa nên dư ra một mảng trắng. */
+  #tbodyNS td:nth-child(1),#theadNS th:nth-child(1){width:300px}
+  /* Khối tên phải giãn hết ô, nếu không tên bị cắt trong khi ô vẫn còn chỗ */
+  #tbodyNS td:first-child{display:flex;align-items:center;gap:9px}
+  #tbodyNS .ns{flex:1;min-width:0}
+  #tbodyNS .ns .tn{flex:1;min-width:0}
   #tbodyNS td:nth-child(2),#theadNS th:nth-child(2){width:70px}
   #tbodyNS td:nth-child(3),#theadNS th:nth-child(3){width:190px}
   #tbodyNS td:nth-child(4),#theadNS th:nth-child(4){width:120px}
@@ -579,7 +585,7 @@ function render(){
         : `<span style="font-weight:800;color:${tg > 0.5 ? 'var(--red)' : tg < -0.5 ? 'var(--green)' : 'var(--muted)'}">`
           + `${tg > 0 ? '▲ +' : tg < 0 ? '▼ ' : ''}${pct(tg, 1)}</span>`);
     return `<tr class="${nghiNgo ? 'co-do' : ''}">
-      <td><span class="ns">${av}<span class="tn">${esc(n.ten)}</span></span></td>
+      <td><span class="ns">${av}<span class="tn" title="${esc(n.ten)}">${esc(n.ten)}</span></span></td>
       <td>${chipGT(n.gioiTinh)}</td><td>${chipBP(n.boPhan)}</td><td>${esc(n.chucVu)}</td>
       <td>${n.tongCongTruoc == null ? '—' : fmt(n.tongCongTruoc)}</td>
       <td class="trongtam manh">${fmt(n.tongCong)}</td>
