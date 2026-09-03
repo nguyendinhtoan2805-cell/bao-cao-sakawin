@@ -149,7 +149,12 @@ const timBang = (bangs, ...tens) => {
 };
 
 const laLeader = cv => /leader|truong|quanly|giamdoc|phogiamdoc|phophong/.test(norm(cv));
-const dangLam = tt => { const n = norm(tt); return !n || /danglamviec|dangthuviec|chinhthuc|thuviec|active/.test(n); };
+/* Trước đây dùng danh sách CHO PHÉP (phải khớp đúng từ mới tính đang làm việc) —
+   rủi ro cao vì không biết chính xác Lark viết "Trạng thái" thế nào, và sai thì
+   TOÀN BỘ công ty bị tính nhầm thành đã nghỉ (đã xảy ra: 93 người ra 0 đang làm).
+   Đổi sang danh sách LOẠI TRỪ: mặc định coi là đang làm việc, trừ khi trạng thái
+   nói rõ đã nghỉ/thôi việc, hoặc có ngày Offboarding. An toàn hơn nhiều. */
+const daNghiTheoTT = tt => /nghiviec|danghi|thoiviec|chamdut|offboard|resign|terminat|sathai/.test(norm(tt));
 const anhTu = v => (Array.isArray(v) && v[0] && typeof v[0] === 'object' && v[0].file_token) ? v[0].file_token : '';
 
 /* Điểm có trọng số. Thiếu bất kỳ tiêu chí nào thì trả null — chấm nửa vời
@@ -229,7 +234,7 @@ module.exports = async (req, res) => {
       const off = ngay(pick(r, 'Offboarding date'));
       const cv = txt(pick(r, 'Chức vụ'));
       const tt = txt(pick(r, 'Trạng thái'));
-      const conLam = !off && dangLam(tt);
+      const conLam = !off && !daNghiTheoTT(tt);
       return {
         ma: txt(pick(r, 'Mã NV')),
         ten: txt(pick(r, 'Họ và tên')),
@@ -319,7 +324,7 @@ module.exports = async (req, res) => {
           hetHan: isoNgay(het), conLai: con,
           trangThai: txt(pick(r, 'Trạng thái')),
         };
-      }).filter(x => x.ten && x.conLai != null && x.conLai <= 90 && dangLam(x.trangThai))
+      }).filter(x => x.ten && x.conLai != null && x.conLai <= 90 && !daNghiTheoTT(x.trangThai))
         .sort((a, b) => a.conLai - b.conLai);
     }
 
@@ -410,6 +415,23 @@ module.exports = async (req, res) => {
     const offLaChu = recs.some(r => { const v = pick(r, 'Offboarding date'); return v && typeof v !== 'number' && !(typeof v === 'object' && typeof v.value === 'number'); });
     if (offLaChu) canhBao.push({ muc: 'canh-bao', tieuDe: 'Cột "Offboarding date" đang là kiểu Văn bản',
       noiDung: 'Web đang phải đoán định dạng ngày từ chuỗi chữ. Đổi sang kiểu Ngày trong Lark thì số liệu nghỉ việc mới chắc chắn đúng.' });
+
+    /* Tự soát: nếu số người "đang làm việc" ra 0 hoặc bất thường thấp so với tổng,
+       liệt kê nguyên văn các giá trị cột Trạng thái đang gặp — để thấy ngay wording
+       thật của Lark thay vì đoán mò từ xa. */
+    if (recs.length && dangLamDS.length < recs.length * 0.3) {
+      const dem = new Map();
+      for (const r of recs) {
+        const v = txt(pick(r, 'Trạng thái')) || '(để trống)';
+        dem.set(v, (dem.get(v) || 0) + 1);
+      }
+      const ds = [...dem.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)
+        .map(([v, n]) => `"${v}" × ${n}`).join(' · ');
+      canhBao.push({ muc: 'canh-bao',
+        tieuDe: `Chỉ ${dangLamDS.length}/${recs.length} người được tính là đang làm việc — có thể sai`,
+        noiDung: `Các giá trị cột Trạng thái đang gặp: ${ds}. Nếu con số này thấp bất thường so với thực tế, `
+          + `báo lại nguyên văn cách viết đúng để chỉnh danh sách từ khoá nhận diện "đã nghỉ" trong code.` });
+    }
 
     if (hopDong.filter(x => x.conLai <= 30).length)
       canhBao.push({ muc: 'canh-bao', tieuDe: `${hopDong.filter(x => x.conLai <= 30).length} hợp đồng hết hạn trong 30 ngày`,
