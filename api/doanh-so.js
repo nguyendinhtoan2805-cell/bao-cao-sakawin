@@ -301,6 +301,33 @@ module.exports = async (req, res) => {
     /* Xem gộp nhiều tháng mà chỉ vài tháng có Target thì % hoàn thành bị thổi lên:
        doanh thu cộng đủ kỳ trong khi target chỉ cộng được vài tháng. Phải cảnh báo,
        không thì đọc nhầm thành vượt chỉ tiêu. */
+    /* Kênh CÓ doanh thu nhưng KHÔNG được tick "Lên báo cáo" thì bị loại khỏi bảng.
+       Đây là chỗ dễ mất số nhất mà không ai biết: thêm dòng mới trong Lark, quên
+       tick, rồi tưởng báo cáo hỏng. Phải gọi tên ra. */
+    if (coCotTick) {
+      const boSot = new Map();
+      for (const th of trongKy) {
+        for (const t of tgts.filter(x => x.month === th && !duocLen(x))) {
+          const r = rev.get(th + '|' + norm(t.kenh));
+          if (r && r.dt > 0) {
+            const o = boSot.get(t.kenh) || { dt: 0, thang: [] };
+            o.dt += r.dt; o.thang.push(nhanThang(th));
+            boSot.set(t.kenh, o);
+          }
+        }
+      }
+      if (boSot.size) {
+        const ds = [...boSot.entries()].sort((a, b) => b[1].dt - a[1].dt);
+        const tong = ds.reduce((a, [, v]) => a + v.dt, 0);
+        warnings.push(
+          `${ds.length} kênh CÓ doanh thu nhưng CHƯA tick "LÊN BÁO CÁO" nên không hiện trong bảng — `
+          + `tổng ${Math.round(tong).toLocaleString('vi-VN')} đ đang bị bỏ ngoài báo cáo: `
+          + ds.slice(0, 8).map(([k, v]) => `${k} (${Math.round(v.dt).toLocaleString('vi-VN')} đ)`).join(' · ')
+          + `${ds.length > 8 ? ` · và ${ds.length - 8} kênh nữa` : ''}. `
+          + `Mở bảng "Báo Cáo Doanh Thu - Kênh Bán Hàng" trong Lark, tick ô LÊN BÁO CÁO ở các dòng này.`);
+      }
+    }
+
     if (soThang > 1) {
       const lechTgt = cur.filter(t => t.soThangTgt > 0 && t.soThangTgt < t.soThangDt);
       if (lechTgt.length) warnings.push(

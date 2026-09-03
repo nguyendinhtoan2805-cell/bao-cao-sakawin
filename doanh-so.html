@@ -910,15 +910,21 @@ async function syncFromLark(){
     const base = '✅ Số liệu lấy trực tiếp từ Lark · ' + (ki.nhan || '') + (ki.phu ? ' ('+ki.phu+')' : '') + ' · đồng bộ lúc ' + t;
     const w = j.warnings || [];
     if(w.length){
+      /* Hiện sẵn danh sách thay vì bắt bấm mới xem — cảnh báo mà phải bấm
+         mới thấy thì gần như không ai đọc, mà đây toàn là chỗ mất số. */
       const el = $('syncBar');
       el.className = 'syncbar warn';
-      el.textContent = base + ' · ⚠️ ' + w.length + ' điểm cần kiểm tra (bấm để xem)';
-      el.onclick = () => {
-        if(el.querySelector('ul')){ el.textContent = base + ' · ⚠️ ' + w.length + ' điểm cần kiểm tra (bấm để xem)'; return; }
-        const ul = document.createElement('ul');
-        w.forEach(x => { const li = document.createElement('li'); li.textContent = x; ul.appendChild(li); });
-        el.appendChild(ul);
+      const dong = base + ' · ⚠️ ' + w.length + ' điểm cần kiểm tra';
+      const ve = (mo) => {
+        el.textContent = dong + (mo ? ' (bấm để thu gọn)' : ' (bấm để xem)');
+        if(mo){
+          const ul = document.createElement('ul');
+          w.forEach(x => { const li = document.createElement('li'); li.textContent = x; ul.appendChild(li); });
+          el.appendChild(ul);
+        }
       };
+      ve(true);
+      el.onclick = () => ve(!el.querySelector('ul'));
     } else {
       $('syncBar').onclick = null;
       setSync('ok', base);

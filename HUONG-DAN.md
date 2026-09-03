@@ -429,6 +429,7 @@ Email nằm trong `ADMIN_EMAILS` luôn toàn quyền, không gỡ được từ 
 | `code 99991663` / `permission denied` | App chưa được thêm vào Base | Làm lại Phần 2 bước 5 |
 | `code 91402` / `NOTEXIST` | Sai `LARK_APP_TOKEN` hoặc `TABLE_ID` | Copy lại từ URL Base |
 | `Tháng … chưa có kênh nào được tick "Lên báo cáo"` | Quên tick ô | Tick các kênh muốn hiện |
+| `N kênh CÓ doanh thu nhưng CHƯA tick "LÊN BÁO CÁO"` | Thêm kênh mới trong Lark mà quên tick — kênh đó **không lên báo cáo**, tổng bị thiếu | Thanh vàng ghi rõ tên kênh và số tiền đang bị bỏ ngoài; mở Lark tick ô là xong |
 | `Bảng doanh thu chưa có dòng nào hợp lệ` | Thiếu cột `Tháng` hoặc `Kênh Kinh Doanh` | Kiểm tra tên cột |
 | `Không tìm thấy "X" tháng … trong bảng doanh thu` | Tên kênh 2 bảng lệch nhau | Sửa cho trùng tên |
 | `HTTP 404` khi gọi /api/doanh-so | Thư mục `api/` chưa lên repo | Push lại |
