@@ -16,11 +16,27 @@ Sau khi làm xong: team nhập số vào Lark như mọi khi → web tự cập 
 
 | Trang | File | API | Nguồn số | Tình trạng |
 |---|---|---|---|---|
+| 🏠 **Tổng quan (trang chủ)** | `index.html` | gọi lại 3 API dưới | tóm tắt cả ba báo cáo | ✅ đang chạy |
 | 🔐 Đăng nhập | — | `/api/auth/*` | Tài khoản Lark công ty | ✅ đang chạy |
 | ⚙️ Quản trị tài khoản | `admin.html` | `/api/users` | Upstash Redis | ✅ đang chạy |
-| 📈 Doanh số & Target | `index.html` | `/api/doanh-so` | `Báo Cáo Doanh Thu - Kênh Bán Hàng` | ✅ đang chạy |
+| 📈 Doanh số & Target | `doanh-so.html` | `/api/doanh-so` | `Báo Cáo Doanh Thu - Kênh Bán Hàng` | ✅ đang chạy |
 | 💰 Tài chính & Lãi lỗ | `tai-chinh.html` | `/api/tai-chinh` | `Báo Cáo Chi Tiết - 2026` | ✅ đang chạy |
 | 👥 Quỹ lương | `quy-luong.html` | `/api/quy-luong` | `Lương - Thưởng - Sakawin` | ✅ đang chạy |
+
+### Trang Tổng quan hoạt động thế nào
+
+Không có API riêng. Trang gọi **song song ba API sẵn có** rồi ghép kết quả. Cố ý làm vậy:
+
+- Gói Hobby của Vercel chỉ cho 12 hàm serverless, đang dùng 10 — thêm endpoint tổng hợp là sát trần
+- Phân quyền **tự áp dụng**: thiếu quyền nào thì API đó trả `403`, khối tương ứng lặng lẽ ẩn đi.
+  Không phải viết logic phân quyền lần thứ hai, nên không có nguy cơ hai nơi lệch nhau
+- Ba API luôn nhận cùng tham số kỳ, nên bộ lọc trên trang chủ áp cho cả ba
+
+Khối **⚠️ Cần chú ý** gom mọi nhận định mức *cảnh báo* và *chưa chốt* từ cả ba báo cáo,
+xếp cảnh báo lên trước, mỗi mục gắn nhãn nguồn (Doanh số / Tài chính / Quỹ lương).
+
+> Đường dẫn cũ đổi: `/` giờ là **Tổng quan**, trang doanh số chuyển sang `/doanh-so.html`.
+> Ai đã lưu địa chỉ gốc thì vào thẳng Tổng quan — đúng ý đồ.
 
 ### Nguyên tắc giao diện — áp dụng cho MỌI trang thêm mới
 

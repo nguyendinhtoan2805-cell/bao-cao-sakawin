@@ -187,7 +187,8 @@
 <div class="wrap">
   <nav class="appnav">
     <span class="applogo">Sakawin <b>Reports</b></span>
-    <a class="navtab" href="/">📈 Doanh số &amp; Target</a>
+    <a class="navtab" href="/">🏠 Tổng quan</a>
+    <a class="navtab" id="tabDoanhSo" href="/doanh-so.html" style="display:none">📈 Doanh số &amp; Target</a>
     <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none">💰 Tài chính &amp; Lãi lỗ</a>
     <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none">👥 Quỹ lương</a>
     <a class="navtab active" href="/admin.html">⚙️ Quản trị</a>
@@ -430,6 +431,7 @@ async function taiLai(){
   $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten || me.email) + '</b>';
   $('tabTaiChinh').style.display = me.quyen.xem_tai_chinh ? '' : 'none';
   $('tabQuyLuong').style.display = me.quyen.xem_luong ? '' : 'none';
+  $('tabDoanhSo').style.display = me.quyen.xem_doanh_so ? '' : 'none';
   try { if(await taiLai()) document.body.classList.remove('locked'); }
   catch(err){ /* goi() đã hiện thông báo */ }
 })();

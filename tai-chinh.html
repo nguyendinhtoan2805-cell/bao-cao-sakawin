@@ -292,7 +292,8 @@
 <div class="wrap">
   <nav class="appnav">
     <span class="applogo">Sakawin <b>Reports</b></span>
-    <a class="navtab" href="/">📈 Doanh số &amp; Target</a>
+    <a class="navtab" href="/">🏠 Tổng quan</a>
+    <a class="navtab" id="tabDoanhSo" href="/doanh-so.html" style="display:none">📈 Doanh số &amp; Target</a>
     <a class="navtab active" href="/tai-chinh.html">💰 Tài chính &amp; Lãi lỗ</a>
     <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none">👥 Quỹ lương</a>
     <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none">⚙️ Quản trị</a>
@@ -679,6 +680,7 @@ $('btnSync').addEventListener('click', () => sync());
   $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten||me.email) + '</b>';
   $('tabAdmin').style.display = me.quyen.quan_tri ? '' : 'none';
   $('tabQuyLuong').style.display = me.quyen.xem_luong ? '' : 'none';
+  $('tabDoanhSo').style.display = me.quyen.xem_doanh_so ? '' : 'none';
   document.body.classList.remove('locked');
   const qs = new URLSearchParams(location.search);
   if(['thang','quy','3thang','nam'].includes(qs.get('ky'))){
