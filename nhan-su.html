@@ -405,13 +405,23 @@
 /* ---- Bảng danh sách nhân sự ----
    table-layout:fixed để chiều rộng cột do CSS quyết định, không phụ thuộc nội
    dung — tên dài ngắn khác nhau không còn kéo cột xô lệch giữa các dòng. */
-#tblNhanSu{table-layout:fixed}
-#tblNhanSu th:nth-child(1),#tblNhanSu td:nth-child(1){width:290px}
-#tblNhanSu th:nth-child(2),#tblNhanSu td:nth-child(2){width:180px}
-#tblNhanSu th:nth-child(3),#tblNhanSu td:nth-child(3){width:auto}
-#tblNhanSu th:nth-child(4),#tblNhanSu td:nth-child(4){width:112px}
-#tblNhanSu th:nth-child(5),#tblNhanSu td:nth-child(5){width:132px}
-#tblNhanSu th:nth-child(6),#tblNhanSu td:nth-child(6){width:86px}
+#tblNhanSu{table-layout:fixed;min-width:1420px}
+#tblNhanSu th:nth-child(1),#tblNhanSu td:nth-child(1){width:250px}
+#tblNhanSu th:nth-child(2),#tblNhanSu td:nth-child(2){width:158px}
+#tblNhanSu th:nth-child(3),#tblNhanSu td:nth-child(3){width:132px}
+#tblNhanSu th:nth-child(4),#tblNhanSu td:nth-child(4){width:auto;min-width:140px}
+#tblNhanSu th:nth-child(5),#tblNhanSu td:nth-child(5){width:104px}
+#tblNhanSu th:nth-child(6),#tblNhanSu td:nth-child(6){width:106px}
+#tblNhanSu th:nth-child(7),#tblNhanSu td:nth-child(7){width:118px}
+#tblNhanSu th:nth-child(8),#tblNhanSu td:nth-child(8){width:106px}
+#tblNhanSu th:nth-child(9),#tblNhanSu td:nth-child(9){width:120px}
+#tblNhanSu th:nth-child(10),#tblNhanSu td:nth-child(10){width:118px}
+#tblNhanSu th:nth-child(11),#tblNhanSu td:nth-child(11){width:74px}
+/* Thanh tiến độ checklist onboard/offboard */
+.tien{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.tien .tt{flex:none;width:44px;height:5px;background:#F1EFE8;border-radius:3px;overflow:hidden}
+.tien .tf{height:100%;border-radius:3px}
+.tien .ts{font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap}
 #tblNhanSu tbody tr{cursor:pointer}
 /* KHÔNG đặt display:flex lên <td> — theo chuẩn CSS, td hết là table-cell thì
    rơi khỏi bố cục bảng và width ở trên vô hiệu (đúng loại lỗi vừa gặp với .nsrow).
@@ -609,6 +619,17 @@ const tatTen = t => (String(t||'').trim().split(/\s+/).slice(-2).map(x=>x[0]||''
    onerror không chắc được gọi (đã sửa ở API). Đổi cách này cho chắc luôn, và để
    tên nhân sự đi qua data-attribute (được HTML escape sẵn) thay vì chèn thẳng
    vào JS string. */
+/* Thanh tiến độ checklist onboard/offboard. Xong hết thì xanh, dở dang thì cam —
+   dở dang mới là thứ cần nhìn thấy, xong rồi thì không cần chú ý nữa. */
+function thanhTien(cl){
+  if (!cl || !cl.tong) return '<span style="color:#A8A29E">—</span>';
+  const tl = cl.soXong / cl.tong;
+  const mau = tl >= 1 ? '#1D9E75' : (tl >= 0.5 ? '#EF9F27' : '#E24B4A');
+  return `<span class="tien" title="${cl.soXong}/${cl.tong} bước đã xong">
+    <span class="tt"><span class="tf" style="width:${Math.round(tl*100)}%;background:${mau}"></span></span>
+    <span class="ts" style="color:${tl >= 1 ? '#0F6E56' : mau}">${cl.soXong}/${cl.tong}</span></span>`;
+}
+
 function avaLoi(img){
   const d = img.dataset;
   const div = document.createElement('div');
@@ -854,24 +875,35 @@ function veDanhSach(){
      Và tr dùng class riêng tr-ns — KHÔNG dùng lại .nsrow vì class đó có
      display:flex (dành cho danh sách div cạnh ma trận); đặt lên <tr> là các ô
      rơi khỏi bố cục bảng, co theo nội dung và lệch khỏi tiêu đề cột. */
-  $('tblNhanSu').innerHTML = `<thead><tr><th>Nhân sự</th><th>Bộ phận</th>
-      <th>Vị trí</th><th class="r">Vào từ</th><th class="r">Gắn bó</th><th class="r">Ô</th></tr></thead><tbody>`
+  $('tblNhanSu').innerHTML = `<thead><tr><th>Nhân sự</th><th>Bộ phận</th><th>Chức vụ</th>
+      <th>Vị trí chuyên môn</th><th>Cá nhân</th><th class="r">Vào từ</th><th class="r">Gắn bó</th>
+      <th class="r">Nghỉ từ</th><th class="r">Onboarding</th><th class="r">Trạng thái</th>
+      <th class="r">Ô</th></tr></thead><tbody>`
     + (ds.length ? ds.map((p, i) => {
         const o = mO.get(norm(p.ten));
+        /* Người đang làm thì xem tiến độ onboarding, người đã nghỉ thì xem tiến độ
+           chốt hồ sơ nghỉ — cùng một cột, vì hai việc không bao giờ trùng thời điểm. */
+        const cl = p.conLam ? p.onbCL : p.offCL;
         return `<tr class="tr-ns" data-ten="${esc(p.ten)}">
           <td><div class="nsc"><span class="stt">${i + 1}.</span>${avatar(p, 'av')}<div class="tn">
             <b>${esc(p.ten)}</b>${p.laLeader ? ' <span class="chip ld">QL</span>' : ''}
-            ${!p.conLam ? ' <span class="chip hh">đã nghỉ</span>' : ''}
-            <span class="ph">${esc(p.ma || '')}${p.gioiTinh ? ' · ' + esc(p.gioiTinh) : ''}</span>
+            <span class="ph">${esc(p.ma || '—')}</span>
           </div></div></td>
           <td>${esc(p.boPhan)}${p.doiNhom ? '<span class="ph">' + esc(p.doiNhom) + '</span>' : ''}</td>
-          <td>${esc(p.viTri || p.chucVu)}</td>
+          <td>${esc(p.chucVu) || '—'}</td>
+          <td>${esc(p.viTri) || '—'}</td>
+          <td>${esc(p.gioiTinh) || '—'}${p.loaiTuoi ? '<span class="ph">' + esc(p.loaiTuoi) + '</span>' : ''}</td>
           <td class="r">${esc(p.onboard) || '—'}</td>
           <td class="r">${thamNien(p.thangLam)}</td>
+          <td class="r">${p.offboard ? esc(p.offboard) : '—'}</td>
+          <td class="r">${thanhTien(cl)}</td>
+          <td class="r">${p.conLam
+              ? (p.trangThai ? esc(p.trangThai) : '<span class="chip ok">đang làm</span>')
+              : '<span class="chip hh">đã nghỉ</span>'}</td>
           <td class="r">${o ? `<span class="chip" style="background:${MAU_O[o]}22;color:${MAU_O[o]}">Ô ${o}</span>` : '—'}</td>
         </tr>`;
       }).join('')
-      : '<tr><td colspan="6"><div class="trong">Không có ai khớp bộ lọc này.</div></td></tr>')
+      : '<tr><td colspan="11"><div class="trong">Không có ai khớp bộ lọc này.</div></td></tr>')
     + '</tbody>';
 }
 
@@ -891,9 +923,30 @@ function moChiTiet(ten){
 
   const f = (l, v) => `<div class="ctf"><div class="l">${l}</div><div class="v">${esc(v) || '—'}</div></div>`;
   let h = `<div class="ctgrid">
-    ${f('Mã nhân viên', p.ma)}${f('Vào từ', p.onboard)}
-    ${f('Gắn bó', thamNien(p.thangLam))}${f('Trạng thái', p.conLam ? 'Đang làm việc' : ('Nghỉ ' + (p.offboard || '')))}
-    ${f('Giới tính', p.gioiTinh)}${f('Nhóm tuổi', p.loaiTuoi)}</div>`;
+    ${f('Mã nhân viên', p.ma)}${f('Chức vụ', p.chucVu)}
+    ${f('Vị trí chuyên môn', p.viTri)}${f('Đội / Nhóm', p.doiNhom)}
+    ${f('Vào từ', p.onboard)}${f('Gắn bó', thamNien(p.thangLam))}
+    ${f('Giới tính', p.gioiTinh)}${f('Nhóm tuổi', p.loaiTuoi)}
+    ${f('Trạng thái', p.conLam ? (p.trangThai || 'Đang làm việc') : 'Đã nghỉ')}
+    ${p.offboard ? f('Nghỉ từ', p.offboard) : ''}</div>`;
+
+  /* Checklist onboard / offboard — liệt kê từng bước, bước chưa xong hiện rõ */
+  const veCL = (cl, tieuDe, icon) => {
+    if (!cl || !cl.tong) return '';
+    const thieu = cl.buoc.filter(b => !b.xong);
+    return `<div class="kyblock">
+      <h4>${icon} ${tieuDe} · <b>${cl.soXong}/${cl.tong}</b> bước
+        ${thieu.length ? `<span class="chip cc">còn ${thieu.length} bước</span>`
+                       : '<span class="chip ok">đã xong</span>'}</h4>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:5px 16px">
+        ${cl.buoc.map(b => `<div style="font-size:12.5px;display:flex;gap:7px;align-items:flex-start;
+            color:${b.xong ? '#78716C' : '#1C1917'}">
+          <span style="flex:none;color:${b.xong ? '#1D9E75' : '#D6D3D1'}">${b.xong ? '✓' : '○'}</span>
+          <span style="${b.xong ? 'text-decoration:line-through' : 'font-weight:600'}">${esc(b.ten)}</span>
+        </div>`).join('')}
+      </div></div>`;
+  };
+  h += veCL(p.onbCL, 'Checklist onboarding', '📥') + veCL(p.offCL, 'Checklist offboarding', '📤');
 
   /* Xu hướng qua các kỳ — thứ đáng xem nhất, chỉ có khi đã chấm từ 2 kỳ trở lên */
   if (cacKy.length > 1){

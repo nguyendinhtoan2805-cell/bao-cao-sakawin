@@ -123,6 +123,15 @@ async function dsBang(tk, base) {
   }
   return out;
 }
+/* Danh sách cột kèm kiểu — cần để tự nhận ra đâu là ô tick trong hai bảng
+   checklist, thay vì khai cứng tên từng bước (đổi tên bước trong Lark là hỏng). */
+async function dsCot(tk, base, tableId) {
+  const j = await (await fetch(
+    `${HOST}/open-apis/bitable/v1/apps/${base}/tables/${tableId}/fields?page_size=200`,
+    { headers: { Authorization: `Bearer ${tk}` } })).json();
+  if (j.code !== 0) throw new Error(`Đọc cột thất bại (${j.code}): ${j.msg}`);
+  return j.data?.items || [];
+}
 async function docBang(tk, base, tableId) {
   const out = []; let page = '';
   for (let i = 0; i < 20; i++) {
@@ -154,6 +163,38 @@ const timBang = (bangs, ...tens) => {
   for (const t of tens) { const b = bangs.find(x => norm(x.name) === norm(t)); if (b) return b; }
   for (const t of tens) { const b = bangs.find(x => norm(x.name).includes(norm(t))); if (b) return b; }
   return null;
+};
+
+/* Đọc một bảng checklist (onboard hoặc offboard).
+   Các bước được nhận ra bằng KIỂU cột là "ô tick" (type 7), không khai cứng tên —
+   thêm/đổi bước trong Lark là web tự cập nhật theo.
+
+   Về riêng tư: vài bước có tên chứa chữ "lương"/"BHXH" (Lương bảng 41, Xử lý công
+   lương, Báo giảm BHXH, Trả sổ và tờ rời BHXH). Đọc ở đây là đọc Ô TICK — tức
+   "bước này đã làm xong chưa" — chứ không phải số tiền hay mã sổ. Không có giá
+   trị lương nào chạm tới. */
+async function docChecklist(tk, base, bang) {
+  const cot = await dsCot(tk, base, bang.table_id);
+  const buoc = cot.filter(f => f.type === 7).map(f => f.field_name);
+  const cotTen = (cot.find(f => /thongtin|hoten|nhansu|nsnghi/.test(norm(f.field_name))) || cot[0] || {}).field_name;
+  if (!cotTen || !buoc.length) return [];
+  const rows = await docBang(tk, base, bang.table_id);
+  return rows.map(r => {
+    const xong = buoc.filter(b => pick(r, b) === true);
+    return {
+      raw: txt(pick(r, cotTen)),
+      soXong: xong.length, tong: buoc.length,
+      buoc: buoc.map(b => ({ ten: b, xong: pick(r, b) === true })),
+      ngayNghi: isoNgay(ngay(pick(r, 'Ngày nghỉ việc'))),
+    };
+  }).filter(x => x.raw);
+}
+/* Ghép checklist với hồ sơ: ô tên trong checklist thường ghi cả mã lẫn tên,
+   nên so khớp theo kiểu "chứa nhau" chứ không đòi bằng tuyệt đối. */
+const ghepCL = (ds, ten, ma) => {
+  const t = norm(ten), m = norm(ma);
+  return ds.find(x => { const r = norm(x.raw); return t && (r === t || r.includes(t) || t.includes(r)); })
+      || (m ? ds.find(x => norm(x.raw).includes(m)) : null) || null;
 };
 
 const laLeader = cv => /leader|truong|quanly|giamdoc|phogiamdoc|phophong/.test(norm(cv));
@@ -241,6 +282,8 @@ module.exports = async (req, res) => {
     const bHD = timBang(bangs, 'THÔNG TIN HĐLĐ', 'hdld');
     const bDG = timBang(bangs, 'Đánh giá Nhân sự', 'danh gia nhan su', 'danh gia');
     const bDT = timBang(bangs, 'Đào tạo', 'dao tao');
+    const bCO = timBang(bangs, 'Checklist Onboard Nhân sự', 'checklist onboard');
+    const bCF = timBang(bangs, 'Checklist Offboard Nhân sự', 'checklist offboard');
     if (!bNS) throw new Error('Không tìm thấy bảng "QUẢN LÝ THÔNG TIN NHÂN SỰ" trong Base.');
 
     const recs = locTrang(await docBang(tk, BASE, bNS.table_id));
@@ -274,6 +317,19 @@ module.exports = async (req, res) => {
         conLam,
       };
     }).filter(x => x.ten);
+
+    /* Checklist onboard / offboard — gắn vào từng hồ sơ. Bảng thiếu cũng không sao. */
+    const clOn  = bCO ? await docChecklist(tk, BASE, bCO) : [];
+    const clOff = bCF ? await docChecklist(tk, BASE, bCF) : [];
+    for (const x of nhanSu) {
+      const a = ghepCL(clOn, x.ten, x.ma);
+      const b = ghepCL(clOff, x.ten, x.ma);
+      x.onbCL = a ? { soXong: a.soXong, tong: a.tong, buoc: a.buoc } : null;
+      x.offCL = b ? { soXong: b.soXong, tong: b.tong, buoc: b.buoc } : null;
+      /* Ngày nghỉ trong checklist là cột kiểu Ngày chuẩn, đáng tin hơn cột
+         "Offboarding date" ở bảng chính đang là kiểu Văn bản — ưu tiên dùng. */
+      if (b && b.ngayNghi && !x.offboard) x.offboard = b.ngayNghi;
+    }
 
     const dangLamDS = nhanSu.filter(x => x.conLam);
     const daNghi = nhanSu.filter(x => !x.conLam);
@@ -470,6 +526,21 @@ module.exports = async (req, res) => {
         noiDung: `Điểm của họ lệch mốc ${NGUONG} chưa tới ${BIEN}, nghĩa là chấm lệch một điểm ở một tiêu chí là đổi ô. `
           + 'Đừng ra quyết định nhân sự dựa vào ô của nhóm này — hãy đọc phần ghi chép buổi review của họ.' });
 
+    /* Onboarding bỏ dở: người vào rồi mà quy trình tiếp nhận chưa xong. Đây là
+       thứ hay rơi rụng nhất và cũng là nguyên nhân quen thuộc của nghỉ sớm. */
+    const onDoDang = dangLamDS.filter(x => x.onbCL && x.onbCL.soXong < x.onbCL.tong);
+    if (onDoDang.length)
+      canhBao.push({ muc: 'luu-y', tieuDe: `${onDoDang.length} người chưa hoàn tất onboarding`,
+        noiDung: `${onDoDang.slice(0, 4).map(x => x.ten).join(', ')}${onDoDang.length > 4 ? '…' : ''}. `
+          + 'Onboarding bỏ dở thường không ai nhắc, nhưng lại là lý do quen thuộc khiến người mới nghỉ sớm.' });
+
+    const offDoDang = daNghi.filter(x => x.offCL && x.offCL.soXong < x.offCL.tong);
+    if (offDoDang.length)
+      canhBao.push({ muc: 'canh-bao', tieuDe: `${offDoDang.length} hồ sơ nghỉ việc chưa chốt xong`,
+        noiDung: `${offDoDang.slice(0, 4).map(x => x.ten).join(', ')}${offDoDang.length > 4 ? '…' : ''}. `
+          + 'Còn bước dang dở như thu hồi thiết bị, khoá tài khoản, báo giảm BHXH hay trả sổ — '
+          + 'để lâu vừa rủi ro vừa phiền cho chính người đã nghỉ.' });
+
     if (tyLeNghiSom >= 25 && daNghi.length >= 8)
       canhBao.push({ muc: 'canh-bao', tieuDe: `${tyLeNghiSom}% người đã nghỉ ra đi trước mốc 6 tháng`,
         noiDung: `${nghiSom}/${daNghi.length} trường hợp. Nghỉ sớm thường không phải lỗi của người mới — mà là tuyển sai kỳ vọng hoặc onboarding bỏ mặc.` });
@@ -492,6 +563,7 @@ module.exports = async (req, res) => {
         boPhan: boPhan.filter(trongTam), thamNien, bienDong,
         hopDong: hopDong.filter(trongTam),
         danhGia, daoTao, canhBao, gioiHan: gioiHan ? toi.boPhan : '',
+        coCL: { onboard: !!bCO, offboard: !!bCF },
       },
     });
   } catch (err) {
