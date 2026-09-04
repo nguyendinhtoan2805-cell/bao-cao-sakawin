@@ -402,6 +402,30 @@
 .chip.ok{background:#E1F5EE;color:#0F6E56}
 .chip.vach{background:#fff;color:#78716C;border:1px dashed #A8A29E;font-weight:600}
 
+/* ---- Bảng danh sách nhân sự ----
+   table-layout:fixed để chiều rộng cột do CSS quyết định, không phụ thuộc nội
+   dung — tên dài ngắn khác nhau không còn kéo cột xô lệch giữa các dòng. */
+#tblNhanSu{table-layout:fixed}
+#tblNhanSu th:nth-child(1),#tblNhanSu td:nth-child(1){width:290px}
+#tblNhanSu th:nth-child(2),#tblNhanSu td:nth-child(2){width:180px}
+#tblNhanSu th:nth-child(3),#tblNhanSu td:nth-child(3){width:auto}
+#tblNhanSu th:nth-child(4),#tblNhanSu td:nth-child(4){width:112px}
+#tblNhanSu th:nth-child(5),#tblNhanSu td:nth-child(5){width:132px}
+#tblNhanSu th:nth-child(6),#tblNhanSu td:nth-child(6){width:86px}
+#tblNhanSu tbody tr{cursor:pointer}
+/* KHÔNG đặt display:flex lên <td> — theo chuẩn CSS, td hết là table-cell thì
+   rơi khỏi bố cục bảng và width ở trên vô hiệu (đúng loại lỗi vừa gặp với .nsrow).
+   Giữ td là ô bảng thuần, chỉ .ns bên trong mới flex. Số thứ tự tự chèn bằng JS
+   vào trong .ns thay vì dùng ::before của CSS chung. */
+#tblNhanSu tbody td:first-child::before{content:none}
+#tblNhanSu .nsc{display:flex;align-items:center;gap:9px;min-width:0}
+#tblNhanSu .nsc .stt{flex:none;min-width:20px;color:#A8A29E;font-weight:600;font-size:12px}
+#tblNhanSu .nsc .tn{flex:1;min-width:0}
+#tblNhanSu .nsc .tn b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tblNhanSu td .ph{display:block;font-size:11px;color:var(--muted);font-weight:400;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tblNhanSu td:nth-child(2),#tblNhanSu td:nth-child(3){overflow:hidden;text-overflow:ellipsis}
+
 .hdrow td.gap{font-weight:700}
 tr.hd30{background:#FEF2F2}
 tr.hd60{background:#FFFBEB}
@@ -825,23 +849,29 @@ function veDanhSach(){
   const mO = new Map((dg.nguoi || []).map(x => [norm(x.ten), x.o]));
   $('dsSub').textContent = `${ds.length} người đang hiển thị. Bấm vào một dòng để mở hồ sơ đầy đủ.`;
 
-  $('tblNhanSu').innerHTML = `<thead><tr><th style="width:44px"></th><th>Nhân sự</th><th>Bộ phận</th>
+  /* Ảnh gộp vào cột Nhân sự, KHÔNG để cột riêng: số thứ tự do CSS counter chèn
+     vào ô đầu tiên, cột ảnh 44px quá hẹp nên số bị xuống dòng, đội ô cao gấp đôi.
+     Và tr dùng class riêng tr-ns — KHÔNG dùng lại .nsrow vì class đó có
+     display:flex (dành cho danh sách div cạnh ma trận); đặt lên <tr> là các ô
+     rơi khỏi bố cục bảng, co theo nội dung và lệch khỏi tiêu đề cột. */
+  $('tblNhanSu').innerHTML = `<thead><tr><th>Nhân sự</th><th>Bộ phận</th>
       <th>Vị trí</th><th class="r">Vào từ</th><th class="r">Gắn bó</th><th class="r">Ô</th></tr></thead><tbody>`
-    + (ds.length ? ds.map(p => {
+    + (ds.length ? ds.map((p, i) => {
         const o = mO.get(norm(p.ten));
-        return `<tr class="nsrow" data-ten="${esc(p.ten)}" style="cursor:pointer">
-          <td>${avatar(p, 'av')}</td>
-          <td><b>${esc(p.ten)}</b>${p.laLeader ? ' <span class="chip ld">QL</span>' : ''}
+        return `<tr class="tr-ns" data-ten="${esc(p.ten)}">
+          <td><div class="nsc"><span class="stt">${i + 1}.</span>${avatar(p, 'av')}<div class="tn">
+            <b>${esc(p.ten)}</b>${p.laLeader ? ' <span class="chip ld">QL</span>' : ''}
             ${!p.conLam ? ' <span class="chip hh">đã nghỉ</span>' : ''}
-            <br><span style="font-size:11px;color:#78716C">${esc(p.ma || '')}${p.gioiTinh ? ' · ' + esc(p.gioiTinh) : ''}</span></td>
-          <td>${esc(p.boPhan)}${p.doiNhom ? '<br><span style="font-size:11px;color:#78716C">' + esc(p.doiNhom) + '</span>' : ''}</td>
+            <span class="ph">${esc(p.ma || '')}${p.gioiTinh ? ' · ' + esc(p.gioiTinh) : ''}</span>
+          </div></div></td>
+          <td>${esc(p.boPhan)}${p.doiNhom ? '<span class="ph">' + esc(p.doiNhom) + '</span>' : ''}</td>
           <td>${esc(p.viTri || p.chucVu)}</td>
           <td class="r">${esc(p.onboard) || '—'}</td>
           <td class="r">${thamNien(p.thangLam)}</td>
           <td class="r">${o ? `<span class="chip" style="background:${MAU_O[o]}22;color:${MAU_O[o]}">Ô ${o}</span>` : '—'}</td>
         </tr>`;
       }).join('')
-      : '<tr><td colspan="7"><div class="trong">Không có ai khớp bộ lọc này.</div></td></tr>')
+      : '<tr><td colspan="6"><div class="trong">Không có ai khớp bộ lọc này.</div></td></tr>')
     + '</tbody>';
 }
 
@@ -968,7 +998,7 @@ $('oGrid').addEventListener('click', e => {
   veDsO();
 });
 document.addEventListener('click', e => {
-  const r = e.target.closest('.nsrow[data-ten]');
+  const r = e.target.closest('[data-ten]');
   if (r) moChiTiet(r.dataset.ten);
 });
 $('chiTiet').addEventListener('click', e => { if (e.target.id === 'chiTiet') dongChiTiet(); });
