@@ -98,9 +98,22 @@ function ngay(v) {
   const d = new Date(s);
   return isNaN(d) ? null : d;
 }
-const isoNgay = d => d ? d.toISOString().slice(0, 10) : '';
-const thangCua = d => d ? `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}` : '';
+/* MÚI GIỜ — Lark lưu cột Ngày theo múi giờ của Base (Việt Nam, UTC+7) rồi trả về
+   epoch ms. Ngày 15/03 lúc 00:00 giờ VN chính là 14/03 lúc 17:00 giờ UTC, nên lấy
+   phần ngày theo UTC là ra ngày HÔM TRƯỚC. Đó là lý do ngày sinh bị lùi một ngày —
+   và lỗi này dính mọi cột ngày: onboard, offboard, hạn hợp đồng, ngày review,
+   ngày đào tạo. Cộng bù +7 giờ trước khi cắt phần ngày là khớp lại với Lark.
+
+   Chuỗi "dd/mm/yyyy" parse bằng Date.UTC ở hàm ngay() cũng đi qua đây và vẫn
+   đúng: 00:00 UTC + 7h vẫn nằm trong cùng một ngày. */
+const TZ = 7 * 3600000;
 const NGAY = 86400000;
+const isoNgay = d => d ? new Date(d.getTime() + TZ).toISOString().slice(0, 10) : '';
+const thangCua = d => d ? isoNgay(d).slice(0, 7) : '';
+/* Số ngày lịch (theo giờ VN) kể từ epoch — để đếm "còn bao nhiêu ngày" bằng cách
+   trừ hai ngày lịch, thay vì trừ hai mốc thời gian rồi làm tròn (cách cũ lệch một
+   ngày tuỳ giờ trong ngày lúc mở trang). */
+const soNgayLich = d => Math.floor((d.getTime() + TZ) / NGAY);
 const soThangGiua = (a, b) => !a || !b ? null : Math.max(0, Math.round((b - a) / NGAY / 30.44));
 
 /* ---------- Lark ---------- */
@@ -399,7 +412,9 @@ module.exports = async (req, res) => {
     for (const x of nhanSu) { ghiBD(x.onboard, 'vao'); ghiBD(x.offboard, 'ra'); }
     const bienDong = [...mBD.values()].sort((a, b) => a.thang.localeCompare(b.thang)).slice(-24);
 
-    const nam = homNay.getUTCFullYear();
+    /* Năm theo lịch VN, không theo UTC: mở trang lúc 0–7h sáng ngày 1/1 thì giờ
+       UTC vẫn đang là 31/12 năm cũ, đếm "vào/ra năm nay" sẽ ra năm trước. */
+    const nam = Number(isoNgay(homNay).slice(0, 4));
     const raNamNay = daNghi.filter(x => x.offboard && x.offboard.startsWith(String(nam))).length;
     const vaoNamNay = nhanSu.filter(x => x.onboard && x.onboard.startsWith(String(nam))).length;
     const tyLeNghi = dangLamDS.length ? Math.round(raNamNay / (dangLamDS.length + raNamNay) * 1000) / 10 : 0;
@@ -414,7 +429,7 @@ module.exports = async (req, res) => {
       const rHD = await docBang(tk, BASE, bHD.table_id);
       hopDong = rHD.map(r => {
         const het = ngay(pick(r, 'Ngày hết hạn'));
-        const con = het ? Math.round((het - homNay) / NGAY) : null;
+        const con = het ? soNgayLich(het) - soNgayLich(homNay) : null;
         return {
           ma: txt(pick(r, 'Mã NV')), ten: txt(pick(r, 'Họ và tên')),
           boPhan: txt(pick(r, 'Bộ phận/Phòng ban')) || '(chưa phân)',
