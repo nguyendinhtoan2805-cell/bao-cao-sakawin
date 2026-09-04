@@ -379,6 +379,17 @@
   #gate .ok.show{display:block}
   .theme-dark #gate .f input{background:#1B1918;border-color:#3A3633;color:#F2EFEA}
   .theme-dark #gate{background:#171514;border-color:#2A2724;border-top-color:#FF4D6A}
+
+  /* Dải KPI của khối Nhân sự trên trang chủ */
+  .nskpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+  .nsk{background:var(--card);border:1px solid var(--line);border-left:4px solid #78716C;
+    border-radius:12px;padding:14px 16px}
+  .nsk.hot{border-left-color:var(--red);background:var(--red-tint)}
+  .nsk.warn{border-left-color:#EF9F27;background:#FEF9EF}
+  .nsk .l{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .nsk .v{font-size:27px;font-weight:800;line-height:1.15;margin:5px 0 3px}
+  .nsk .s{font-size:12px;color:var(--muted);line-height:1.5}
+  .theme-dark .nsk.warn{background:#241D10}
 </style>
 </head>
 <body class="locked">
@@ -513,6 +524,23 @@
         <h3>Quỹ lương theo bộ phận</h3>
         <p class="hint">Sáu bộ phận chiếm quỹ lớn nhất trong kỳ.</p>
         <div class="chartbox"><canvas id="chartBoPhan"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="khoi" id="khoiNhanSu">
+    <h3>🧭 Nhân sự <span class="vach"></span><a href="/nhan-su.html">Xem chi tiết →</a></h3>
+    <div class="nskpi" id="nsKpi"></div>
+    <div class="g3">
+      <div class="card">
+        <h3>Bản đồ năng lực &amp; ý chí</h3>
+        <p class="hint" id="hintMatran">Bốn ô Skill–Will của đội ngũ trong kỳ đánh giá gần nhất.</p>
+        <div class="chartbox"><canvas id="chartO"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Người vào &amp; người ra</h3>
+        <p class="hint">12 tháng gần nhất. Cột đỏ vượt cột xanh nhiều tháng liền là dấu hiệu chảy máu nhân sự.</p>
+        <div class="chartbox"><canvas id="chartVaoRa"></canvas></div>
       </div>
     </div>
   </div>
@@ -668,17 +696,26 @@ async function tai(){
   syncing = true;
   setSync('', '⏳ Đang lấy số liệu từ Lark…');
   const qs = truyVan();
-  const [ds, tc, ql] = await Promise.all([
+  const [ds, tc, ql, ns] = await Promise.all([
     TOI.quyen.xem_doanh_so  ? goiAPI('/api/doanh-so?'  + qs) : null,
     TOI.quyen.xem_tai_chinh ? goiAPI('/api/tai-chinh?' + qs) : null,
     TOI.quyen.xem_luong     ? goiAPI('/api/quy-luong?' + qs) : null,
+    TOI.quyen.xem_nhan_su   ? goiAPI('/api/nhan-su') : null,
   ]);
   syncing = false;
 
   const nguon = ds || tc || ql;
+  /* Ba báo cáo kia xem theo tháng, trang Nhân sự thì không — nên người chỉ có
+     quyền Nhân sự vẫn phải thấy khối của mình thay vì trang trắng. */
+  if(!nguon && ns){
+    ['khoiDoanhSo','khoiTaiChinh','khoiQuyLuong','khoiCanhBao'].forEach(id => $(id).style.display='none');
+    $('kyInfo').innerHTML = 'Đang xem <b>dữ liệu nhân sự</b>';
+    veNhanSu(ns); syncing = false;
+    return setSync('ok', '✅ Đọc trực tiếp từ Base nhân sự trên Lark');
+  }
   if(!nguon){
     setSync('err', '⚠️ Chưa lấy được số liệu. Kiểm tra cấu hình Lark, hoặc tài khoản chưa được cấp quyền xem báo cáo nào.');
-    ['khoiDoanhSo','khoiTaiChinh','khoiQuyLuong','khoiCanhBao'].forEach(id => $(id).style.display='none');
+    ['khoiDoanhSo','khoiTaiChinh','khoiQuyLuong','khoiNhanSu','khoiCanhBao'].forEach(id => $(id).style.display='none');
     return;
   }
   nạpChonThang(nguon.months, nguon.moc || nguon.month);
@@ -689,10 +726,11 @@ async function tai(){
 
   luuKy();
   veKPI(ds, tc, ql, ki);
-  veCanhBao(ds, tc, ql);
+  veCanhBao(ds, tc, ql, ns);
   veDoanhSo(ds);
   veTaiChinh(tc);
   veQuyLuong(ql);
+  veNhanSu(ns);
 
   const t = new Date(nguon.syncedAt).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
   setSync('ok', `✅ Số liệu lấy trực tiếp từ Lark · ${ki.nhan || ''} · đồng bộ lúc ${t}`);
@@ -728,13 +766,16 @@ function veKPI(ds, tc, ql, ki){
 }
 
 /* ---------- Gom cảnh báo từ cả ba báo cáo ---------- */
-function veCanhBao(ds, tc, ql){
+function veCanhBao(ds, tc, ql, ns){
   const list = [];
   (ds && ds.warnings || []).forEach(w => list.push({muc:'chua-chot', tu:'Doanh số', tieuDe:'Dữ liệu cần kiểm tra', noiDung:w}));
   const gom = (j, tu) => (j && j.data.nhanXet || [])
     .filter(n => n.muc === 'canh-bao' || n.muc === 'chua-chot')
     .forEach(n => list.push({...n, tu}));
   gom(tc, 'Tài chính'); gom(ql, 'Quỹ lương');
+  /* Trang Nhân sự để cảnh báo ở data.canhBao chứ không phải data.nhanXet */
+  (ns && ns.data.canhBao || []).filter(n => n.muc === 'canh-bao')
+    .forEach(n => list.push({...n, tu:'Nhân sự'}));
 
   const uuTien = {'canh-bao':0, 'chua-chot':1};
   list.sort((a,b) => (uuTien[a.muc] ?? 2) - (uuTien[b.muc] ?? 2));
@@ -889,6 +930,71 @@ function veQuyLuong(ql){
         return ` ${fmt(c.raw)} đ · ${b.soNguoi} người`;}}}},
       scales:{ x:{ticks:{callback:v=>(v/1e6).toLocaleString('vi-VN')+' tr',font:{size:10}},grid:{color:'#F0EEEC'}},
                y:{ticks:{font:{size:11}},grid:{display:false}}}}});
+}
+
+/* ---------- Khối Nhân sự ---------- */
+function veNhanSu(ns){
+  if(!ns){ $('khoiNhanSu').style.display = 'none'; return; }
+  $('khoiNhanSu').style.display = '';
+  const d = ns.data, t = d.tong, dg = d.danhGia;
+
+  /* Bốn con số BOD cần liếc là biết: quy mô, chảy máu người, việc đang treo */
+  const onDoDang = d.nhanSu.filter(x => x.conLam && x.onbCL && x.onbCL.soXong < x.onbCL.tong).length;
+  const hdGap = d.hopDong.filter(x => x.conLai <= 30).length;
+  $('nsKpi').innerHTML = `
+    <div class="nsk"><div class="l">Đang làm việc</div><div class="v">${t.dangLam}</div>
+      <div class="s">${t.nam} nam · ${t.nu} nữ · ${t.leader} quản lý</div></div>
+    <div class="nsk${t.tyLeNghi > 20 ? ' hot' : ''}"><div class="l">Tỷ lệ nghỉ việc ${t.nam_}</div>
+      <div class="v">${pct(t.tyLeNghi)}</div>
+      <div class="s">vào ${t.vaoNamNay} · ra ${t.raNamNay}</div></div>
+    <div class="nsk${onDoDang ? ' warn' : ''}"><div class="l">Onboarding dở dang</div>
+      <div class="v">${onDoDang}</div>
+      <div class="s">${onDoDang ? 'người mới chưa xong quy trình tiếp nhận' : 'không còn ai treo'}</div></div>
+    <div class="nsk${hdGap ? ' hot' : ''}"><div class="l">Hợp đồng gấp</div><div class="v">${hdGap}</div>
+      <div class="s">${hdGap ? 'hết hạn trong 30 ngày' : 'không có hợp đồng nào gấp'}</div></div>`;
+
+  /* Bốn ô Skill-Will */
+  charts.o && charts.o.destroy(); charts.o = null;
+  const cvO = $('chartO');
+  if(dg && dg.coBang && dg.nguoi && dg.nguoi.length){
+    $('hintMatran').innerHTML = `Kỳ <b>${esc(dg.ky)}</b> · ${dg.nguoi.length} người đã chấm`
+      + (dg.chuaCham && dg.chuaCham.length ? ` · ${dg.chuaCham.length} người chưa chấm` : '')
+      + (dg.satVach ? ` · <b>${dg.satVach}</b> người sát vạch phân loại` : '');
+    cvO.style.display = '';
+    const MO = ['#0F6E56','#185FA5','#A32D2D','#854F0B'];
+    charts.o = new Chart(cvO, {
+      type:'doughnut',
+      data:{ labels: dg.oThongKe.map(o => 'Ô ' + o.ma + ' · ' + o.ten),
+        datasets:[{ data: dg.oThongKe.map(o => o.so), backgroundColor: MO, borderWidth:2, borderColor:'#fff' }]},
+      options:{ responsive:true, maintainAspectRatio:false, cutout:'55%',
+        plugins:{ legend:{position:'right', labels:{boxWidth:11, font:{size:11.5}}},
+          tooltip:{callbacks:{label:c => {
+            const o = dg.oThongKe[c.dataIndex];
+            const tl = dg.nguoi.length ? Math.round(o.so/dg.nguoi.length*1000)/10 : 0;
+            return [` ${o.so} người · ${pct(tl)}`, ` ${o.chienLuoc}`];
+          }}}}}});
+  } else {
+    /* Chưa có bảng đánh giá thì nói thẳng phải làm gì, đừng để ô trống khó hiểu */
+    cvO.style.display = 'none';
+    $('hintMatran').innerHTML = dg && dg.coBang
+      ? 'Bảng <b>Đánh giá Nhân sự</b> đã có nhưng chưa dòng nào chấm đủ 10 tiêu chí.'
+      : 'Chưa có bảng <b>Đánh giá Nhân sự</b> trong Base — tạo bảng và nhập điểm là khối này tự hiện.';
+  }
+
+  /* Vào / ra 12 tháng gần nhất */
+  charts.vr && charts.vr.destroy();
+  const bd = (d.bienDong || []).slice(-12);
+  charts.vr = new Chart($('chartVaoRa'), {
+    type:'bar',
+    data:{ labels: bd.map(x => { const [y,m] = x.thang.split('-'); return 'T' + Number(m) + '/' + y.slice(2); }),
+      datasets:[
+        {label:'Vào', data: bd.map(x => x.vao),  backgroundColor:'#1D9E75', borderRadius:3},
+        {label:'Ra',  data: bd.map(x => -x.ra), backgroundColor:'#E24B4A', borderRadius:3}]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'top', labels:{boxWidth:11, font:{size:11.5}}},
+        tooltip:{callbacks:{label:c => ' ' + c.dataset.label + ': ' + Math.abs(c.raw) + ' người'}}},
+      scales:{ y:{ticks:{precision:0, callback:v=>Math.abs(v), font:{size:11}}, grid:{color:'#F0EEEC'}},
+               x:{stacked:true, ticks:{font:{size:10}, maxRotation:0}, grid:{display:false}}}}});
 }
 
 /* ---------- Bộ lọc ---------- */
