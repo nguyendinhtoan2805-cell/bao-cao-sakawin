@@ -24,7 +24,13 @@ const COT_DUOC_DOC = [
   'Mã NV', 'Họ và tên', 'Giới tính', 'Trạng thái', 'Chức vụ', 'Phòng ban/Bộ phận',
   'Đội/Nhóm', 'Vị trí Chuyên môn', 'Onboarding date', 'Offboarding date',
   'Số năm', 'Thâm niên', 'Loại tuổi', 'Hình ảnh', 'Cơ chế KPIs', 'Ghi Chú',
+  /* Bốn cột dưới thêm theo yêu cầu 04/09/2026. Chỉ tài khoản có quyền
+     xem_ca_nhan mới nhận được — không có quyền thì XOÁ HẲN khỏi phản hồi API
+     chứ không ẩn ở giao diện. Quyền này mặc định TẮT, kể cả với người đã có
+     quyền xem trang Nhân sự. */
+  'Số điện thoại', 'Địa chỉ thường trú', 'Ngày/tháng/năm/sinh', 'Email',
 ];
+const COT_CA_NHAN = ['Số điện thoại', 'Địa chỉ thường trú', 'Ngày/tháng/năm/sinh', 'Email'];
 
 /* Trọng số đã chốt 03/09/2026. Đổi ở đây là đổi toàn hệ thống. */
 const TIEU_CHI_S = ['S1 Kết quả', 'S2 Chuyên môn', 'S3 Tốc độ', 'S4 Tự xử lý', 'S5 Đào tạo'];
@@ -49,15 +55,21 @@ const oCua = (s, w) => (s >= NGUONG ? (w >= NGUONG ? 1 : 4) : (w >= NGUONG ? 2 :
 const BIEN = 0.3;
 const satVach = (s, w) => Math.abs(s - NGUONG) < BIEN || Math.abs(w - NGUONG) < BIEN;
 
-/* ---------- đọc giá trị từ ô Lark ---------- */
+/* ---------- đọc giá trị từ ô Lark ----------
+   Cột công thức trả về lựa chọn thì Lark đưa nguyên MÃ NỘI BỘ dạng "opthDZgsDw"
+   thay vì nhãn tiếng Việt (đã lọt ra giao diện ở cột Loại tuổi). Không có cách
+   nào đổi mã đó thành nhãn qua API records, nên coi như rỗng — thà để trống còn
+   hơn hiện một chuỗi vô nghĩa cho người đọc. */
+const MA_NOI_BO = /^(opt|fld|tbl|rec|usr)[A-Za-z0-9]{6,}$/;
+const boMa = s => MA_NOI_BO.test(s) ? '' : s;
 const txt = v => {
   if (v == null) return '';
-  if (Array.isArray(v)) return v.map(x => (x && typeof x === 'object') ? (x.text ?? x.name ?? '') : String(x)).join(', ').trim();
+  if (Array.isArray(v)) return boMa(v.map(x => (x && typeof x === 'object') ? (x.text ?? x.name ?? x.link ?? '') : String(x)).join(', ').trim());
   if (typeof v === 'object') {
     if (Array.isArray(v.value)) return txt(v.value);
-    return String(v.text ?? v.name ?? v.value ?? '').trim();
+    return boMa(String(v.text ?? v.name ?? v.link ?? v.value ?? '').trim());
   }
-  return String(v).trim();
+  return boMa(String(v).trim());
 };
 const num = v => {
   if (v == null || v === '') return null;
@@ -154,9 +166,9 @@ const pick = (row, ...names) => {
 };
 /* Lọc mọi bản ghi xuống đúng danh sách trắng NGAY khi vừa đọc về, trước khi
    bất kỳ đoạn nào khác chạm vào. Cột ngoài danh sách coi như không tồn tại. */
-const locTrang = rows => rows.map(r => {
+const locTrang = (rows, cot = COT_DUOC_DOC) => rows.map(r => {
   const o = {};
-  for (const c of COT_DUOC_DOC) { const v = pick(r, c); if (v !== undefined) o[c] = v; }
+  for (const c of cot) { const v = pick(r, c); if (v !== undefined) o[c] = v; }
   return o;
 });
 const timBang = (bangs, ...tens) => {
@@ -286,7 +298,11 @@ module.exports = async (req, res) => {
     const bCF = timBang(bangs, 'Checklist Offboard Nhân sự', 'checklist offboard');
     if (!bNS) throw new Error('Không tìm thấy bảng "QUẢN LÝ THÔNG TIN NHÂN SỰ" trong Base.');
 
-    const recs = locTrang(await docBang(tk, BASE, bNS.table_id));
+    /* Quyền xem thông tin cá nhân. Không có thì bốn cột này bị loại ngay từ
+       bước lọc — dữ liệu không rời khỏi máy chủ, gọi thẳng API cũng không thấy. */
+    const coCaNhan = !!toi.quyen.xem_ca_nhan;
+    const cotDoc = coCaNhan ? COT_DUOC_DOC : COT_DUOC_DOC.filter(c => !COT_CA_NHAN.includes(c));
+    const recs = locTrang(await docBang(tk, BASE, bNS.table_id), cotDoc);
     const homNay = new Date();
 
     /* ---------- Hồ sơ nhân sự ---------- */
@@ -310,6 +326,14 @@ module.exports = async (req, res) => {
         thangLam: soThangGiua(on, off || homNay),
         thamNien: txt(pick(r, 'Thâm niên')),
         loaiTuoi: txt(pick(r, 'Loại tuổi')),
+        /* Bốn trường cá nhân — chỉ gán khi tài khoản có quyền xem_ca_nhan.
+           Không có quyền thì thuộc tính không tồn tại, chứ không phải chuỗi rỗng. */
+        ...(coCaNhan ? {
+          sdt: txt(pick(r, 'Số điện thoại')),
+          diaChi: txt(pick(r, 'Địa chỉ thường trú')),
+          ngaySinh: isoNgay(ngay(pick(r, 'Ngày/tháng/năm/sinh'))),
+          email: txt(pick(r, 'Email')),
+        } : {}),
         anh: anhTu(pick(r, 'Hình ảnh')),
         coCheKPI: txt(pick(r, 'Cơ chế KPIs')),
         ghiChu: txt(pick(r, 'Ghi Chú')),
@@ -563,7 +587,7 @@ module.exports = async (req, res) => {
         boPhan: boPhan.filter(trongTam), thamNien, bienDong,
         hopDong: hopDong.filter(trongTam),
         danhGia, daoTao, canhBao, gioiHan: gioiHan ? toi.boPhan : '',
-        coCL: { onboard: !!bCO, offboard: !!bCF },
+        coCL: { onboard: !!bCO, offboard: !!bCF }, coCaNhan,
       },
     });
   } catch (err) {

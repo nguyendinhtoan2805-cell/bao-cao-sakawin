@@ -405,18 +405,42 @@
 /* ---- Bảng danh sách nhân sự ----
    table-layout:fixed để chiều rộng cột do CSS quyết định, không phụ thuộc nội
    dung — tên dài ngắn khác nhau không còn kéo cột xô lệch giữa các dòng. */
-#tblNhanSu{table-layout:fixed;min-width:1420px}
-#tblNhanSu th:nth-child(1),#tblNhanSu td:nth-child(1){width:250px}
-#tblNhanSu th:nth-child(2),#tblNhanSu td:nth-child(2){width:158px}
-#tblNhanSu th:nth-child(3),#tblNhanSu td:nth-child(3){width:132px}
-#tblNhanSu th:nth-child(4),#tblNhanSu td:nth-child(4){width:auto;min-width:140px}
-#tblNhanSu th:nth-child(5),#tblNhanSu td:nth-child(5){width:104px}
-#tblNhanSu th:nth-child(6),#tblNhanSu td:nth-child(6){width:106px}
-#tblNhanSu th:nth-child(7),#tblNhanSu td:nth-child(7){width:118px}
-#tblNhanSu th:nth-child(8),#tblNhanSu td:nth-child(8){width:106px}
-#tblNhanSu th:nth-child(9),#tblNhanSu td:nth-child(9){width:120px}
-#tblNhanSu th:nth-child(10),#tblNhanSu td:nth-child(10){width:118px}
-#tblNhanSu th:nth-child(11),#tblNhanSu td:nth-child(11){width:74px}
+/* Chiều rộng khai theo THỨ TỰ CỘT bằng biến, để bật/tắt 4 cột cá nhân không
+   phải đánh lại số nth-child. Cột địa chỉ là cột duy nhất co giãn — nó dài nhất
+   nên để nó nuốt phần dư, thay vì một cột giữa bảng phình ra tạo khoảng trống. */
+#tblNhanSu{table-layout:auto;width:100%}
+#tblNhanSu th,#tblNhanSu td{white-space:nowrap}
+#tblNhanSu th:first-child,#tblNhanSu td:first-child{width:250px;white-space:normal}
+#tblNhanSu td.cut{max-width:230px;overflow:hidden;text-overflow:ellipsis}
+#tblNhanSu th.c,#tblNhanSu td.c{text-align:center}
+#tblNhanSu .lk{color:var(--red);text-decoration:none}
+#tblNhanSu .lk:hover{text-decoration:underline}
+/* Vương miện đánh dấu cấp trưởng nhóm trở lên */
+.vm{margin-right:5px;font-size:12px;vertical-align:1px}
+/* Chip giới tính & chức vụ */
+.chip.gt{background:#F1EFE8;color:#5F5E5A}
+.chip.gt.nu{background:#FBEAF0;color:#993556}
+.chip.gt.nam{background:#E6F1FB;color:#185FA5}
+.chip.cv{background:#F5F5F4;color:#78716C;font-weight:600}
+.chip.cv.ql{background:#EEEDFE;color:#3C3489;font-weight:700}
+
+/* .tw là khung cuộn ngang của bảng — được dùng từ đầu nhưng CHƯA HỀ có CSS,
+   nên bảng rộng hơn màn hình thì tràn thay vì cuộn. */
+.tw{overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch}
+.tw::-webkit-scrollbar{height:9px}
+.tw::-webkit-scrollbar-thumb{background:#D6D3D1;border-radius:5px}
+.tw::-webkit-scrollbar-track{background:#FAFAF9}
+
+/* ---- Nới khoảng cách cho dễ đọc ---- */
+.chip{padding:3px 10px;line-height:1.6;letter-spacing:.01em}
+#tblNhanSu tbody td{padding-top:13px!important;padding-bottom:13px!important;vertical-align:middle}
+#tblNhanSu thead th{padding-top:13px!important;padding-bottom:13px!important}
+#tblNhanSu .nsc .tn b{display:block;line-height:1.45;margin-bottom:2px}
+#tblNhanSu td .ph{margin-top:3px;line-height:1.5}
+#tblNhanSu .nsc{gap:11px}
+/* Đường kẻ dọc mờ giữa các nhóm cột, để mắt không lạc hàng khi bảng rộng */
+#tblNhanSu td,#tblNhanSu th{border-right:1px solid #F5F5F4}
+#tblNhanSu td:last-child,#tblNhanSu th:last-child{border-right:0}
 /* Thanh tiến độ checklist onboard/offboard */
 .tien{display:flex;align-items:center;gap:6px;justify-content:flex-end}
 .tien .tt{flex:none;width:44px;height:5px;background:#F1EFE8;border-radius:3px;overflow:hidden}
@@ -619,6 +643,19 @@ const tatTen = t => (String(t||'').trim().split(/\s+/).slice(-2).map(x=>x[0]||''
    onerror không chắc được gọi (đã sửa ở API). Đổi cách này cho chắc luôn, và để
    tên nhân sự đi qua data-attribute (được HTML escape sẵn) thay vì chèn thẳng
    vào JS string. */
+/* Chip giới tính — màu để quét mắt nhanh khi nhìn cả bảng, không phải để trang trí */
+function gioiChip(g){
+  const n = norm(g);
+  if (/^nu$/.test(n))  return '<span class="chip gt nu">Nữ</span>';
+  if (/^nam$/.test(n)) return '<span class="chip gt nam">Nam</span>';
+  return g ? `<span class="chip gt">${esc(g)}</span>` : '<span style="color:#A8A29E">—</span>';
+}
+/* Chip chức vụ — cấp quản lý tô đậm hẳn, nhân viên để nhạt cho khỏi rối mắt */
+function chucChip(cv, ld){
+  if (!cv) return '<span style="color:#A8A29E">—</span>';
+  return `<span class="chip cv${ld ? ' ql' : ''}">${esc(cv)}</span>`;
+}
+
 /* Thanh tiến độ checklist onboard/offboard. Xong hết thì xanh, dở dang thì cam —
    dở dang mới là thứ cần nhìn thấy, xong rồi thì không cần chú ý nữa. */
 function thanhTien(cl){
@@ -875,35 +912,45 @@ function veDanhSach(){
      Và tr dùng class riêng tr-ns — KHÔNG dùng lại .nsrow vì class đó có
      display:flex (dành cho danh sách div cạnh ma trận); đặt lên <tr> là các ô
      rơi khỏi bố cục bảng, co theo nội dung và lệch khỏi tiêu đề cột. */
-  $('tblNhanSu').innerHTML = `<thead><tr><th>Nhân sự</th><th>Bộ phận</th><th>Chức vụ</th>
-      <th>Vị trí chuyên môn</th><th>Cá nhân</th><th class="r">Vào từ</th><th class="r">Gắn bó</th>
-      <th class="r">Nghỉ từ</th><th class="r">Onboarding</th><th class="r">Trạng thái</th>
-      <th class="r">Ô</th></tr></thead><tbody>`
+  const cn = !!DATA.coCaNhan;   // có quyền xem SĐT / địa chỉ / ngày sinh / email không
+  const cotCN = cn ? '<th>Ngày sinh</th><th>Số điện thoại</th><th>Email</th><th>Địa chỉ thường trú</th>' : '';
+  const soCot = cn ? 15 : 11;
+
+  $('tblNhanSu').innerHTML = `<thead><tr><th>Nhân sự</th><th class="c">Giới tính</th>${cotCN}
+      <th>Bộ phận</th><th class="c">Chức vụ</th><th>Vị trí chuyên môn</th>
+      <th class="r">Vào từ</th><th class="r">Gắn bó</th><th class="r">Nghỉ từ</th>
+      <th class="r">Onboarding</th><th class="c">Trạng thái</th>
+      <th class="c">Ô</th></tr></thead><tbody>`
     + (ds.length ? ds.map((p, i) => {
         const o = mO.get(norm(p.ten));
         /* Người đang làm thì xem tiến độ onboarding, người đã nghỉ thì xem tiến độ
            chốt hồ sơ nghỉ — cùng một cột, vì hai việc không bao giờ trùng thời điểm. */
         const cl = p.conLam ? p.onbCL : p.offCL;
+        const oCN = cn ? `
+          <td>${esc(p.ngaySinh) || '—'}</td>
+          <td>${p.sdt ? `<a href="tel:${esc(p.sdt.replace(/\s/g,''))}" class="lk">${esc(p.sdt)}</a>` : '—'}</td>
+          <td class="cut">${p.email ? `<a href="mailto:${esc(p.email)}" class="lk" title="${esc(p.email)}">${esc(p.email)}</a>` : '—'}</td>
+          <td class="cut" title="${esc(p.diaChi || '')}">${esc(p.diaChi) || '—'}</td>` : '';
         return `<tr class="tr-ns" data-ten="${esc(p.ten)}">
           <td><div class="nsc"><span class="stt">${i + 1}.</span>${avatar(p, 'av')}<div class="tn">
-            <b>${esc(p.ten)}</b>${p.laLeader ? ' <span class="chip ld">QL</span>' : ''}
-            <span class="ph">${esc(p.ma || '—')}</span>
+            <b>${p.laLeader ? '<span class="vm" title="Cấp trưởng nhóm trở lên">👑</span>' : ''}${esc(p.ten)}</b>
+            <span class="ph">${esc(p.ma || '—')}${p.loaiTuoi ? ' · ' + esc(p.loaiTuoi) : ''}</span>
           </div></div></td>
+          <td class="c">${gioiChip(p.gioiTinh)}</td>${oCN}
           <td>${esc(p.boPhan)}${p.doiNhom ? '<span class="ph">' + esc(p.doiNhom) + '</span>' : ''}</td>
-          <td>${esc(p.chucVu) || '—'}</td>
+          <td class="c">${chucChip(p.chucVu, p.laLeader)}</td>
           <td>${esc(p.viTri) || '—'}</td>
-          <td>${esc(p.gioiTinh) || '—'}${p.loaiTuoi ? '<span class="ph">' + esc(p.loaiTuoi) + '</span>' : ''}</td>
           <td class="r">${esc(p.onboard) || '—'}</td>
           <td class="r">${thamNien(p.thangLam)}</td>
           <td class="r">${p.offboard ? esc(p.offboard) : '—'}</td>
           <td class="r">${thanhTien(cl)}</td>
-          <td class="r">${p.conLam
-              ? (p.trangThai ? esc(p.trangThai) : '<span class="chip ok">đang làm</span>')
-              : '<span class="chip hh">đã nghỉ</span>'}</td>
-          <td class="r">${o ? `<span class="chip" style="background:${MAU_O[o]}22;color:${MAU_O[o]}">Ô ${o}</span>` : '—'}</td>
+          <td class="c">${p.conLam
+              ? `<span class="chip ok">${esc(p.trangThai) || 'Đang làm'}</span>`
+              : '<span class="chip hh">Đã nghỉ</span>'}</td>
+          <td class="c">${o ? `<span class="chip" style="background:${MAU_O[o]}22;color:${MAU_O[o]}">Ô ${o}</span>` : '—'}</td>
         </tr>`;
       }).join('')
-      : '<tr><td colspan="11"><div class="trong">Không có ai khớp bộ lọc này.</div></td></tr>')
+      : `<tr><td colspan="${soCot}"><div class="trong">Không có ai khớp bộ lọc này.</div></td></tr>`)
     + '</tbody>';
 }
 
@@ -916,7 +963,8 @@ function moChiTiet(ten){
   const khoa = (DATA.daoTao.khoa || []).filter(x => norm(x.ten) === norm(ten));
 
   $('ctHead').innerHTML = `${avatar(p, 'big')}
-    <div><h3>${esc(p.ten)}${p.laLeader ? ' <span class="chip ld">Quản lý</span>' : ''}
+    <div><h3>${p.laLeader ? '<span class="vm" style="font-size:18px">👑</span> ' : ''}${esc(p.ten)}
+      ${p.gioiTinh ? gioiChip(p.gioiTinh) : ''}
       ${!p.conLam ? ' <span class="chip hh">đã nghỉ</span>' : ''}</h3>
       <p>${esc(p.viTri || p.chucVu)} · ${esc(p.boPhan)}${p.doiNhom ? ' · ' + esc(p.doiNhom) : ''}</p></div>
     <button class="ctx" id="ctDong" aria-label="Đóng">×</button>`;
@@ -926,9 +974,22 @@ function moChiTiet(ten){
     ${f('Mã nhân viên', p.ma)}${f('Chức vụ', p.chucVu)}
     ${f('Vị trí chuyên môn', p.viTri)}${f('Đội / Nhóm', p.doiNhom)}
     ${f('Vào từ', p.onboard)}${f('Gắn bó', thamNien(p.thangLam))}
-    ${f('Giới tính', p.gioiTinh)}${f('Nhóm tuổi', p.loaiTuoi)}
+    ${f('Nhóm tuổi', p.loaiTuoi)}
     ${f('Trạng thái', p.conLam ? (p.trangThai || 'Đang làm việc') : 'Đã nghỉ')}
     ${p.offboard ? f('Nghỉ từ', p.offboard) : ''}</div>`;
+
+  /* Khối thông tin cá nhân — chỉ có khi tài khoản được cấp quyền xem_ca_nhan */
+  if (DATA.coCaNhan && (p.sdt || p.email || p.ngaySinh || p.diaChi)){
+    h += `<div class="kyblock"><h4>📇 Thông tin liên hệ</h4><div class="ctgrid" style="margin:0">
+      ${f('Ngày sinh', p.ngaySinh)}
+      <div class="ctf"><div class="l">Số điện thoại</div><div class="v">${p.sdt
+        ? `<a href="tel:${esc(p.sdt.replace(/\s/g,''))}" class="lk">${esc(p.sdt)}</a>` : '—'}</div></div>
+      <div class="ctf"><div class="l">Email</div><div class="v" style="font-size:13px;word-break:break-all">${p.email
+        ? `<a href="mailto:${esc(p.email)}" class="lk">${esc(p.email)}</a>` : '—'}</div></div>
+      <div class="ctf" style="grid-column:1/-1"><div class="l">Địa chỉ thường trú</div>
+        <div class="v" style="font-size:14px;font-weight:500;line-height:1.55">${esc(p.diaChi) || '—'}</div></div>
+    </div></div>`;
+  }
 
   /* Checklist onboard / offboard — liệt kê từng bước, bước chưa xong hiện rõ */
   const veCL = (cl, tieuDe, icon) => {
