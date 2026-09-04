@@ -817,9 +817,18 @@ function veMaTran(){
     ctx.beginPath(); ctx.moveTo(x, a.top); ctx.lineTo(x, a.bottom);
     ctx.moveTo(a.left, y); ctx.lineTo(a.right, y); ctx.stroke(); ctx.setLineDash([]);
     ctx.font = '700 11px "Be Vietnam Pro",sans-serif';
-    ctx.fillStyle = '#185FA5'; ctx.textAlign = 'left';  ctx.fillText('Ô 2 · Kèm cặp', a.left + 8, a.top + 16);
-    ctx.fillStyle = '#0F6E56'; ctx.textAlign = 'right'; ctx.fillText('Ô 1 · Giao việc', a.right - 8, a.top + 16);
-    ctx.fillStyle = '#854F0B';                          ctx.fillText('Ô 4 · Khơi động lực', a.right - 8, a.bottom - 8);
+    /* Trục dọc là NĂNG LỰC (trên = cao), trục ngang là Ý CHÍ (phải = cao):
+         trên-trái  năng lực cao, ý chí thấp  → Ô 4 giỏi mà nản  → khơi động lực
+         trên-phải  cao cả hai                → Ô 1             → giao việc khó
+         dưới-phải  năng lực thấp, ý chí cao  → Ô 2 nhiệt mà non → kèm cặp, đào tạo
+         dưới-trái  thấp cả hai               → Ô 3             → xử lý gấp
+       Nhãn Ô 2 và Ô 4 trước đây bị đặt ngược góc. Điểm dữ liệu vẫn luôn vẽ đúng
+       chỗ và phân loại vẫn đúng — chỉ chữ ở góc sai, nhưng đọc biểu đồ theo chữ
+       thì ra kết luận ngược hẳn: người cần đào tạo lại tưởng là người cần
+       khơi động lực. */
+    ctx.fillStyle = '#854F0B'; ctx.textAlign = 'left';  ctx.fillText('Ô 4 · Giỏi mà nản → khơi động lực', a.left + 8, a.top + 16);
+    ctx.fillStyle = '#0F6E56'; ctx.textAlign = 'right'; ctx.fillText('Ô 1 · Giao việc khó', a.right - 8, a.top + 16);
+    ctx.fillStyle = '#185FA5';                          ctx.fillText('Ô 2 · Nhiệt mà non → kèm cặp', a.right - 8, a.bottom - 8);
     ctx.fillStyle = '#A32D2D'; ctx.textAlign = 'left';  ctx.fillText('Ô 3 · Xử lý gấp', a.left + 8, a.bottom - 8);
     ctx.restore();
   }};
