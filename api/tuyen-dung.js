@@ -202,6 +202,30 @@ module.exports = async (req, res) => {
     const toi = await A.canhCong(req, res, 'xem_tuyen_dung');
     if (!toi) return;
 
+    /* ===== Tệp CV / ảnh: /api/tuyen-dung?cv=<file_token> =====
+       Phải có endpoint riêng gác bằng xem_tuyen_dung. Trước đây trang trỏ nhầm
+       sang /api/nhan-su?anh= — endpoint đó đòi quyền xem_nhan_su, nên HR chỉ có
+       quyền tuyển dụng bấm vào là nhận 403 mà không hiểu vì sao. */
+    if (req.query && req.query.cv) {
+      try {
+        const ft = String(req.query.cv).replace(/[^A-Za-z0-9_-]/g, '');
+        if (!ft) return res.status(400).end('token không hợp lệ');
+        const tkf = await larkToken();
+        const r = await fetch(`${HOST}/open-apis/drive/v1/medias/${ft}/download`,
+          { headers: { Authorization: `Bearer ${tkf}` } });
+        if (!r.ok) return res.status(404).end('không tải được tệp');
+        const buf = Buffer.from(await r.arrayBuffer());
+        const kieu = r.headers.get('content-type') || 'application/octet-stream';
+        res.setHeader('Content-Type', kieu);
+        /* inline để PDF và ảnh hiện thẳng trong khung, không bị tải xuống */
+        res.setHeader('Content-Disposition', 'inline');
+        res.setHeader('Cache-Control', 'private, max-age=3600');
+        return res.status(200).end(buf);
+      } catch (err) {
+        return res.status(502).end('lỗi tải tệp: ' + String(err.message || err));
+      }
+    }
+
     const tk = await larkToken();
     const bangs = await dsBang(tk, BASE);
     const bUV = timBang(bangs, 'ỨNG VIÊN', 'ung vien');
@@ -298,12 +322,21 @@ module.exports = async (req, res) => {
     /* Tên 3 tiêu chí lõi theo vị trí — có bảng JD thì dùng, không có thì
        hiện tên chung. Không bắt buộc. */
     const loiTheoViTri = new Map();
+    const jdTheoViTri = new Map();
     if (bJD) {
       for (const { f } of await docBang(tk, BASE, bJD.table_id)) {
         const vt = txt(pick(f, 'Vị trí', 'Vị trí tuyển dụng', 'Tên vị trí'));
         if (!vt) continue;
         const l = [1, 2, 3].map(i => txt(pick(f, `Tiêu chí lõi ${i}`))).filter(Boolean);
         if (l.length) loiTheoViTri.set(norm(vt), l);
+        /* Khung lương và yêu cầu bắt buộc — để phiếu tóm tắt đối chiếu được.
+           Không có cũng không sao, chỉ là phiếu bớt thông tin. */
+        jdTheoViTri.set(norm(vt), {
+          luongTu: num(pick(f, 'Mức lương từ', 'Lương từ')),
+          luongDen: num(pick(f, 'Mức lương đến', 'Lương đến')),
+          batBuoc: txt(pick(f, 'Yêu cầu bắt buộc', 'Must-have'))
+            .split(/[\n·;]+/).map(s => s.trim()).filter(Boolean),
+        });
       }
     }
 
@@ -313,7 +346,46 @@ module.exports = async (req, res) => {
       const nPV = ngay(pick(f, 'Ngày phỏng vấn'));
       const viTri = txt(pick(f, 'Vị trí ứng tuyển'));
       const cv = pick(f, 'File CV');
+      const anh = pick(f, 'Ảnh');
+      const luong = num(pick(f, 'Mức lương mong muốn'));
+      const hieuBiet = txt(pick(f, 'Hiểu biết Sakawin'));
+      const jd = jdTheoViTri.get(norm(viTri));
+      const namKN = num(pick(f, 'Số năm kinh nghiệm'));
+
+      /* ─── PHIẾU TÓM TẮT ───
+         Ghép dữ liệu Lark với ba nguyên tắc trong SOP, để Lead nhìn là quyết
+         được mà không phải mở Lark hay đọc hết CV:
+           · đối chiếu must-have TRƯỚC (Giai đoạn 2 — loại nhanh nếu thiếu)
+           · lương trong hay vượt khung JD (Mẫu sơ vấn, phần D)
+           · gate hiểu biết Sakawin (bài học case Đinh Diễm Quỳnh)
+         KHÔNG đọc nội dung CV — CV là dữ liệu cá nhân, không gửi đi đâu cả. */
+      const co = [];
+      if (namKN != null) co.push({ muc: 'tin', nhan: 'Kinh nghiệm', gt: namKN + ' năm' });
+      const ctyCu = txt(pick(f, 'Công ty gần nhất'));
+      if (ctyCu) co.push({ muc: 'tin', nhan: 'Công ty gần nhất', gt: ctyCu });
+
+      if (luong != null && jd && (jd.luongTu != null || jd.luongDen != null)) {
+        const tren = jd.luongDen != null && luong > jd.luongDen;
+        const duoi = jd.luongTu != null && luong < jd.luongTu;
+        co.push({ muc: tren ? 'canh' : 'tot',
+          nhan: 'Lương mong muốn',
+          gt: tren ? 'vượt khung JD' : (duoi ? 'dưới khung JD' : 'trong khung JD') });
+      }
+      if (!hieuBiet && !['Mới nhận'].includes(tt))
+        co.push({ muc: 'canh', nhan: 'Gate Sakawin', gt: 'chưa ghi mức hiểu biết' });
+      else if (/chua/.test(norm(hieuBiet)))
+        co.push({ muc: 'canh', nhan: 'Gate Sakawin', gt: 'chưa tìm hiểu — cần giao mini-task' });
+      else if (hieuBiet)
+        co.push({ muc: 'tot', nhan: 'Gate Sakawin', gt: hieuBiet });
+
+      if (!cv || !(Array.isArray(cv) && cv.length))
+        co.push({ muc: 'canh', nhan: 'Hồ sơ', gt: 'chưa đính CV' });
+
       return {
+        anh: (Array.isArray(anh) && anh[0] && anh[0].file_token) ? anh[0].file_token : '',
+        namKN, ctyCu, tomTat: txt(pick(f, 'Tóm tắt nhanh')),
+        co, batBuoc: (jd && jd.batBuoc.length) ? jd.batBuoc : null,
+        khungLuong: jd ? { tu: jd.luongTu, den: jd.luongDen } : null,
         id, ten: txt(pick(f, 'Họ và tên')),
         sdt: txt(pick(f, 'Số điện thoại')), email: txt(pick(f, 'Email')),
         viTri, boPhan: txt(pick(f, 'Bộ phận')) || '(chưa phân)',

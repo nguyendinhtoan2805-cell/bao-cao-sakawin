@@ -491,6 +491,63 @@
 tbody tr.tong td{background:#FAFAF9!important;font-weight:800;border-top:2px solid var(--line)}
 .theme-dark tbody tr.tong td{background:#1A1615!important}
 .trong{padding:34px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
+
+/* ---- Hồ sơ hai cột: CV bên trái, thông tin + nút bên phải ---- */
+.hsbox{max-width:1180px}
+.hscot{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:stretch}
+.hscv{border-right:1px solid var(--line);background:#F5F4F2;display:flex;flex-direction:column;min-height:520px}
+.theme-dark .hscv{background:#171413}
+.hsbody{max-height:640px;overflow-y:auto}
+@media(max-width:940px){
+  .hscot{grid-template-columns:1fr}
+  .hscv{border-right:0;border-bottom:1px solid var(--line);min-height:400px}
+  .hsbody{max-height:none}
+}
+.cvbox{position:relative;flex:1;display:flex;flex-direction:column;min-height:0}
+.cvpdf{width:100%;flex:1;border:0;min-height:520px;background:#fff}
+.cvimg{width:100%;height:auto;display:block;object-fit:contain}
+.cvbox:has(.cvimg){overflow-y:auto;padding:14px}
+.cvmo{position:absolute;right:12px;bottom:12px;background:rgba(28,25,23,.86);color:#fff;
+  font-size:12px;font-weight:600;padding:6px 12px;border-radius:7px;text-decoration:none}
+.cvmo:hover{background:#1C1917}
+.cvtrong{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:11px;padding:40px 28px;text-align:center}
+.cvtrong b{font-size:15px;font-weight:700}
+.cvtrong span{font-size:13px;color:var(--muted);line-height:1.65;max-width:34ch}
+.cvtrong code{font-family:ui-monospace,monospace;font-size:12px;background:var(--line);
+  padding:1px 6px;border-radius:4px}
+.cvtrong a{margin-top:6px}
+
+/* Avatar trong hồ sơ và trên thẻ */
+.av2,.av2f{width:52px;height:52px;border-radius:50%;flex:none}
+.av2{object-fit:cover;background:#F1EFE8}
+.av2f{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px}
+.avt,.avtf{width:30px;height:30px;border-radius:50%;flex:none}
+.avt{object-fit:cover;background:#F1EFE8}
+.avtf{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px}
+
+/* Phiếu tóm tắt */
+.blk.tomtat{border-color:#C7D2FE;background:#F8FAFF}
+.theme-dark .blk.tomtat{border-color:#312E5F;background:#16162A}
+.cogi{display:flex;flex-direction:column;gap:7px}
+.ci{display:flex;align-items:baseline;gap:9px;font-size:13px;line-height:1.5}
+.ci .ic{flex:none;width:16px;text-align:center}
+.ci .nh{color:var(--muted);flex:none;min-width:118px}
+.ci b{font-weight:700}
+.ci.canh b{color:#A2620C}
+.ci.tot b{color:#0F6E56}
+.mh{margin-top:12px;padding-top:11px;border-top:1px dashed var(--line)}
+.mh .l{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.04em;margin-bottom:6px}
+.mh ul{margin:0;padding-left:19px;font-size:13px;line-height:1.7}
+.ph2{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:3px}
+.lk{color:var(--red);text-decoration:none}
+.lk:hover{text-decoration:underline}
+
+/* Thẻ trên bảng tiến độ có avatar */
+.uvcard .dau{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.uvcard .dau b{margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 body.chup #hoSo,body.chup .srch,body.chup .bao{display:none!important}
 </style>
 <body class="locked">
@@ -582,7 +639,10 @@ body.chup #hoSo,body.chup .srch,body.chup .bao{display:none!important}
 
 <div id="hoSo"><div class="hsbox">
   <div class="hshead" id="hsHead"></div>
-  <div class="hsbody" id="hsBody"></div>
+  <div class="hscot">
+    <div class="hscv" id="hsCV"></div>
+    <div class="hsbody" id="hsBody"></div>
+  </div>
   <div class="lydo" id="lyDoBox"></div>
   <div class="acts" id="hsActs"></div>
 </div></div>
@@ -684,7 +744,7 @@ function the(p){
   const gap = p.gioCho != null && ((p.trangThai === 'Mới nhận' && p.gioCho > 48)
            || (p.trangThai === 'Đã phỏng vấn' && p.gioCho > 48));
   return `<div class="uvcard" data-id="${esc(p.id)}" style="--vc:${MAU[p.trangThai] || '#A8A29E'}">
-    <b>${esc(p.ten)}</b>
+    <div class="dau">${avatar(p, 'avt')}<b>${esc(p.ten)}</b></div>
     <div class="mt">${esc(p.viTri) || 'chưa rõ vị trí'}${p.boPhan !== '(chưa phân)' ? ' · ' + esc(p.boPhan) : ''}</div>
     <div class="tag">
       <span class="chip" style="background:#F5F5F4;color:#78716C">${esc(p.nguon)}</span>
@@ -758,27 +818,85 @@ function veLyDo(){
 }
 
 /* ---------- Hồ sơ ứng viên ---------- */
+/* Avatar: có ảnh thì dùng, không thì chữ cái màu — không cần dữ liệu gì thêm */
+const MAU_AV = ['#C8102E','#E4657A','#B45309','#1D4ED8','#1A7F4B','#7C3AED','#0891B2','#DB2777','#65A30D','#EA580C'];
+const mauTen = t => MAU_AV[[...norm(t)].reduce((a,c)=>a+c.charCodeAt(0),0) % MAU_AV.length];
+const tatTen = t => (String(t||'').trim().split(/\s+/).slice(-2).map(x=>x[0]||'').join('') || '?').toUpperCase();
+function avaLoi(img){
+  const d = img.dataset, v = document.createElement('div');
+  v.className = d.cls + 'f'; v.style.background = d.bg; v.textContent = d.txt;
+  img.replaceWith(v);
+}
+function avatar(p, cls){
+  if (!p.anh) return `<div class="${cls}f" style="background:${mauTen(p.ten)}">${esc(tatTen(p.ten))}</div>`;
+  return `<img class="${cls}" src="/api/tuyen-dung?cv=${encodeURIComponent(p.anh)}" alt="" loading="lazy"
+    data-cls="${cls}" data-bg="${mauTen(p.ten)}" data-txt="${esc(tatTen(p.ten))}" onerror="avaLoi(this)">`;
+}
+
+/* Đoán cách hiển thị CV theo đuôi tệp. Word thì trình duyệt chịu — chỉ tải về. */
+function khungCV(p){
+  if (!p.cv) return `<div class="cvtrong">
+    <div style="font-size:34px;line-height:1">📄</div>
+    <b>Chưa đính CV</b>
+    <span>HR cần tải tệp CV lên cột <code>File CV</code> trong Lark thì mới xem được ở đây.</span></div>`;
+
+  const url = '/api/tuyen-dung?cv=' + encodeURIComponent(p.cv);
+  const duoi = (p.cvTen || '').toLowerCase().match(/\.([a-z0-9]+)$/);
+  const e = duoi ? duoi[1] : '';
+
+  if (['jpg','jpeg','png','webp','gif'].includes(e))
+    return `<div class="cvbox"><img src="${url}" alt="CV ${esc(p.ten)}" class="cvimg"></div>`;
+
+  if (['doc','docx','xls','xlsx'].includes(e))
+    return `<div class="cvtrong">
+      <div style="font-size:34px;line-height:1">📎</div>
+      <b>${esc(p.cvTen)}</b>
+      <span>Trình duyệt không mở được tệp Word ngay tại đây. Tải về để xem, hoặc
+        nhờ HR lưu CV dạng <b>PDF</b> khi tải lên — lần sau sẽ hiện thẳng ở khung này.</span>
+      <a class="act ghi" href="${url}" download="${esc(p.cvTen)}" style="text-decoration:none">⬇ Tải CV</a></div>`;
+
+  /* PDF và mọi thứ còn lại — cứ thử nhúng, trình duyệt lo phần đọc */
+  return `<div class="cvbox"><iframe src="${url}" title="CV ${esc(p.ten)}" class="cvpdf"></iframe>
+    <a class="cvmo" href="${url}" target="_blank" rel="noopener">Mở tệp ở tab mới ↗</a></div>`;
+}
+
 function moHoSo(id){
   const p = DATA.uv.find(x => x.id === id);
   if (!p) return;
   MO = p; LYDO = '';
 
-  $('hsHead').innerHTML = `<div style="min-width:0">
+  $('hsHead').innerHTML = `${avatar(p, 'av2')}
+    <div style="min-width:0;flex:1">
       <h3>${esc(p.ten)}</h3>
       <p>${esc(p.viTri) || 'chưa rõ vị trí'} · ${esc(p.boPhan)} · nguồn ${esc(p.nguon)}</p>
       <p style="margin-top:8px"><span class="chip" style="background:${MAU[p.trangThai]}22;color:${MAU[p.trangThai]}">
-        ${esc(p.trangThai)}</span></p>
+        ${esc(p.trangThai)}</span>${p.gioCho != null ? ` <span class="chip" style="background:#F5F5F4;color:#78716C">chờ ${choLau(p.gioCho)}</span>` : ''}</p>
     </div><button class="hsx" id="hsDong" aria-label="Đóng">×</button>`;
 
+  /* ── Phiếu tóm tắt: thứ Lead đọc trước khi quyết ── */
+  const ICO = {tot:'✅', canh:'⚠️', tin:'·'};
+  let tt = `<div class="blk tomtat"><h5>📌 Tóm tắt để duyệt</h5>`;
+  if (p.co && p.co.length)
+    tt += `<div class="cogi">${p.co.map(c => `<div class="ci ${c.muc}">
+      <span class="ic">${ICO[c.muc]}</span><span class="nh">${esc(c.nhan)}</span>
+      <b>${esc(c.gt)}</b></div>`).join('')}</div>`;
+  if (p.tomTat) tt += `<div class="txt" style="margin-top:11px">${esc(p.tomTat)}</div>`;
+  if (p.batBuoc)
+    tt += `<div class="mh"><div class="l">Yêu cầu bắt buộc của vị trí — đối chiếu trước khi đọc kỹ</div>
+      <ul>${p.batBuoc.map(b => `<li>${esc(b)}</li>`).join('')}</ul></div>`;
+  if (!p.co.length && !p.tomTat && !p.batBuoc)
+    tt += `<div class="txt" style="color:#78716C">Chưa đủ dữ liệu để tóm tắt. Đọc CV bên trái để duyệt.</div>`;
+  tt += `</div>`;
+
   const f = (l, v) => `<div class="i"><div class="l">${l}</div><div class="v">${v || '—'}</div></div>`;
-  let h = `<div class="ff">
+  let h = tt + `<div class="ff">
     ${f('Ngày nhận CV', esc(p.nhanCV))}
-    ${f('Số điện thoại', p.sdt ? `<a href="tel:${esc(p.sdt.replace(/\s/g,''))}" style="color:var(--red);text-decoration:none">${esc(p.sdt)}</a>` : '')}
-    ${f('Email', p.email ? `<a href="mailto:${esc(p.email)}" style="color:var(--red);text-decoration:none;font-size:13px;word-break:break-all">${esc(p.email)}</a>` : '')}
-    ${f('Lương mong muốn', tien(p.luongMongMuon))}
-    ${f('Hiểu biết Sakawin', p.hieuBiet ? esc(p.hieuBiet)
-        : '<span style="color:#A2620C;font-size:13px">chưa ghi</span>')}
-    ${p.cv ? `<div class="i"><div class="l">Hồ sơ</div><div class="v"><a href="/api/nhan-su?anh=${encodeURIComponent(p.cv)}" target="_blank" rel="noopener" style="color:var(--red);text-decoration:none;font-size:13.5px">📄 Mở CV</a></div></div>` : ''}
+    ${f('Số điện thoại', p.sdt ? `<a href="tel:${esc(p.sdt.replace(/\s/g,''))}" class="lk">${esc(p.sdt)}</a>` : '')}
+    ${f('Email', p.email ? `<a href="mailto:${esc(p.email)}" class="lk" style="font-size:13px;word-break:break-all">${esc(p.email)}</a>` : '')}
+    ${f('Lương mong muốn', p.luongMongMuon ? tien(p.luongMongMuon)
+        + (p.khungLuong && (p.khungLuong.tu || p.khungLuong.den)
+           ? `<span class="ph2">khung JD ${p.khungLuong.tu ? tien(p.khungLuong.tu) : '?'}–${p.khungLuong.den ? tien(p.khungLuong.den) : '?'}</span>` : '')
+        : '')}
   </div>`;
 
   if (p.ketQuaSoVan)
@@ -787,11 +905,11 @@ function moHoSo(id){
   if (p.diemTong != null || p.diem.some(x => x != null)){
     const ten = p.tenLoi;
     h += `<div class="blk"><h5>🎯 Scorecard
-        ${p.diemTong != null ? `<span class="chip" style="background:#EEF2FF;color:#3730A3">${d2(p.diemTong)} / 10</span>` : '<span class="chip" style="background:#FAEEDA;color:#854F0B">chấm chưa đủ</span>'}
+        ${p.diemTong != null ? `<span class="chip" style="background:#EEF2FF;color:#3730A3">${d2(p.diemTong)} / 10</span>`
+                             : '<span class="chip" style="background:#FAEEDA;color:#854F0B">chấm chưa đủ</span>'}
         ${p.nguoiPV ? `<span style="margin-left:auto;font-size:11.5px;color:#78716C;font-weight:400">${esc(p.nguoiPV)}</span>` : ''}</h5>
       <div class="sc">${DATA.tieuChi.map((t, i) => {
-        const nhan = (ten && i < 3) ? ten[i] : t.ten;
-        const v = p.diem[i];
+        const nhan = (ten && i < 3) ? ten[i] : t.ten, v = p.diem[i];
         return `<div class="it"><div class="lb"><span>${esc(nhan)} · ${Math.round(t.ts*100)}%</span>
           <b>${v == null ? '—' : v}</b></div>
           <div class="bt"><div class="bf" style="width:${(v||0)*10}%"></div></div></div>`;
@@ -804,6 +922,7 @@ function moHoSo(id){
     <div class="txt">${esc(p.lyDoLoai)}</div></div>`;
   if (p.lichSu)   h += `<div class="blk"><h5>🕘 Lịch sử</h5><div class="lsu">${esc(p.lichSu)}</div></div>`;
 
+  $('hsCV').innerHTML = khungCV(p);
   $('hsBody').innerHTML = h;
   veNut(p);
   $('lyDoBox').className = 'lydo';
