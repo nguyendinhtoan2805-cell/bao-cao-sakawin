@@ -367,7 +367,11 @@
 
 /* ============ Trang Tuyển dụng ============ */
 .ch{margin-bottom:22px}
-.ch h2{margin:0 0 9px;font-size:19px;font-weight:800;letter-spacing:-.01em;line-height:1.35}
+.ch h2{margin:0 0 11px;display:inline-flex;align-items:center;gap:9px;
+  background:var(--red);color:#fff;padding:9px 17px;border-radius:10px;
+  font-size:16.5px;font-weight:800;letter-spacing:.01em;line-height:1.3;
+  box-shadow:0 3px 10px rgba(200,16,46,.24)}
+.theme-dark .ch h2{box-shadow:0 3px 12px rgba(255,92,116,.18)}
 .ch p{margin:0;font-size:13.5px;color:var(--muted);line-height:1.65;max-width:80ch}
 .cb{margin:0}
 .r{text-align:right} th.r,td.r{text-align:right}
@@ -444,19 +448,26 @@ tr.itnguon td{background:#FFFBEB}
 .lichnav b{font-size:14px;font-weight:700;margin:0 4px}
 .lichluoi{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;
   background:var(--line);border:1px solid var(--line-2);border-radius:12px;overflow:hidden}
-.ngay{background:var(--card);min-height:104px;padding:9px 9px 11px;display:flex;
-  flex-direction:column;gap:6px}
+/* Hàng tên thứ, dính trên đầu khi cuộn */
+.dauthu{background:var(--red-tint);color:var(--red);font-size:11px;font-weight:800;
+  letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:8px 4px}
+.theme-dark .dauthu{background:#2A1216}
+/* Ngày của tháng khác — vẫn hiện để tuần liền mạch, nhưng lùi hẳn về sau */
+.ngay.ngoaithang{background:#FCFBFA;opacity:.45}
+.theme-dark .ngay.ngoaithang{background:#151312}
+.ngay{background:var(--card);min-height:88px;padding:7px 7px 9px;display:flex;
+  flex-direction:column;gap:5px}
 .ngay.cuoituan{background:#FAFAF9}
 .theme-dark .ngay.cuoituan{background:#1A1615}
 .ngay.quakhu{opacity:.55}
 .ngay.homnay{background:var(--red-tint);box-shadow:inset 0 0 0 2px var(--red)}
 .theme-dark .ngay.homnay{background:#2A1216}
-.ngay .dn{display:flex;align-items:baseline;gap:6px;font-size:11px;color:var(--muted)}
+.ngay .dn{display:flex;align-items:baseline;gap:3px;font-size:10.5px;color:var(--muted)}
 .ngay .dn b{font-size:15px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
 .ngay.homnay .dn b,.ngay.homnay .dn{color:var(--red)}
 .ngay .dn .th{margin-left:auto;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
-.buoi{background:#EFF5FE;border-left:3px solid #2563EB;border-radius:0 6px 6px 0;
-  padding:5px 7px;cursor:pointer;transition:.12s}
+.buoi{background:#EFF5FE;border-left:3px solid #2563EB;border-radius:0 5px 5px 0;
+  padding:4px 6px;cursor:pointer;transition:.12s}
 .theme-dark .buoi{background:#132030}
 .buoi:hover{transform:translateX(1px);box-shadow:0 3px 9px rgba(0,0,0,.12)}
 .buoi.qua{background:#FDF0F0;border-left-color:#A32D2D}
@@ -465,13 +476,14 @@ tr.itnguon td{background:#FFFBEB}
 .buoi.qua .g{color:#A32D2D}
 .buoi .t{font-size:11.5px;font-weight:600;line-height:1.35;margin-top:1px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.buoi .v{font-size:10.5px;color:var(--muted);line-height:1.35;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Ô lịch tháng hẹp hơn nên chỉ còn giờ và tên; vị trí xem ở tooltip */
+.buoi .t{font-size:11px}
 .lichtrong{grid-column:1/-1;background:var(--card);padding:30px;text-align:center;
   color:var(--muted);font-size:13px;line-height:1.6}
 @media(max-width:820px){
-  .lichluoi{grid-template-columns:repeat(7,minmax(96px,1fr));overflow-x:auto}
-  .ngay{min-height:86px}
+  .lichluoi{grid-template-columns:repeat(7,minmax(88px,1fr));overflow-x:auto}
+  .ngay{min-height:74px}
+  .ch h2{font-size:15px;padding:8px 14px}
 }
 
 /* Hộp chọn lịch khi bấm Hẹn phỏng vấn — dùng chung khung với hộp chọn lý do */
@@ -705,14 +717,14 @@ body.chup #hoSo,body.chup .srch,body.chup .bao{display:none!important}
   <div class="card" id="cardLich">
     <div class="ch">
       <h2>Lịch phỏng vấn</h2>
-      <p id="lichSub">Hai tuần một lượt — hẹn cho tuần sau vẫn nhìn thấy chỗ trống.</p>
+      <p id="lichSub">Cả tháng một lượt — nhìn ra ngay tuần nào đang trống để xếp thêm.</p>
     </div>
     <div class="cb">
       <div class="lichnav">
-        <button class="btn" id="lichTruoc">← 2 tuần trước</button>
+        <button class="btn" id="lichTruoc">← Tháng trước</button>
         <b id="lichKhoang"></b>
-        <button class="btn" id="lichNay">Về hiện tại</button>
-        <button class="btn" id="lichSau">2 tuần sau →</button>
+        <button class="btn" id="lichNay">Tháng này</button>
+        <button class="btn" id="lichSau">Tháng sau →</button>
       </div>
       <div class="lichluoi" id="lichLuoi"></div>
     </div>
@@ -880,7 +892,8 @@ const GIO_LAM = (() => {
   for (let h = 8; h <= 18; h++){ g.push(p2(h) + ':00'); if (h < 18) g.push(p2(h) + ':30'); }
   return g;
 })();
-let LECH_TUAN = 0;                       // 0 = tuần này, -1 = lùi 2 tuần…
+let LECH_THANG = 0;                      // 0 = tháng này, -1 = tháng trước…
+const THU_DAY = ['T2','T3','T4','T5','T6','T7','CN'];
 
 function p2(n){ return String(n).padStart(2, '0'); }
 const isoCua = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
@@ -894,41 +907,45 @@ function thuHai(d){
 
 function veLich(){
   const homNay = isoCua(new Date());
-  const dau = thuHai(new Date());
-  dau.setDate(dau.getDate() + LECH_TUAN * 14);
+  const goc = new Date();
+  const moc = new Date(goc.getFullYear(), goc.getMonth() + LECH_THANG, 1);
+  const thang = moc.getMonth(), nam = moc.getFullYear();
+
+  /* Lưới bắt đầu từ thứ 2 của tuần chứa ngày 1, kết thúc hết tuần chứa ngày
+     cuối tháng — nên có tháng 5 hàng, tháng 6 hàng. */
+  const dau = thuHai(moc);
+  const cuoi = new Date(nam, thang + 1, 0);
+  const het = thuHai(cuoi); het.setDate(het.getDate() + 6);
+  const soNgay = Math.round((het - dau) / 86400000) + 1;
 
   const ngay = [];
-  for (let i = 0; i < 14; i++){
-    const d = new Date(dau); d.setDate(dau.getDate() + i);
-    ngay.push(d);
-  }
-  const tu = isoCua(ngay[0]), den = isoCua(ngay[13]);
-  $('lichKhoang').textContent = `${ngay[0].getDate()}/${ngay[0].getMonth()+1}`
-    + ` – ${ngay[13].getDate()}/${ngay[13].getMonth()+1}/${ngay[13].getFullYear()}`;
+  for (let i = 0; i < soNgay; i++){ const d = new Date(dau); d.setDate(dau.getDate() + i); ngay.push(d); }
+  const tu = isoCua(ngay[0]), den = isoCua(ngay[ngay.length - 1]);
+  $('lichKhoang').textContent = `Tháng ${thang + 1}/${nam}`;
 
-  /* Chỉ lấy hồ sơ còn đang chờ phỏng vấn hoặc đã phỏng vấn — người bị loại
-     rồi thì không chiếm chỗ trên lịch nữa */
+  /* Người đã bị loại thì không chiếm chỗ trên lịch nữa */
   const co = DATA.uv.filter(x => x.lich && ['Hẹn phỏng vấn','Đã phỏng vấn'].includes(x.trangThai));
-  const trongKhoang = co.filter(x => x.lich >= tu && x.lich <= den);
+  const trongThang = co.filter(x => x.lich >= isoCua(new Date(nam, thang, 1))
+                                 && x.lich <= isoCua(cuoi));
+  $('lichSub').innerHTML = trongThang.length
+    ? `<b>${trongThang.length}</b> buổi trong tháng ${thang + 1}. Bấm vào buổi để mở hồ sơ.`
+    : `Chưa có buổi phỏng vấn nào trong tháng ${thang + 1}.`;
 
-  $('lichSub').innerHTML = trongKhoang.length
-    ? `<b>${trongKhoang.length}</b> buổi trong hai tuần này. Bấm vào buổi để mở hồ sơ.`
-    : 'Chưa có buổi phỏng vấn nào trong hai tuần này.';
-
-  $('lichLuoi').innerHTML = ngay.map(d => {
-    const iso = isoCua(d), cuoi = d.getDay() === 0 || d.getDay() === 6;
-    const buoi = trongKhoang.filter(x => x.lich === iso)
+  const trongLuoi = co.filter(x => x.lich >= tu && x.lich <= den);
+  const dauThu = THU_DAY.map(t => `<div class="dauthu">${t}</div>`).join('');
+  $('lichLuoi').innerHTML = dauThu + ngay.map(d => {
+    const iso = isoCua(d), cuoiTuan = d.getDay() === 0 || d.getDay() === 6;
+    const ngoai = d.getMonth() !== thang;
+    const buoi = trongLuoi.filter(x => x.lich === iso)
       .sort((a, c) => (a.lichGio || '').localeCompare(c.lichGio || ''));
-    const lop = ['ngay', cuoi ? 'cuoituan' : '', iso === homNay ? 'homnay' : '',
-                 iso < homNay ? 'quakhu' : ''].filter(Boolean).join(' ');
+    const lop = ['ngay', cuoiTuan ? 'cuoituan' : '', iso === homNay ? 'homnay' : '',
+                 ngoai ? 'ngoaithang' : '', (iso < homNay && !ngoai) ? 'quakhu' : ''].filter(Boolean).join(' ');
     return `<div class="${lop}">
-      <div class="dn"><b>${d.getDate()}</b><span>/${d.getMonth()+1}</span>
-        <span class="th">${THU[d.getDay()]}</span></div>
+      <div class="dn"><b>${d.getDate()}</b>${d.getDate() === 1 ? `<span>/${d.getMonth()+1}</span>` : ''}</div>
       ${buoi.map(x => `<div class="buoi${iso < homNay && x.trangThai === 'Hẹn phỏng vấn' ? ' qua' : ''}"
           data-ten="${esc(x.id)}" title="${esc(x.ten)} · ${esc(x.viTri)}${x.hinhThuc ? ' · ' + esc(x.hinhThuc) : ''}">
         <div class="g">${esc(x.lichGio)}${x.hinhThuc === 'Online' ? ' 💻' : ''}</div>
         <div class="t">${esc(x.ten)}</div>
-        <div class="v">${esc(x.viTri)}</div>
       </div>`).join('')}
     </div>`;
   }).join('');
@@ -1386,9 +1403,9 @@ async function sync(){
 
 /* ================= Sự kiện ================= */
 $('btnSync').addEventListener('click', () => sync());
-$('lichTruoc').addEventListener('click', () => { LECH_TUAN--; veLich(); });
-$('lichSau').addEventListener('click', () => { LECH_TUAN++; veLich(); });
-$('lichNay').addEventListener('click', () => { LECH_TUAN = 0; veLich(); });
+$('lichTruoc').addEventListener('click', () => { LECH_THANG--; veLich(); });
+$('lichSau').addEventListener('click', () => { LECH_THANG++; veLich(); });
+$('lichNay').addEventListener('click', () => { LECH_THANG = 0; veLich(); });
 $('lichLuoi').addEventListener('click', e => {
   const o = e.target.closest('.buoi[data-ten]'); if (o) moHoSo(o.dataset.ten);
 });
