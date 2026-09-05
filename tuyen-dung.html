@@ -438,6 +438,52 @@ tr.itnguon td{background:#FFFBEB}
 .theme-dark tr.itnguon td{background:#241D10}
 #tblNguon td:nth-child(2){width:180px}
 #tblViTri td:nth-child(5){width:190px}
+
+/* ---- Lịch phỏng vấn: 2 tuần, 7 cột ---- */
+.lichnav{display:flex;align-items:center;gap:11px;margin-bottom:16px;flex-wrap:wrap}
+.lichnav b{font-size:14px;font-weight:700;margin:0 4px}
+.lichluoi{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line-2);border-radius:12px;overflow:hidden}
+.ngay{background:var(--card);min-height:104px;padding:9px 9px 11px;display:flex;
+  flex-direction:column;gap:6px}
+.ngay.cuoituan{background:#FAFAF9}
+.theme-dark .ngay.cuoituan{background:#1A1615}
+.ngay.quakhu{opacity:.55}
+.ngay.homnay{background:var(--red-tint);box-shadow:inset 0 0 0 2px var(--red)}
+.theme-dark .ngay.homnay{background:#2A1216}
+.ngay .dn{display:flex;align-items:baseline;gap:6px;font-size:11px;color:var(--muted)}
+.ngay .dn b{font-size:15px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.ngay.homnay .dn b,.ngay.homnay .dn{color:var(--red)}
+.ngay .dn .th{margin-left:auto;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.buoi{background:#EFF5FE;border-left:3px solid #2563EB;border-radius:0 6px 6px 0;
+  padding:5px 7px;cursor:pointer;transition:.12s}
+.theme-dark .buoi{background:#132030}
+.buoi:hover{transform:translateX(1px);box-shadow:0 3px 9px rgba(0,0,0,.12)}
+.buoi.qua{background:#FDF0F0;border-left-color:#A32D2D}
+.theme-dark .buoi.qua{background:#2C1418}
+.buoi .g{font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;color:#14548F}
+.buoi.qua .g{color:#A32D2D}
+.buoi .t{font-size:11.5px;font-weight:600;line-height:1.35;margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.buoi .v{font-size:10.5px;color:var(--muted);line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lichtrong{grid-column:1/-1;background:var(--card);padding:30px;text-align:center;
+  color:var(--muted);font-size:13px;line-height:1.6}
+@media(max-width:820px){
+  .lichluoi{grid-template-columns:repeat(7,minmax(96px,1fr));overflow-x:auto}
+  .ngay{min-height:86px}
+}
+
+/* Hộp chọn lịch khi bấm Hẹn phỏng vấn — dùng chung khung với hộp chọn lý do */
+.lydo .ngayhen{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.lydo .ngayhen input[type=date]{font:inherit;font-size:13px;padding:8px 11px;
+  border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.gio{display:flex;flex-wrap:wrap;gap:6px;max-height:132px;overflow-y:auto;padding:2px}
+.gio .g{font:inherit;font-size:12.5px;padding:6px 11px;border-radius:7px;
+  border:1.5px solid var(--line);background:var(--card);cursor:pointer;color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.gio .g:hover{border-color:var(--red)}
+.gio .g.on{border-color:var(--red);background:var(--red-tint);color:var(--red);font-weight:700}
 /* ---- Hồ sơ ứng viên ---- */
 #hoSo{position:fixed;inset:0;background:rgba(28,25,23,.55);z-index:400;display:none;
   align-items:center;justify-content:center;padding:2.5vh 2vw;overflow:auto}
@@ -655,6 +701,23 @@ body.chup #hoSo,body.chup .srch,body.chup .bao{display:none!important}
     </div>
   </div>
 
+
+  <div class="card" id="cardLich">
+    <div class="ch">
+      <h2>Lịch phỏng vấn</h2>
+      <p id="lichSub">Hai tuần một lượt — hẹn cho tuần sau vẫn nhìn thấy chỗ trống.</p>
+    </div>
+    <div class="cb">
+      <div class="lichnav">
+        <button class="btn" id="lichTruoc">← 2 tuần trước</button>
+        <b id="lichKhoang"></b>
+        <button class="btn" id="lichNay">Về hiện tại</button>
+        <button class="btn" id="lichSau">2 tuần sau →</button>
+      </div>
+      <div class="lichluoi" id="lichLuoi"></div>
+    </div>
+  </div>
+
   <div class="grid2">
     <div class="card">
       <div class="ch"><h2>Phễu tuyển dụng</h2><p id="pheuSub">Số hồ sơ còn lại qua từng khâu.</p></div>
@@ -764,7 +827,7 @@ function render(){
   $('locVT').innerHTML = '<option value="">Tất cả vị trí</option>'
     + vt.map(v => `<option${v === cur ? ' selected' : ''}>${esc(v)}</option>`).join('');
 
-  veLanes(); vePheu(); veNguon(); veViTri(); veLyDo();
+  veLanes(); veLich(); vePheu(); veNguon(); veViTri(); veLyDo();
 
   $('reportFooter').textContent = `Đọc và ghi trực tiếp vào Base nhân sự trên Lark · ${d.uv.length} hồ sơ`
     + ` · bấm nút là đổi trạng thái ngay trong Lark, mọi thao tác đều ghi tên người bấm vào cột Lịch sử.`;
@@ -807,6 +870,108 @@ function the(p){
         ? '<span class="chip" style="background:#FAEEDA;color:#854F0B">thiếu gate</span>' : ''}
     </div></div>`;
 }
+
+
+/* ═══════════ Lịch phỏng vấn — 2 tuần một lượt ═══════════
+   Hai tuần vì thực tế hay hẹn cho tuần sau, phải khớp lịch sếp và lead. */
+const THU = ['CN','T2','T3','T4','T5','T6','T7'];
+const GIO_LAM = (() => {
+  const g = [];
+  for (let h = 8; h <= 18; h++){ g.push(p2(h) + ':00'); if (h < 18) g.push(p2(h) + ':30'); }
+  return g;
+})();
+let LECH_TUAN = 0;                       // 0 = tuần này, -1 = lùi 2 tuần…
+
+function p2(n){ return String(n).padStart(2, '0'); }
+const isoCua = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+/* Thứ 2 của tuần chứa ngày d — tuần bắt đầu từ thứ 2 theo cách làm việc ở VN */
+function thuHai(d){
+  const t = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const k = (t.getDay() + 6) % 7;
+  t.setDate(t.getDate() - k);
+  return t;
+}
+
+function veLich(){
+  const homNay = isoCua(new Date());
+  const dau = thuHai(new Date());
+  dau.setDate(dau.getDate() + LECH_TUAN * 14);
+
+  const ngay = [];
+  for (let i = 0; i < 14; i++){
+    const d = new Date(dau); d.setDate(dau.getDate() + i);
+    ngay.push(d);
+  }
+  const tu = isoCua(ngay[0]), den = isoCua(ngay[13]);
+  $('lichKhoang').textContent = `${ngay[0].getDate()}/${ngay[0].getMonth()+1}`
+    + ` – ${ngay[13].getDate()}/${ngay[13].getMonth()+1}/${ngay[13].getFullYear()}`;
+
+  /* Chỉ lấy hồ sơ còn đang chờ phỏng vấn hoặc đã phỏng vấn — người bị loại
+     rồi thì không chiếm chỗ trên lịch nữa */
+  const co = DATA.uv.filter(x => x.lich && ['Hẹn phỏng vấn','Đã phỏng vấn'].includes(x.trangThai));
+  const trongKhoang = co.filter(x => x.lich >= tu && x.lich <= den);
+
+  $('lichSub').innerHTML = trongKhoang.length
+    ? `<b>${trongKhoang.length}</b> buổi trong hai tuần này. Bấm vào buổi để mở hồ sơ.`
+    : 'Chưa có buổi phỏng vấn nào trong hai tuần này.';
+
+  $('lichLuoi').innerHTML = ngay.map(d => {
+    const iso = isoCua(d), cuoi = d.getDay() === 0 || d.getDay() === 6;
+    const buoi = trongKhoang.filter(x => x.lich === iso)
+      .sort((a, c) => (a.lichGio || '').localeCompare(c.lichGio || ''));
+    const lop = ['ngay', cuoi ? 'cuoituan' : '', iso === homNay ? 'homnay' : '',
+                 iso < homNay ? 'quakhu' : ''].filter(Boolean).join(' ');
+    return `<div class="${lop}">
+      <div class="dn"><b>${d.getDate()}</b><span>/${d.getMonth()+1}</span>
+        <span class="th">${THU[d.getDay()]}</span></div>
+      ${buoi.map(x => `<div class="buoi${iso < homNay && x.trangThai === 'Hẹn phỏng vấn' ? ' qua' : ''}"
+          data-ten="${esc(x.id)}" title="${esc(x.ten)} · ${esc(x.viTri)}${x.hinhThuc ? ' · ' + esc(x.hinhThuc) : ''}">
+        <div class="g">${esc(x.lichGio)}${x.hinhThuc === 'Online' ? ' 💻' : ''}</div>
+        <div class="t">${esc(x.ten)}</div>
+        <div class="v">${esc(x.viTri)}</div>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+/* Hộp chọn ngày giờ khi bấm Hẹn phỏng vấn */
+let HEN = { ngay: '', gio: '', hinhThuc: 'Trực tiếp' };
+function moHenLich(){
+  const hop = $('lyDoBox');
+  const mai = new Date(); mai.setDate(mai.getDate() + 1);
+  HEN = { ngay: isoCua(mai), gio: '', hinhThuc: 'Trực tiếp' };
+  hop.className = 'lydo mo';
+  hop.innerHTML = `<h5>Hẹn phỏng vấn lúc nào?</h5>
+    <div class="ngayhen">
+      <input type="date" id="henNgay" value="${HEN.ngay}" min="${isoCua(new Date())}">
+      <div class="ops">
+        <button class="op on" data-ht="Trực tiếp">Trực tiếp</button>
+        <button class="op" data-ht="Online">Online</button>
+      </div>
+    </div>
+    <div class="gio" id="henGio">${GIO_LAM.map(g => `<button class="g" data-g="${g}">${g}</button>`).join('')}</div>
+    <textarea id="henDiaDiem" placeholder="Địa điểm hoặc link phòng họp (không bắt buộc)"></textarea>
+    <div class="hang">
+      <button class="act duyet" id="xacNhanHen" disabled>Chốt lịch phỏng vấn</button>
+      <button class="act ghi" id="huyHen">Huỷ</button>
+      <span class="ghtay" style="margin-left:0">Chốt xong web ghi thẳng lịch vào Lark và hiện ở khối Lịch phỏng vấn.</span>
+    </div>`;
+
+  $('henNgay').onchange = e => { HEN.ngay = e.target.value; kiemHen(); };
+  hop.querySelectorAll('.op[data-ht]').forEach(x => x.onclick = () => {
+    HEN.hinhThuc = x.dataset.ht;
+    hop.querySelectorAll('.op[data-ht]').forEach(y => y.classList.toggle('on', y === x));
+  });
+  $('henGio').querySelectorAll('.g').forEach(x => x.onclick = () => {
+    HEN.gio = x.dataset.g;
+    $('henGio').querySelectorAll('.g').forEach(y => y.classList.toggle('on', y === x));
+    kiemHen();
+  });
+  $('huyHen').onclick = () => { hop.className = 'lydo'; };
+  $('xacNhanHen').onclick = () => doiTrangThai('Hẹn phỏng vấn', '', '',
+    { ngayHen: HEN.ngay, gioHen: HEN.gio, hinhThuc: HEN.hinhThuc, diaDiem: $('henDiaDiem').value.trim() });
+}
+function kiemHen(){ $('xacNhanHen').disabled = !(HEN.ngay && HEN.gio); }
 
 /* ---------- Phễu ---------- */
 function vePheu(){
@@ -1090,6 +1255,12 @@ function moHoSo(id){
         : '')}
   </div>`;
 
+  if (p.lich)
+    h += `<div class="blk" style="border-color:#B5D4F4"><h5>📅 Lịch phỏng vấn</h5>
+      <div class="txt"><b>${esc(p.lichGio)} · ${esc(p.lich)}</b>
+      ${p.hinhThuc ? ' · ' + esc(p.hinhThuc) : ''}
+      ${p.diaDiem ? '<br>' + esc(p.diaDiem) : ''}</div></div>`;
+
   if (p.ketQuaSoVan)
     h += `<div class="blk"><h5>📞 Kết quả sơ vấn</h5><div class="txt">${esc(p.ketQuaSoVan)}</div></div>`;
 
@@ -1157,7 +1328,7 @@ function moLyDo(den){
   $('xacNhanLoai').onclick = () => doiTrangThai(den, LYDO, $('ghiChuLoai').value.trim());
 }
 
-async function doiTrangThai(den, lyDo, ghiChu){
+async function doiTrangThai(den, lyDo, ghiChu, them){
   if (!MO) return;
   const nut = [...document.querySelectorAll('.act')];
   nut.forEach(b => b.disabled = true);
@@ -1168,7 +1339,8 @@ async function doiTrangThai(den, lyDo, ghiChu){
   try {
     const r = await fetch('/api/tuyen-dung', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ id: MO.id, tu: MO.trangThai, den, lyDo: lyDo || '', ghiChu: ghiChu || '' }),
+      body: JSON.stringify({ id: MO.id, tu: MO.trangThai, den,
+        lyDo: lyDo || '', ghiChu: ghiChu || '', ...(them || {}) }),
     });
     const j = await r.json().catch(() => ({ok:false, error:'HTTP ' + r.status}));
 
@@ -1214,6 +1386,12 @@ async function sync(){
 
 /* ================= Sự kiện ================= */
 $('btnSync').addEventListener('click', () => sync());
+$('lichTruoc').addEventListener('click', () => { LECH_TUAN--; veLich(); });
+$('lichSau').addEventListener('click', () => { LECH_TUAN++; veLich(); });
+$('lichNay').addEventListener('click', () => { LECH_TUAN = 0; veLich(); });
+$('lichLuoi').addEventListener('click', e => {
+  const o = e.target.closest('.buoi[data-ten]'); if (o) moHoSo(o.dataset.ten);
+});
 $('tim').addEventListener('input', veLanes);
 $('locVT').addEventListener('change', veLanes);
 $('hienXong').addEventListener('change', veLanes);
@@ -1223,7 +1401,8 @@ $('lanes').addEventListener('click', e => {
 });
 $('hsActs').addEventListener('click', e => {
   const b = e.target.closest('.act[data-den]'); if (!b) return;
-  if (b.dataset.buoc) moLyDo(b.dataset.den);   // cần lý do
+  if (b.dataset.den === 'Hẹn phỏng vấn') moHenLich();   // cần ngày giờ
+  else if (b.dataset.buoc) moLyDo(b.dataset.den);       // cần lý do
   else doiTrangThai(b.dataset.den, '', '');
 });
 $('hoSo').addEventListener('click', e => { if (e.target.id === 'hoSo') dongHoSo(); });

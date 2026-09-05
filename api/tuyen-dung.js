@@ -25,6 +25,7 @@ const HOST = (process.env.LARK_HOST || 'https://open.larksuite.com').replace(/\/
 const COT_DUOC_GHI = [
   'Trạng thái', 'Lịch sử', 'Loại ở bước', 'Lý do loại',
   'Ngày duyệt CV', 'Ngày sơ vấn', 'Ngày phỏng vấn', 'Ngày gửi offer', 'Ngày chốt',
+  'Lịch phỏng vấn', 'Hình thức', 'Địa điểm / Link',
 ];
 
 /* ─────────────── KHOÁ GHI — lớp 3: luồng trạng thái hợp lệ ───────────────
@@ -43,7 +44,7 @@ const LUONG = {
     { den: 'Loại',           quyen: 'duyet', ngay: 'Ngày chốt', buoc: 'Vòng CV' },
   ],
   'Đã sơ vấn': [
-    { den: 'Hẹn phỏng vấn',  quyen: 'duyet' },
+    { den: 'Hẹn phỏng vấn',  quyen: 'duyet', canGio: true },
     { den: 'Loại',           quyen: 'duyet', ngay: 'Ngày chốt', buoc: 'Sau sơ vấn' },
   ],
   'Hẹn phỏng vấn': [
@@ -124,6 +125,18 @@ const gioPhutVN = () => {
   return `${p(t.getUTCDate())}/${p(t.getUTCMonth() + 1)} ${p(t.getUTCHours())}:${p(t.getUTCMinutes())}`;
 };
 const gioTu = d => d ? Math.floor((Date.now() - d.getTime()) / 3600000) : null;
+const p2 = n => String(n).padStart(2, '0');
+/* Giờ hiển thị theo lịch VN, cùng lý do như cắt ngày */
+const gioVN = d => { const t = new Date(d.getTime() + TZ); return `${p2(t.getUTCHours())}:${p2(t.getUTCMinutes())}`; };
+/* '2026-09-10' + '09:30' → epoch ms, hiểu là giờ VN */
+function epochTu(ngayStr, gioStr){
+  const m = String(ngayStr || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const g = String(gioStr || '').match(/^(\d{1,2}):(\d{2})$/);
+  if (!m || !g) return null;
+  const h = +g[1], mi = +g[2];
+  if (h > 23 || mi > 59) return null;
+  return Date.UTC(+m[1], +m[2] - 1, +m[3], h, mi) - TZ;
+}
 
 /* ---------- Lark ---------- */
 let _tk = { v: '', het: 0 };
@@ -280,13 +293,28 @@ module.exports = async (req, res) => {
       if (nuoc.buoc && !lyDo)
         return res.status(400).json({ ok: false, error: 'Cần chọn lý do trước khi loại.' });
 
+      /* Hẹn phỏng vấn mà không có thời gian thì cái hẹn đó vô nghĩa — chặn ở
+         máy chủ chứ không chỉ ở giao diện. */
+      let lichEpoch = null;
+      if (nuoc.canGio){
+        lichEpoch = epochTu(b.ngayHen, b.gioHen);
+        if (!lichEpoch) return res.status(400).json({ ok: false,
+          error: 'Cần chọn ngày và giờ phỏng vấn.' });
+      }
+
       /* Dựng bản vá, rồi LỚP 2 lọc lại lần nữa */
       const vaThô = { 'Trạng thái': den };
       if (nuoc.ngay) vaThô[nuoc.ngay] = epochHomNay();
       if (nuoc.buoc) { vaThô['Loại ở bước'] = nuoc.buoc; vaThô['Lý do loại'] = lyDo; }
+      if (lichEpoch){
+        vaThô['Lịch phỏng vấn'] = lichEpoch;
+        if (b.hinhThuc) vaThô['Hình thức'] = String(b.hinhThuc).slice(0, 40);
+        if (b.diaDiem)  vaThô['Địa điểm / Link'] = String(b.diaDiem).slice(0, 300);
+      }
 
       const cu = txt(pick(f, 'Lịch sử'));
       const dong = `${gioPhutVN()} · ${toi.ten || toi.email} · ${tuThat} → ${den}`
+        + (lichEpoch ? ` (${b.gioHen} ngày ${b.ngayHen}${b.hinhThuc ? ', ' + b.hinhThuc : ''})` : '')
         + (lyDo ? ` (${lyDo})` : '') + (b.ghiChu ? ` — ${String(b.ghiChu).slice(0, 200)}` : '');
       vaThô['Lịch sử'] = (cu ? cu + '\n' : '') + dong;
 
@@ -406,6 +434,8 @@ module.exports = async (req, res) => {
         ketQuaSoVan: txt(pick(f, 'Kết quả sơ vấn')),
         luongMongMuon: num(pick(f, 'Mức lương mong muốn')),
         nguoiPV: txt(pick(f, 'Người phỏng vấn')),
+        lich: lich ? isoNgay(lich) : '', lichGio: lich ? gioVN(lich) : '',
+        hinhThuc: txt(pick(f, 'Hình thức')), diaDiem: txt(pick(f, 'Địa điểm / Link')),
         diem: TIEU_CHI.map(t => num(pick(f, t.ten))),
         tenLoi: loiTheoViTri.get(norm(viTri)) || null,
         diemTong: diemPV(f),
@@ -484,6 +514,35 @@ module.exports = async (req, res) => {
       tieuDe: `${itNguon.length} vị trí mở trên ${SLA.sauNgay} ngày mà dưới ${SLA.itNguon} hồ sơ`,
       noiDung: `${itNguon.map(v => `${v.ten} (${v.soCV} hồ sơ)`).join(', ')}. `
         + 'SOP đặt mốc 15–20 hồ sơ trong 7 ngày — dưới mức này thì phải chủ động tìm nguồn.' });
+
+    /* Hẹn rồi mà lịch đã qua vẫn chưa ai đánh dấu đã phỏng vấn — ứng viên không
+       đến, hoặc buổi bị hoãn mà không ai cập nhật. Chính là loại việc rơi rụng. */
+    const homNayISO = isoNgay(homNay);
+    const lichQua = uv.filter(x => x.trangThai === 'Hẹn phỏng vấn' && x.lich && x.lich < homNayISO);
+    if (lichQua.length) canhBao.push({ muc: 'canh-bao',
+      tieuDe: `${lichQua.length} buổi phỏng vấn đã qua mà chưa ghi kết quả`,
+      noiDung: `${lichQua.slice(0, 4).map(x => `${x.ten} (${x.lich})`).join(', ')}`
+        + `${lichQua.length > 4 ? '…' : ''}. Ứng viên không đến, hay buổi bị hoãn mà chưa ai cập nhật?` });
+
+    const homNayCo = uv.filter(x => x.lich === homNayISO && x.trangThai === 'Hẹn phỏng vấn')
+      .sort((a, b) => (a.lichGio || '').localeCompare(b.lichGio || ''));
+    if (homNayCo.length) canhBao.push({ muc: 'luu-y',
+      tieuDe: `Hôm nay có ${homNayCo.length} buổi phỏng vấn`,
+      noiDung: homNayCo.map(x => `${x.lichGio} ${x.ten}`).join(' · ') });
+
+    /* Hai buổi cách nhau dưới 30 phút — dễ vỡ lịch nếu buổi trước kéo dài */
+    const coLich = uv.filter(x => x.lich && x.lichGio && x.trangThai === 'Hẹn phỏng vấn')
+      .map(x => ({ ...x, moc: x.lich + ' ' + x.lichGio })).sort((a, b) => a.moc.localeCompare(b.moc));
+    const trung = [];
+    for (let i = 1; i < coLich.length; i++){
+      const a = coLich[i - 1], c = coLich[i];
+      if (a.lich !== c.lich) continue;
+      const ph = t => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+      if (ph(c.lichGio) - ph(a.lichGio) < 30) trung.push(`${a.ten} ${a.lichGio} và ${c.ten} ${c.lichGio} ngày ${a.lich}`);
+    }
+    if (trung.length) canhBao.push({ muc: 'canh-bao',
+      tieuDe: `${trung.length} chỗ lịch phỏng vấn sát nhau`,
+      noiDung: `${trung.slice(0, 3).join(' · ')}. Cách nhau dưới 30 phút — buổi trước kéo dài là vỡ buổi sau.` });
 
     const nhanViecMoi = uv.filter(x => x.trangThai === 'Nhận việc');
     if (nhanViecMoi.length) canhBao.push({ muc: 'tot',
