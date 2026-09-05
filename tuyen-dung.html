@@ -9,7 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 
-  :root{--red:#C8102E;--red-dark:#8B0A1E;--red-tint:#FDECEF;--ink:#1C1917;--muted:#78716C;
+  :root{--faint2:#A8A29E;--red:#C8102E;--red-dark:#8B0A1E;--red-tint:#FDECEF;--ink:#1C1917;--muted:#78716C;
     --line:#E7E5E4;--paper:#FAFAF9;--green:#1A7F4B;--green-tint:#EDF7F0;--amber:#B45309;
     --amber-tint:#FFF7ED;--blue:#1D4ED8;--blue-tint:#EFF4FF;--card:#fff}
   *{box-sizing:border-box;margin:0;padding:0}
@@ -394,25 +394,50 @@
 .chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;
   white-space:nowrap;line-height:1.6}
 
-/* ---- Bảng tiến độ (cột = trạng thái) ---- */
-.lanes{display:flex;gap:14px;overflow-x:auto;padding-bottom:10px;align-items:flex-start}
-.lane{flex:0 0 236px;background:#FAFAF9;border:1px solid var(--line);border-radius:12px;
-  display:flex;flex-direction:column;max-height:600px}
-.theme-dark .lane{background:#1A1615}
-.lane>h4{margin:0;padding:12px 14px;font-size:12.5px;font-weight:800;letter-spacing:.02em;
-  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;position:sticky;top:0;
-  background:inherit;border-radius:12px 12px 0 0;z-index:2}
-.lane>h4 .n{margin-left:auto;font-size:12px;font-weight:700;color:var(--muted);
-  background:var(--card);border:1px solid var(--line);border-radius:999px;padding:1px 9px}
-.lane .body{padding:10px;display:flex;flex-direction:column;gap:9px;overflow-y:auto}
-.lane .trong2{padding:18px 10px;text-align:center;font-size:12px;color:#A8A29E;line-height:1.6}
-.uvcard{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--vc,#A8A29E);
-  border-radius:0 9px 9px 0;padding:11px 13px;cursor:pointer;transition:.13s}
-.uvcard:hover{border-color:var(--red);box-shadow:0 4px 14px rgba(0,0,0,.09);transform:translateY(-1px)}
-.uvcard b{display:block;font-size:13.5px;font-weight:700;line-height:1.4;margin-bottom:4px}
-.uvcard .mt{font-size:11.5px;color:var(--muted);line-height:1.55}
-.uvcard .tag{margin-top:7px;display:flex;flex-wrap:wrap;gap:5px}
+/* ---- Bảng tiến độ: 7 khâu chia đều hết bề ngang, ngăn nhau bằng đường kẻ ----
+   Trước đây mỗi cột khoá 236px nên màn rộng thừa cả mảng trắng bên phải.
+   Nay là lưới chia đều; hẹp quá thì mỗi cột co về 150px rồi cuộn ngang.
+   Số cột do JS đặt qua --cot vì bật "hiện hồ sơ đã đóng" là thành 9. */
+.lanes{display:grid;grid-template-columns:repeat(var(--cot,7),minmax(150px,1fr));
+  border:1px solid var(--line-2);border-radius:13px;overflow:auto;background:var(--card);
+  max-height:620px}
+.lane{display:flex;flex-direction:column;min-width:0;
+  border-right:1px solid var(--line);background:var(--card)}
+.lane:last-child{border-right:0}
+.lane>h4{margin:0;padding:0;position:sticky;top:0;z-index:2;background:var(--card)}
+/* Dải màu trên đầu mỗi khâu — 7 màu tách bạch, đọc được cả khi nhìn lướt */
+.lane .sod{height:4px;background:var(--mc)}
+.lane .tit{display:flex;align-items:center;gap:8px;padding:11px 12px;
+  border-bottom:1px solid var(--line);background:var(--mn)}
+.lane .tit .tn{font-size:12px;font-weight:800;letter-spacing:.01em;color:var(--mc);
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lane .tit .n{margin-left:auto;flex:none;font-size:11.5px;font-weight:800;color:#fff;
+  background:var(--mc);border-radius:999px;padding:1px 8px;min-width:22px;text-align:center}
+.lane .tit .n.khong{background:transparent;color:var(--faint2);border:1px solid var(--line-2)}
+.lane .body{padding:9px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1}
+.lane .trong2{padding:22px 8px;text-align:center;font-size:11.5px;color:var(--faint2);line-height:1.6}
 
+.uvcard{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--vc,#A8A29E);
+  border-radius:0 9px 9px 0;padding:10px 11px;cursor:pointer;transition:.13s}
+.uvcard:hover{border-color:var(--vc);box-shadow:0 5px 16px rgba(0,0,0,.10);transform:translateY(-1px)}
+.uvcard b{display:block;font-size:13px;font-weight:700;line-height:1.4}
+.uvcard .mt{font-size:11px;color:var(--muted);line-height:1.5;margin-top:5px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uvcard .tag{margin-top:7px;display:flex;flex-wrap:wrap;gap:4px}
+.uvcard .tag .chip{font-size:10px;padding:2px 7px}
+
+
+/* Thanh trực quan trong bảng — con số kèm độ dài để so nhanh bằng mắt */
+.thanh{display:flex;align-items:center;gap:9px}
+.thanh .tt{flex:1;min-width:52px;height:7px;background:var(--line);border-radius:4px;overflow:hidden}
+.thanh .tf{height:100%;border-radius:4px;transition:width .3s}
+.thanh>span{flex:none;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;min-width:26px}
+.thanh>span i{font-style:normal;font-weight:400;color:var(--muted);font-size:11px}
+.ph3{font-size:11px;color:var(--muted)}
+tr.itnguon td{background:#FFFBEB}
+.theme-dark tr.itnguon td{background:#241D10}
+#tblNguon td:nth-child(2){width:180px}
+#tblViTri td:nth-child(5){width:190px}
 /* ---- Hồ sơ ứng viên ---- */
 #hoSo{position:fixed;inset:0;background:rgba(28,25,23,.55);z-index:400;display:none;
   align-items:center;justify-content:center;padding:2.5vh 2vw;overflow:auto}
@@ -681,10 +706,16 @@ const ICON = {'canh-bao':'⚠️','luu-y':'🟠','tot':'✅'};
 
 /* Màu theo khâu — dùng chung cho thẻ, cột và biểu đồ phễu */
 const MAU = {
-  'Mới nhận':'#78716C', 'Đạt vòng CV':'#185FA5', 'Đã sơ vấn':'#0891B2',
-  'Hẹn phỏng vấn':'#B45309', 'Đã phỏng vấn':'#A2620C', 'Gửi offer':'#7C3AED',
-  'Nhận việc':'#1D9E75', 'Loại':'#A32D2D', 'Từ chối offer':'#BE123C',
+  'Mới nhận':'#6B6560', 'Đạt vòng CV':'#2563EB', 'Đã sơ vấn':'#0891B2',
+  'Hẹn phỏng vấn':'#7C3AED', 'Đã phỏng vấn':'#DB2777', 'Gửi offer':'#EA580C',
+  'Nhận việc':'#16A34A', 'Loại':'#A32D2D', 'Từ chối offer':'#BE123C',
 };
+const MAU_NHAT = {
+  'Mới nhận':'#F5F4F2', 'Đạt vòng CV':'#EFF5FE', 'Đã sơ vấn':'#EBF8FB',
+  'Hẹn phỏng vấn':'#F4F0FE', 'Đã phỏng vấn':'#FDF0F6', 'Gửi offer':'#FEF3EC',
+  'Nhận việc':'#EEF9F1', 'Loại':'#FDF0F0', 'Từ chối offer':'#FDEFF2',
+};
+const MAU_NG = ['#2563EB','#0891B2','#7C3AED','#EA580C','#16A34A','#DB2777'];
 const LY_DO = ['Thiếu kinh nghiệm','Lệch mức lương','Không phù hợp văn hoá','Ứng viên rút','Khác'];
 
 function khoa(t, m){ document.body.classList.add('locked'); $('gateTitle').textContent = t; $('gateMsg').textContent = m; }
@@ -747,13 +778,16 @@ function veLanes(){
   if (q) ds = ds.filter(x => norm(x.ten + ' ' + x.viTri + ' ' + x.nguon).includes(q));
 
   const cot = xong ? [...DATA.buoc, 'Loại', 'Từ chối offer'] : DATA.buoc;
+  /* Số cột đặt qua biến CSS để lưới chia đều đúng bằng số khâu đang hiện */
+  $('lanes').style.setProperty('--cot', cot.length);
   $('lanes').innerHTML = cot.map(b => {
     const trong = ds.filter(x => x.trangThai === b);
-    return `<div class="lane">
-      <h4><span style="width:9px;height:9px;border-radius:50%;background:${MAU[b]};display:inline-block"></span>
-        ${esc(b)}<span class="n">${trong.length}</span></h4>
+    return `<div class="lane" style="--mc:${MAU[b]};--mn:${MAU_NHAT[b] || '#FAFAF9'}">
+      <h4><div class="sod"></div>
+        <div class="tit"><span class="tn" title="${esc(b)}">${esc(b)}</span>
+          <span class="n${trong.length ? '' : ' khong'}">${trong.length}</span></div></h4>
       <div class="body">${trong.length ? trong.map(p => the(p)).join('')
-        : '<div class="trong2">Chưa có ai ở khâu này</div>'}</div>
+        : '<div class="trong2">—</div>'}</div>
     </div>`;
   }).join('');
   batDauVeThumb();
@@ -794,12 +828,19 @@ function vePheu(){
 /* ---------- Nguồn ---------- */
 function veNguon(){
   const n = DATA.nguon;
-  $('tblNguon').innerHTML = `<thead><tr><th>Nguồn</th><th class="r">CV</th><th class="r">Vào PV</th>
+  const max = Math.max(1, ...n.map(x => x.cv));
+  $('tblNguon').innerHTML = `<thead><tr><th>Nguồn</th><th>Số hồ sơ</th><th class="r">Vào PV</th>
       <th class="r">Nhận việc</th><th class="r">Tỉ lệ thành công</th></tr></thead><tbody>`
-    + (n.length ? n.map(x => `<tr>
-        <td><b>${esc(x.ten)}</b></td><td class="r">${x.cv}</td><td class="r">${x.pv}</td>
-        <td class="r"><b>${x.nhan}</b></td>
-        <td class="r">${x.cv ? pct(Math.round(x.nhan / x.cv * 1000) / 10) : '—'}</td></tr>`).join('')
+    + (n.length ? n.map((x, i) => {
+        const tl = x.cv ? Math.round(x.nhan / x.cv * 1000) / 10 : 0;
+        return `<tr>
+          <td><b>${esc(x.ten)}</b></td>
+          <td><div class="thanh"><div class="tt"><div class="tf" style="width:${x.cv/max*100}%;
+            background:${MAU_NG[i % MAU_NG.length]}"></div></div><span>${x.cv}</span></div></td>
+          <td class="r">${x.pv}</td><td class="r"><b>${x.nhan}</b></td>
+          <td class="r"><span class="chip" style="background:${tl >= 10 ? '#E2F4EE' : '#F5F5F4'};
+            color:${tl >= 10 ? '#0F6E56' : '#78716C'}">${pct(tl)}</span></td></tr>`;
+      }).join('')
       : '<tr><td colspan="5"><div class="trong">Chưa có dữ liệu nguồn.</div></td></tr>')
     + '</tbody>';
 }
@@ -810,15 +851,20 @@ function veViTri(){
   if (!v.length){ $('cardViTri').style.display = 'none'; return; }
   $('cardViTri').style.display = '';
   $('tblViTri').innerHTML = `<thead><tr><th>Vị trí</th><th>Bộ phận</th><th class="r">Cần</th>
-      <th class="r">Mở từ</th><th class="r">Hồ sơ</th><th class="r">Đang xử lý</th>
+      <th class="r">Mở từ</th><th>Nguồn hồ sơ</th><th class="r">Đang xử lý</th>
       <th class="r">Nhận việc</th><th>Trạng thái</th></tr></thead><tbody>`
     + v.map(x => {
         const it = x.ngayMo != null && x.ngayMo >= 3 && x.soCV < 5;
-        return `<tr${it ? ' style="background:#FFFBEB"' : ''}>
+        /* Mốc 15 hồ sơ trong 7 ngày lấy từ SOP — thanh cho thấy còn cách bao xa */
+        const tl = Math.min(100, x.soCV / 15 * 100);
+        return `<tr${it ? ' class="itnguon"' : ''}>
           <td><b>${esc(x.ten)}</b></td><td>${esc(x.boPhan)}</td>
           <td class="r">${x.canTuyen}</td>
-          <td class="r">${x.moTuyen || '—'}${x.ngayMo != null ? `<br><span style="font-size:11px;color:#78716C">${x.ngayMo} ngày</span>` : ''}</td>
-          <td class="r"><b>${x.soCV}</b>${it ? ' <span class="chip" style="background:#FAEEDA;color:#854F0B">ít nguồn</span>' : ''}</td>
+          <td class="r">${x.moTuyen || '—'}${x.ngayMo != null ? `<br><span class="ph3">${x.ngayMo} ngày</span>` : ''}</td>
+          <td><div class="thanh"><div class="tt"><div class="tf" style="width:${tl}%;
+            background:${it ? '#E24B4A' : (tl >= 100 ? '#1D9E75' : '#EF9F27')}"></div></div>
+            <span>${x.soCV}<i>/15</i></span></div>
+            ${it ? '<span class="chip" style="background:#FAEEDA;color:#854F0B;margin-top:5px">cần tìm nguồn</span>' : ''}</td>
           <td class="r">${x.dangMo}</td><td class="r">${x.nhanViec}</td>
           <td>${esc(x.trangThai) || '—'}</td></tr>`;
       }).join('') + '</tbody>';
