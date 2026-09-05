@@ -346,7 +346,9 @@ module.exports = async (req, res) => {
       const nPV = ngay(pick(f, 'Ngày phỏng vấn'));
       const viTri = txt(pick(f, 'Vị trí ứng tuyển'));
       const cv = pick(f, 'File CV');
-      const anh = pick(f, 'Ảnh');
+      /* Nhận nhiều cách đặt tên cho khỏi phải nhớ chính xác — thiếu cột thì
+         rơi về avatar chữ cái, không lỗi. */
+      const anh = pick(f, 'Ảnh', 'Ảnh đại diện', 'Hình ảnh', 'Ảnh ứng viên');
       const luong = num(pick(f, 'Mức lương mong muốn'));
       const hieuBiet = txt(pick(f, 'Hiểu biết Sakawin'));
       const jd = jdTheoViTri.get(norm(viTri));
