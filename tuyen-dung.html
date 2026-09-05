@@ -548,6 +548,20 @@ tbody tr.tong td{background:#FAFAF9!important;font-weight:800;border-top:2px sol
 .lk{color:var(--red);text-decoration:none}
 .lk:hover{text-decoration:underline}
 
+
+/* Ô ảnh trên thẻ: hình chữ nhật tỉ lệ trang giấy, vì nó là trang đầu CV
+   chứ không phải ảnh chân dung */
+.thumb{width:42px;height:54px;border-radius:5px;flex:none;overflow:hidden;position:relative;
+  background:#F1EFE8;border:1px solid var(--line)}
+.theme-dark .thumb{background:#2A2422}
+.thumb img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+.thumb .cho{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:#A8A29E}
+.thumb.chu{display:flex;align-items:center;justify-content:center;color:#fff;
+  font-weight:700;font-size:12px;border-color:transparent}
+.uvcard .dau{align-items:flex-start}
+.uvcard .dau b{line-height:1.45;white-space:normal;overflow:visible}
+
 /* Thẻ trên bảng tiến độ có avatar */
 .uvcard .dau{display:flex;align-items:center;gap:9px;margin-bottom:6px}
 .uvcard .dau b{margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -742,13 +756,14 @@ function veLanes(){
         : '<div class="trong2">Chưa có ai ở khâu này</div>'}</div>
     </div>`;
   }).join('');
+  batDauVeThumb();
 }
 
 function the(p){
   const gap = p.gioCho != null && ((p.trangThai === 'Mới nhận' && p.gioCho > 48)
            || (p.trangThai === 'Đã phỏng vấn' && p.gioCho > 48));
   return `<div class="uvcard" data-id="${esc(p.id)}" style="--vc:${MAU[p.trangThai] || '#A8A29E'}">
-    <div class="dau">${avatar(p, 'avt')}<b>${esc(p.ten)}</b></div>
+    <div class="dau">${oAnh(p)}<b>${esc(p.ten)}</b></div>
     <div class="mt">${esc(p.viTri) || 'chưa rõ vị trí'}${p.boPhan !== '(chưa phân)' ? ' · ' + esc(p.boPhan) : ''}</div>
     <div class="tag">
       <span class="chip" style="background:#F5F5F4;color:#78716C">${esc(p.nguon)}</span>
@@ -822,6 +837,132 @@ function veLyDo(){
 }
 
 /* ---------- Hồ sơ ứng viên ---------- */
+/* ═══════════ Ảnh thu nhỏ trang đầu CV ═══════════
+   Không cắt khuôn mặt — máy không biết mặt nằm đâu trên CV, và nhận diện
+   khuôn mặt thì phải tải vài MB thư viện hoặc gửi CV ra ngoài. Thay vào đó
+   hiện đúng bản chất: ảnh thu nhỏ trang đầu. Nhận ra hồ sơ nào là của ai
+   cũng nhanh như vậy, mà HR không phải làm thêm gì.
+
+   CV ảnh thì dùng thẳng. CV PDF thì nạp pdf.js — chỉ nạp khi thật sự có
+   PDF cần vẽ, không bắt mọi lượt mở trang gánh 400KB. */
+const THUMB = new Map();          // file_token → dataURL, hoặc 'loi'
+let _pdfjs = null, _workerBlob = null, _hangDoi = Promise.resolve();
+
+const LA_ANH = e => ['jpg','jpeg','png','webp','gif','bmp'].includes(e);
+const duoiTep = t => { const m = String(t||'').toLowerCase().match(/\.([a-z0-9]+)$/); return m ? m[1] : ''; };
+
+const PDFJS_V = '3.11.174';
+const PDFJS_URL = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_V}/pdf.min.js`;
+const PDFJS_WORKER = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_V}/pdf.worker.min.js`;
+async function napPdfJs(){
+  /* Chỉ nạp script khi chưa có — nạp chồng lần hai làm pdf.js khởi tạo lại
+     GlobalWorkerOptions và xoá mất workerSrc vừa đặt. */
+  if (!window.pdfjsLib){
+    await new Promise((ok, loi) => {
+      const s = document.createElement('script');
+      s.src = PDFJS_URL;
+      s.onload = ok;
+      s.onerror = () => loi(new Error('không tải được thư viện đọc PDF'));
+      document.head.appendChild(s);
+    });
+  }
+  if (!window.pdfjsLib) throw new Error('thư viện PDF nạp xong nhưng không dùng được');
+  /* Worker nằm ở cdnjs, khác tên miền với trang — trình duyệt không cho tạo
+     Worker thẳng từ URL khác nguồn. Tải về rồi dựng qua blob cùng nguồn.
+     Thiếu bước này pdf.js không báo lỗi mà treo im. */
+  if (!_workerBlob){
+    try {
+      const r = await fetch(PDFJS_WORKER);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      _workerBlob = URL.createObjectURL(await r.blob());
+    } catch { _workerBlob = PDFJS_WORKER; }   // không tải được thì cứ thử cách thẳng
+  }
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = _workerBlob;
+  _pdfjs = window.pdfjsLib;
+  return _pdfjs;
+}
+
+async function veTrangDau(token){
+  const lib = await napPdfJs();
+  const pdf = await lib.getDocument({ url: '/api/tuyen-dung?cv=' + encodeURIComponent(token) }).promise;
+  const trang = await pdf.getPage(1);
+  const goc = trang.getViewport({ scale: 1 });
+  /* 180px bề ngang là đủ nét cho ô 42px kể cả màn Retina, mà vẫn nhẹ */
+  const vp = trang.getViewport({ scale: 180 / goc.width });
+  const c = document.createElement('canvas');
+  c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+  await trang.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+  pdf.destroy && pdf.destroy();
+  return c.toDataURL('image/jpeg', 0.82);
+}
+
+/* Vẽ tuần tự — nhiều PDF render cùng lúc là treo cả trang */
+function xepHang(token){
+  _hangDoi = _hangDoi.then(async () => {
+    if (THUMB.has(token)) return;
+    try {
+      /* Bỏ cuộc sau 15 giây: thà một ô hiện biểu tượng còn hơn cả hàng đợi
+         đứng vì một tệp hỏng. */
+      const qua = new Promise((_, loi) => setTimeout(() => loi(new Error('quá lâu')), 15000));
+      THUMB.set(token, await Promise.race([veTrangDau(token), qua]));
+    }
+    catch { THUMB.set(token, 'loi'); }
+    ganThumb(token);
+  }).catch(() => {});
+  return _hangDoi;
+}
+
+function ganThumb(token){
+  const kq = THUMB.get(token);
+  document.querySelectorAll(`.thumb[data-cv="${CSS.escape(token)}"]`).forEach(o => {
+    if (kq && kq !== 'loi') o.innerHTML = `<img src="${kq}" alt="">`;
+    else o.innerHTML = `<span class="cho">📄</span>`;   // hỏng thì về biểu tượng, không để trống
+  });
+}
+
+/* Chỉ vẽ khi thẻ lọt vào tầm nhìn — cột sau thường chưa ai kéo tới */
+const theoDoi = new IntersectionObserver(es => {
+  for (const e of es){
+    if (!e.isIntersecting) continue;
+    const o = e.target, token = o.dataset.cv;
+    theoDoi.unobserve(o);
+    if (!token) continue;
+    if (THUMB.has(token)) ganThumb(token); else xepHang(token);
+  }
+}, { rootMargin: '150px' });
+
+let _henVe = null;
+function batDauVeThumb(){
+  const os = [...document.querySelectorAll('.thumb[data-cv]')];
+  os.forEach(o => {
+    const token = o.dataset.cv;
+    if (THUMB.has(token)) ganThumb(token); else theoDoi.observe(o);
+  });
+  /* Dự phòng: có môi trường IntersectionObserver không bắn (tab nền, cửa sổ
+     ẩn, trình duyệt cũ). Sau 1,5 giây ô nào vẫn chưa được xử lý thì vẽ luôn —
+     thà vẽ sớm vài ô còn hơn để trống mãi mà không ai hiểu vì sao. */
+  clearTimeout(_henVe);
+  _henVe = setTimeout(() => {
+    for (const o of os){
+      const token = o.dataset.cv;
+      if (!token || THUMB.has(token)) continue;
+      theoDoi.unobserve(o);
+      xepHang(token);
+    }
+  }, 1500);
+}
+
+/* Ô ảnh trên thẻ: CV ảnh dùng thẳng, CV PDF chờ vẽ, không có CV thì chữ cái */
+function oAnh(p){
+  if (!p.cv) return `<div class="thumb chu" style="background:${mauTen(p.ten)}">${esc(tatTen(p.ten))}</div>`;
+  const e = duoiTep(p.cvTen);
+  if (LA_ANH(e))
+    return `<div class="thumb"><img src="/api/tuyen-dung?cv=${encodeURIComponent(p.cv)}" alt="" loading="lazy"></div>`;
+  if (e === 'pdf' || !e)
+    return `<div class="thumb" data-cv="${esc(p.cv)}"><span class="cho">⋯</span></div>`;
+  return `<div class="thumb chu" style="background:${mauTen(p.ten)}">${esc(tatTen(p.ten))}</div>`;
+}
+
 /* Avatar: có ảnh thì dùng, không thì chữ cái màu — không cần dữ liệu gì thêm */
 const MAU_AV = ['#C8102E','#E4657A','#B45309','#1D4ED8','#1A7F4B','#7C3AED','#0891B2','#DB2777','#65A30D','#EA580C'];
 const mauTen = t => MAU_AV[[...norm(t)].reduce((a,c)=>a+c.charCodeAt(0),0) % MAU_AV.length];
