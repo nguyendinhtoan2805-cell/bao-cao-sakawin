@@ -199,6 +199,7 @@
     <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none">💰 Tài chính &amp; Lãi lỗ</a>
     <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none">👥 Quỹ lương</a>
     <a class="navtab" id="tabNhanSu" href="/nhan-su.html" style="display:none">🧭 Nhân sự</a>
+    <a class="navtab" id="tabTuyenDung" href="/tuyen-dung.html" style="display:none">🎯 Tuyển dụng</a>
     <a class="navtab active" href="/admin.html">⚙️ Quản trị</a>
     <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout">Đăng xuất</a></span>
   </nav>
@@ -264,7 +265,7 @@ let DANH_MUC = [], USERS = [], ADMIN_GOC = [];
 /* Nhãn ngắn cho tiêu đề cột — nhãn đầy đủ đưa vào tooltip.
    Không rút gọn thì trên điện thoại tiêu đề cao tới 5 dòng. */
 const NHAN_NGAN = {
-  xem_doanh_so:'Doanh số', xem_tai_chinh:'Tài chính', xem_luong:'Quỹ lương', xem_nhan_su:'Nhân sự', xem_ca_nhan:'TT cá nhân', xem_target:'Target',
+  xem_doanh_so:'Doanh số', xem_tai_chinh:'Tài chính', xem_luong:'Quỹ lương', xem_nhan_su:'Nhân sự', xem_ca_nhan:'TT cá nhân', xem_tuyen_dung:'Tuyển dụng', ghi_tuyen_dung:'TD ghi nhận', duyet_tuyen_dung:'TD duyệt', xem_target:'Target',
   xem_ads:'Ngân sách ADS', duoc_sua:'Được sửa', quan_tri:'Quản trị',
 };
 
@@ -444,6 +445,7 @@ async function taiLai(){
   }
   $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten || me.email) + '</b>';
   $('tabTaiChinh').style.display = me.quyen.xem_tai_chinh ? '' : 'none';
+  if($('tabTuyenDung')) $('tabTuyenDung').style.display = me.quyen.xem_tuyen_dung ? '' : 'none';
   $('tabQuyLuong').style.display = me.quyen.xem_luong ? '' : 'none';
   if($('tabNhanSu')) $('tabNhanSu').style.display = me.quyen.xem_nhan_su ? '' : 'none';
   $('tabDoanhSo').style.display = me.quyen.xem_doanh_so ? '' : 'none';

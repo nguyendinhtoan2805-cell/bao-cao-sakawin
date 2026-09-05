@@ -480,6 +480,7 @@
     <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none">💰 Tài chính &amp; Lãi lỗ</a>
     <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none">👥 Quỹ lương</a>
     <a class="navtab" id="tabNhanSu" href="/nhan-su.html" style="display:none">🧭 Nhân sự</a>
+    <a class="navtab" id="tabTuyenDung" href="/tuyen-dung.html" style="display:none">🎯 Tuyển dụng</a>
     <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none">⚙️ Quản trị</a>
     <span class="navuser">
       <span class="who" id="navWho"></span>
@@ -1112,6 +1113,7 @@ async function khoiDong(){
   TOI = me;
   $('navWho').innerHTML = 'Xin chào <b>' + (me.ten||me.email) + '</b>';
   $('tabAdmin').style.display = me.quyen.quan_tri ? '' : 'none';
+  if($('tabTuyenDung')) $('tabTuyenDung').style.display = me.quyen.xem_tuyen_dung ? '' : 'none';
   $('tabTaiChinh').style.display = me.quyen.xem_tai_chinh ? '' : 'none';
   $('tabQuyLuong').style.display = me.quyen.xem_luong ? '' : 'none';
   if($('tabNhanSu')) $('tabNhanSu').style.display = me.quyen.xem_nhan_su ? '' : 'none';

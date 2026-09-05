@@ -20,13 +20,16 @@ const COOKIE = 'sakawin_session';
 const HAN = 12 * 3600; // giây — hết 12 tiếng phải đăng nhập lại
 
 /* ---------- Quyền ---------- */
-const QUYEN = ['xem_doanh_so', 'xem_tai_chinh', 'xem_luong', 'xem_nhan_su', 'xem_ca_nhan', 'xem_target', 'xem_ads', 'duoc_sua', 'quan_tri'];
+const QUYEN = ['xem_doanh_so', 'xem_tai_chinh', 'xem_luong', 'xem_nhan_su', 'xem_ca_nhan', 'xem_tuyen_dung', 'ghi_tuyen_dung', 'duyet_tuyen_dung', 'xem_target', 'xem_ads', 'duoc_sua', 'quan_tri'];
 const NHAN_QUYEN = {
   xem_doanh_so: 'Xem trang Doanh số & Target',
   xem_tai_chinh: 'Xem trang Tài chính & Lãi lỗ',
   xem_luong: 'Xem trang Quỹ lương & Lương',
   xem_nhan_su: 'Xem trang Quản trị Nhân sự',
   xem_ca_nhan: 'Xem SĐT, địa chỉ, ngày sinh, email của nhân sự',
+  xem_tuyen_dung: 'Xem trang Tuyển dụng',
+  ghi_tuyen_dung: 'Ghi nhận tiến độ tuyển dụng (đã sơ vấn, đã phỏng vấn, nhận việc)',
+  duyet_tuyen_dung: 'Duyệt hoặc loại ứng viên',
   xem_target: 'Xem Target và % hoàn thành',
   xem_ads: 'Xem ngân sách ADS, %Ads và CPO',
   duoc_sua: 'Được sửa số trực tiếp trên web',

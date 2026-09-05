@@ -556,6 +556,7 @@ body.chup #chiTiet,body.chup .srch{display:none!important}
     <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none">💰 Tài chính &amp; Lãi lỗ</a>
     <a class="navtab" id="tabLuong" href="/quy-luong.html" style="display:none">💵 Quỹ lương</a>
     <a class="navtab active" href="/nhan-su.html">🧭 Nhân sự</a>
+    <a class="navtab" id="tabTuyenDung" href="/tuyen-dung.html" style="display:none">🎯 Tuyển dụng</a>
     <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none">⚙️ Quản trị</a>
     <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout">Đăng xuất</a></span>
   </nav>
@@ -1183,6 +1184,7 @@ document.addEventListener('keydown', e => {
   $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten || me.email) + '</b>';
   $('tabAdmin').style.display    = me.quyen.quan_tri     ? '' : 'none';
   $('tabTaiChinh').style.display = me.quyen.xem_tai_chinh ? '' : 'none';
+  if($('tabTuyenDung')) $('tabTuyenDung').style.display = me.quyen.xem_tuyen_dung ? '' : 'none';
   $('tabDoanhSo').style.display  = me.quyen.xem_doanh_so  ? '' : 'none';
   $('tabLuong').style.display    = me.quyen.xem_luong     ? '' : 'none';
   document.body.classList.remove('locked');
