@@ -374,6 +374,9 @@ module.exports = async (req, res) => {
       const nPV = ngay(pick(f, 'Ngày phỏng vấn'));
       const viTri = txt(pick(f, 'Vị trí ứng tuyển'));
       const cv = pick(f, 'File CV');
+      /* Thời điểm đã hẹn phỏng vấn — khác "Ngày phỏng vấn" là lúc thực tế gặp.
+         Chưa tạo cột trong Lark thì rỗng, khối lịch chỉ trống chứ không lỗi. */
+      const lich = ngay(pick(f, 'Lịch phỏng vấn'));
       /* Nhận nhiều cách đặt tên cho khỏi phải nhớ chính xác — thiếu cột thì
          rơi về avatar chữ cái, không lỗi. */
       const anh = pick(f, 'Ảnh', 'Ảnh đại diện', 'Hình ảnh', 'Ảnh ứng viên');
