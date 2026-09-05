@@ -488,6 +488,17 @@ module.exports = async (req, res) => {
       danhGia.chuaNgoi = danhGia.nguoi.filter(x => !x.daNgoi).length;
       danhGia.satVach = danhGia.nguoi.filter(x => x.satVach).length;
       danhGia.bien = BIEN;
+
+      /* Bảng có dòng mà không ai chấm đủ 10 tiêu chí → gần như chắc chắn do tên
+         cột trong Lark khác tên code đang tìm. Liệt kê tên cột THẬT ra để đối
+         chiếu, thay vì chỉ báo "chưa có ai chấm" rồi để tự đoán. */
+      if (rDG.length && !danhGia.nguoi.length) {
+        const cot = (await dsCot(tk, BASE, bDG.table_id)).map(f => f.field_name);
+        const thieu = [...TIEU_CHI_S, ...TIEU_CHI_W, 'Kỳ đánh giá', 'Họ và tên']
+          .filter(c => !cot.some(k => norm(k) === norm(c)));
+        danhGia.cotThat = cot;
+        danhGia.cotThieu = thieu;
+      }
     }
 
     /* ---------- Đào tạo ---------- */
@@ -518,6 +529,21 @@ module.exports = async (req, res) => {
     const canhBao = [];
     if (!bDG) canhBao.push({ muc: 'luu-y', tieuDe: 'Chưa có bảng "Đánh giá Nhân sự" trong Base',
       noiDung: 'Tạo bảng theo đúng tên cột đã thống nhất là phần ma trận Skill-Will hiện ra ngay, không cần chỉnh code.' });
+
+    /* Bảng đã có, đã chấm, nhưng web không đọc ra điểm nào — chỉ đích danh cột
+       cần sửa thay vì để mò. Tên cột so khớp bỏ dấu, bỏ khoảng trắng và dấu
+       chấm, nên "S1.KẾT QUẢ" và "S1 Kết quả" là một; chỉ khác chữ mới lệch. */
+    if (danhGia.cotThieu && danhGia.cotThieu.length)
+      canhBao.push({ muc: 'canh-bao',
+        tieuDe: `Bảng Đánh giá có dữ liệu nhưng web chưa đọc được — thiếu ${danhGia.cotThieu.length} cột`,
+        noiDung: `Cần có cột: ${danhGia.cotThieu.join(' · ')}. `
+          + `Cột đang có trong bảng: ${danhGia.cotThat.slice(0, 14).join(' · ')}`
+          + (danhGia.cotThat.length > 14 ? '…' : '') + '.' });
+    else if (danhGia.cotThat)
+      canhBao.push({ muc: 'canh-bao',
+        tieuDe: 'Bảng Đánh giá đủ cột nhưng chưa dòng nào chấm đủ 10 tiêu chí',
+        noiDung: 'Thiếu một tiêu chí là cả dòng không ra điểm — cố ý để vậy, vì chấm nửa vời '
+          + 'mà vẫn ra điểm thì con số đó đánh lừa người đọc. Soát lại xem có ô nào bỏ trống không.' });
     if (!bDT) canhBao.push({ muc: 'luu-y', tieuDe: 'Chưa có bảng "Đào tạo" trong Base',
       noiDung: 'Không có bảng này thì tiêu chí W3 Học hỏi chỉ dựa vào cảm nhận của người chấm, không có gì đối chiếu.' });
 
