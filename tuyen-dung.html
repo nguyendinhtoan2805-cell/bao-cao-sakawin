@@ -397,6 +397,9 @@
 .tw::-webkit-scrollbar-thumb{background:#D6D3D1;border-radius:5px}
 .chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;
   white-space:nowrap;line-height:1.6}
+/* Hai biến thể chip dùng trong khối biên bản — bị dọn nhầm cùng CSS form chấm điểm */
+.chip.ok{background:#E1F5EE;color:#0F6E56}
+.chip.cc{background:#FAEEDA;color:#854F0B}
 
 /* ---- Bảng tiến độ: 7 khâu chia đều hết bề ngang, ngăn nhau bằng đường kẻ ----
    Trước đây mỗi cột khoá 236px nên màn rộng thừa cả mảng trắng bên phải.
@@ -502,28 +505,6 @@ tr.itnguon td{background:#FFFBEB}
 .theme-dark .blk.cauhoi{border-color:#3C3489;background:#17162A}
 .blk.cauhoi .txt{font-size:13px;line-height:1.75}
 
-/* ---- Form chấm điểm phỏng vấn ---- */
-.chamluoi{display:flex;flex-direction:column;gap:9px}
-.chamhang{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.chamhang .nh{flex:1;min-width:150px;display:flex;align-items:baseline;gap:7px}
-.chamhang .nh b{font-size:13px;font-weight:700}
-.chamhang .nh span{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-.chamhang .nut{display:flex;gap:5px;flex:none}
-.chamhang .d{font:inherit;font-size:13px;font-weight:700;width:34px;height:34px;border-radius:8px;
-  border:1.5px solid var(--line);background:var(--card);cursor:pointer;color:var(--muted);
-  font-variant-numeric:tabular-nums;transition:.12s}
-.chamhang .d:hover{border-color:var(--red);color:var(--ink)}
-.chamhang .d.on{border-color:var(--red);background:var(--red);color:#fff}
-.tongdiem{padding:11px 15px;border-radius:9px;background:#FAFAF9;border:1px solid var(--line);
-  font-size:13.5px;color:var(--muted);text-align:center;line-height:1.5}
-.theme-dark .tongdiem{background:#1A1615}
-.tongdiem b{font-size:22px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
-.tongdiem.ok{background:#E2F4EE;border-color:#5DCAA5;color:#0F6E56}
-.tongdiem.ok b{color:#0F6E56}
-.tongdiem.warn{background:#FAEEDA;border-color:#EF9F27;color:#854F0B}
-.tongdiem.warn b{color:#854F0B}
-.tongdiem.err{background:#FCEBEB;border-color:#F09595;color:#A32D2D}
-.tongdiem.err b{color:#A32D2D}
 
 /* Nút nối sang Obsidian trong đầu hồ sơ */
 .nutobs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
@@ -532,6 +513,17 @@ tr.itnguon td{background:#FFFBEB}
   text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:.12s}
 .obs:hover{border-color:#7C3AED;color:#7C3AED;background:#F4F0FE}
 .theme-dark .obs:hover{background:#1F1830}
+
+/* ---- Ô biên bản phỏng vấn ---- */
+.blk.bienban{border-color:#B5D4F4;background:#FBFDFF}
+.theme-dark .blk.bienban{border-color:#185FA5;background:#101A24}
+.blk.bienban h5{align-items:center}
+.luutt{margin-left:auto;font-size:11px;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+.bbo{width:100%;min-height:340px;font:inherit;font-size:13px;line-height:1.7;padding:13px 15px;
+  border:1px solid var(--line-2);border-radius:9px;background:var(--card);color:var(--ink);
+  resize:vertical;font-family:ui-monospace,SFMono-Regular,'SF Mono',monospace;tab-size:2}
+.bbo:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px rgba(200,16,46,.10)}
+.bbnut{display:flex;align-items:center;gap:12px;margin-top:11px;flex-wrap:wrap}
 /* ---- Hồ sơ ứng viên ---- */
 #hoSo{position:fixed;inset:0;background:rgba(28,25,23,.55);z-index:400;display:none;
   align-items:center;justify-content:center;padding:2.5vh 2vw;overflow:auto}
@@ -918,7 +910,6 @@ function the(p){
     <div class="tag">
       <span class="chip" style="background:#F5F5F4;color:#78716C">${esc(p.nguon)}</span>
       ${gap ? `<span class="chip" style="background:#FCEBEB;color:#A32D2D">chờ ${choLau(p.gioCho)}</span>` : ''}
-      ${p.diemTong != null ? `<span class="chip" style="background:#EEF2FF;color:#3730A3">${p.diemTong}/100</span>` : ''}
       ${!p.hieuBiet && ['Hẹn phỏng vấn','Đã phỏng vấn'].includes(p.trangThai)
         ? '<span class="chip" style="background:#FAEEDA;color:#854F0B">thiếu gate</span>' : ''}
     </div></div>`;
@@ -1050,68 +1041,97 @@ function chepLenh(p){
     .catch(() => bao('err', 'Trình duyệt không cho chép tự động'));
 }
 
-/* ═══════════ Form chấm phỏng vấn ═══════════
-   Bám hai mẫu trong vault: 05. Mẫu chấm điểm (6 tiêu chí, thang 1–5, ba ô nhận
-   xét) và 04. Mẫu ghi chú phỏng vấn (ghi chú nhanh, trích dẫn, 4 Fits). */
-let CHAM = {};
-function moChamDiem(){
-  const hop = $('lyDoBox');
-  CHAM = {};
-  const thang = DATA.thang || 5;
-  const ten = MO.tenLoi;
-  hop.className = 'lydo mo';
-  hop.innerHTML = `<h5>Chấm điểm phỏng vấn — ${esc(MO.ten)}</h5>
-    <div class="chamluoi">${DATA.tieuChi.map((t, i) => {
-      const nhan = (ten && i < 3) ? ten[i] : t.ten;
-      return `<div class="chamhang">
-        <div class="nh"><b>${esc(nhan)}</b><span>${Math.round(t.ts*100)}%</span></div>
-        <div class="nut" data-tc="${esc(t.ten)}">${Array.from({length:thang},(_,k)=>
-          `<button class="d" data-v="${k+1}">${k+1}</button>`).join('')}</div>
-      </div>`;
-    }).join('')}</div>
-    <div class="tongdiem" id="tongDiem">Chấm đủ 6 tiêu chí để ra điểm</div>
-    <div class="thangchu" style="margin:0">1 mơ hồ không bằng chứng · 2 từng làm nhưng cần hướng dẫn ·
-      3 đáp ứng chuẩn, làm độc lập · 4 vượt chuẩn, xây hệ thống được · 5 hiểu nguyên lý sâu.
-      Mỗi điểm cần gắn với tình huống thật, không chấm cao vì trả lời lưu loát.</div>
-    <textarea id="pvGhiChu" placeholder="Ghi chú nhanh trong lúc phỏng vấn · trích dẫn đáng chú ý · 4 Fits (P–O giá trị, P–J công việc, P–S quản lý)" style="min-height:88px"></textarea>
-    <textarea id="pvManh" placeholder="Điểm mạnh nổi bật"></textarea>
-    <textarea id="pvRuiRo" placeholder="Rủi ro / điểm cần lưu ý"></textarea>
-    <div class="hang">
-      <input id="pvNguoi" placeholder="Người phỏng vấn" value="${esc(TOI_TEN)}"
-        style="font:inherit;font-size:13px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);width:180px">
-      <button class="act ghi" id="xacNhanCham" disabled>Lưu kết quả phỏng vấn</button>
-      <button class="act loai" id="huyCham">Huỷ</button>
-    </div>`;
+/* ═══════════ Biên bản phỏng vấn — MỘT ô duy nhất ═══════════
+   Khung điền sẵn theo "04. Mẫu ghi chú phỏng vấn.md" trong vault. Cố ý không
+   tách thành 6 ô chấm điểm: người phỏng vấn không nên vừa nói chuyện vừa chấm,
+   mà vault đòi mỗi điểm phải gắn với tình huống thật. Chấm điểm làm sau, từ
+   chính biên bản này. */
+const KHUNG_BB = [
+  '【GHI CHÚ NHANH TRONG LÚC PHỎNG VẤN】',
+  '',
+  '',
+  '【TRÍCH DẪN ĐÁNG CHÚ Ý】',
+  '(câu trả lời tốt/xấu nổi bật — để ý ứng viên nói ngôn ngữ GIẢI PHÁP hay RẮC RỐI)',
+  '',
+  '',
+  '【QUAN SÁT THEO TỪNG TIÊU CHÍ】',
+  '· Kỹ năng lõi 1:',
+  '· Kỹ năng lõi 2:',
+  '· Kỹ năng lõi 3:',
+  '· Thực thi / quản lý công việc:',
+  '· Giao tiếp & thái độ:',
+  '· Phù hợp JD & kinh nghiệm nền:',
+  '',
+  '【4 FITS】',
+  '· P–O (giá trị ↔ văn hoá Sakawin):',
+  '· P–J (năng lực/động lực ↔ công việc thực tế):',
+  '· P–S (phù hợp quản lý trực tiếp):',
+  '· P–G (phù hợp đội nhóm):',
+  '',
+  '【CẢM NHẬN CHUNG & BƯỚC TIẾP THEO】',
+  '',
+].join('\n');
 
-  hop.querySelectorAll('.nut').forEach(o => o.onclick = e => {
-    const b = e.target.closest('button.d'); if (!b) return;
-    CHAM[o.dataset.tc] = Number(b.dataset.v);
-    o.querySelectorAll('.d').forEach(x => x.classList.toggle('on', x === b));
-    tinhTong();
-  });
-  $('huyCham').onclick = () => { hop.className = 'lydo'; CHAM = {}; };
-  $('xacNhanCham').onclick = () => doiTrangThai('Đã phỏng vấn', '', '', {
-    diem: CHAM, ghiChuPV: $('pvGhiChu').value.trim(), diemManh: $('pvManh').value.trim(),
-    ruiRo: $('pvRuiRo').value.trim(), nguoiPV: $('pvNguoi').value.trim(),
+let _luuTimer = null;
+function khungBienBan(p){
+  const co = ['Hẹn phỏng vấn', 'Đã phỏng vấn'].includes(p.trangThai);
+  if (!co && !p.bienBan) return '';
+  const noiDung = p.bienBan || (p.trangThai === 'Hẹn phỏng vấn' ? KHUNG_BB : '');
+  const xong = p.trangThai !== 'Hẹn phỏng vấn';
+  return `<div class="blk bienban">
+    <h5>🗒️ Biên bản phỏng vấn
+      ${xong ? '<span class="chip ok">đã chốt</span>' : '<span class="chip cc">đang mở</span>'}
+      <span class="luutt" id="luuTT"></span></h5>
+    ${xong
+      ? `<div class="txt">${esc(p.bienBan) || '<span style="color:#A8A29E">không có biên bản</span>'}</div>`
+      : `<textarea id="bbNhap" class="bbo" spellcheck="false">${esc(noiDung)}</textarea>
+         <div class="bbnut">
+           <button class="act ghi" id="bbLuu">Lưu biên bản</button>
+           <span class="ghtay" style="margin:0;text-align:left;max-width:none">
+             Tự lưu sau mỗi 20 giây gõ. Bấm <b>Đã phỏng vấn</b> khi xong buổi.</span>
+         </div>`}
+  </div>`;
+}
+
+/* Nối sự kiện cho ô biên bản — gọi sau khi hồ sơ đã dựng xong */
+function noiBienBan(){
+  const o = $('bbNhap'); if (!o) return;
+  const luu = async (tuDong) => {
+    if (!MO) return;
+    const tt = $('luuTT');
+    if (tt) tt.textContent = 'đang lưu…';
+    try {
+      const r = await fetch('/api/tuyen-dung', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: MO.id, chiLuuBienBan: true, bienBan: o.value }),
+      });
+      const j = await r.json().catch(() => ({ ok: false }));
+      if (!j.ok) throw new Error(j.error || 'không lưu được');
+      MO.bienBan = o.value;
+      const gio = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      if (tt) tt.textContent = 'đã lưu ' + gio;
+      if (!tuDong) bao('ok', 'Đã lưu biên bản vào Lark');
+    } catch (e) {
+      if (tt) tt.textContent = 'lưu lỗi';
+      bao('err', 'Không lưu được: ' + e.message, 6);
+    }
+  };
+  $('bbLuu').onclick = () => luu(false);
+  /* Tự lưu sau 20 giây ngừng gõ — buổi phỏng vấn dài, đóng nhầm tab là mất */
+  o.addEventListener('input', () => {
+    const tt = $('luuTT'); if (tt) tt.textContent = 'chưa lưu';
+    clearTimeout(_luuTimer);
+    _luuTimer = setTimeout(() => luu(true), 20000);
   });
 }
 
-/* Điểm và đề xuất hiện ngay khi chấm đủ — đúng công thức Ranking.base */
-function tinhTong(){
-  const du = DATA.tieuChi.every(t => CHAM[t.ten]);
-  $('xacNhanCham').disabled = !du;
-  const o = $('tongDiem');
-  if (!du){
-    const con = DATA.tieuChi.filter(t => !CHAM[t.ten]).length;
-    o.className = 'tongdiem';
-    o.textContent = `Còn ${con} tiêu chí chưa chấm`;
-    return;
-  }
-  const d = Math.round(DATA.tieuChi.reduce((a, t) => a + CHAM[t.ten] * t.ts, 0) * 20 * 10) / 10;
-  const ng = DATA.nguong || { offer: 80, canNhac: 65 };
-  const dx = d >= ng.offer ? ['🟢 Mời offer', 'ok'] : (d >= ng.canNhac ? ['🟡 Cân nhắc', 'warn'] : ['🔴 Từ chối', 'err']);
-  o.className = 'tongdiem ' + dx[1];
-  o.innerHTML = `<b>${d}</b> / 100 · ${dx[0]}`;
+/* Bấm "Đã phỏng vấn" — gửi luôn nội dung đang gõ, không cần lưu trước */
+function chotPhongVan(){
+  const o = $('bbNhap');
+  const bb = o ? o.value.trim() : (MO.bienBan || '');
+  if (bb.replace(/【[^】]*】/g, '').replace(/[·\s]/g, '').length < 30)
+    return bao('warn', 'Cần ghi biên bản trước khi đánh dấu đã phỏng vấn', 6);
+  doiTrangThai('Đã phỏng vấn', '', '', { bienBan: bb });
 }
 
 /* ---------- Phễu ---------- */
@@ -1413,34 +1433,11 @@ function moHoSo(id){
       <span class="chip" style="background:#EFEAFA;color:#3C3489">soạn từ CV + JD</span></h5>
       <div class="txt">${esc(p.cauHoi)}</div></div>`;
 
+  h += khungBienBan(p);
+
   if (p.ketQuaSoVan)
     h += `<div class="blk"><h5>📞 Kết quả sơ vấn</h5><div class="txt">${esc(p.ketQuaSoVan)}</div></div>`;
 
-  if (p.diemTong != null || p.diem.some(x => x != null)){
-    const ten = p.tenLoi;
-    const thang = DATA.thang || 5;
-    const mauDX = { '🟢 Mời offer': ['#E2F4EE','#0F6E56'], '🟡 Cân nhắc': ['#FAEEDA','#854F0B'],
-                    '🔴 Từ chối': ['#FCEBEB','#A32D2D'] };
-    const dx = p.deXuat ? mauDX[p.deXuat] : null;
-    h += `<div class="blk"><h5>🎯 Scorecard
-        ${p.diemTong != null ? `<span class="chip" style="background:#EEF2FF;color:#3730A3">${p.diemTong} / 100</span>`
-                             : '<span class="chip" style="background:#FAEEDA;color:#854F0B">chấm chưa đủ</span>'}
-        ${dx ? `<span class="chip" style="background:${dx[0]};color:${dx[1]}">${esc(p.deXuat)}</span>` : ''}
-        ${p.nguoiPV ? `<span style="margin-left:auto;font-size:11.5px;color:#78716C;font-weight:400">${esc(p.nguoiPV)}</span>` : ''}</h5>
-      <div class="sc">${DATA.tieuChi.map((t, i) => {
-        const nhan = (ten && i < 3) ? ten[i] : t.ten, v = p.diem[i];
-        return `<div class="it"><div class="lb"><span>${esc(nhan)} · ${Math.round(t.ts*100)}%</span>
-          <b>${v == null ? '—' : v + '/' + thang}</b></div>
-          <div class="bt"><div class="bf" style="width:${(v||0)/thang*100}%"></div></div></div>`;
-      }).join('')}</div>
-      <div class="thangchu">Thang 1–${thang} theo mẫu chấm điểm trong Obsidian ·
-        1 mơ hồ · 2 cần hướng dẫn · 3 làm độc lập · 4 xây hệ thống được · 5 hiểu nguyên lý sâu</div>
-      </div>`;
-  }
-
-  if (p.diemManh) h += `<div class="blk" style="border-color:#9FE1CB"><h5>💪 Điểm mạnh nổi bật</h5><div class="txt">${esc(p.diemManh)}</div></div>`;
-  if (p.ruiRo)    h += `<div class="blk" style="border-color:#FAC775"><h5>⚠️ Rủi ro / cần lưu ý</h5><div class="txt">${esc(p.ruiRo)}</div></div>`;
-  if (p.ghiChuPV) h += `<div class="blk"><h5>📝 Ghi chú phỏng vấn</h5><div class="txt">${esc(p.ghiChuPV)}</div></div>`;
   if (p.ghiChu)   h += `<div class="blk"><h5>Ghi chú</h5><div class="txt">${esc(p.ghiChu)}</div></div>`;
   if (p.lyDoLoai) h += `<div class="blk" style="border-color:#F0999B"><h5>🔴 Đã loại ở ${esc(p.loaiOBuoc)}</h5>
     <div class="txt">${esc(p.lyDoLoai)}</div></div>`;
@@ -1452,6 +1449,7 @@ function moHoSo(id){
   $('lyDoBox').className = 'lydo';
   $('hoSo').classList.add('mo');
   $('hsDong').onclick = dongHoSo;
+  noiBienBan();
 }
 
 function veNut(p){
@@ -1564,7 +1562,7 @@ $('lanes').addEventListener('click', e => {
 $('hsActs').addEventListener('click', e => {
   const b = e.target.closest('.act[data-den]'); if (!b) return;
   if (b.dataset.den === 'Hẹn phỏng vấn') moHenLich();        // cần ngày giờ
-  else if (b.dataset.den === 'Đã phỏng vấn') moChamDiem();   // cần chấm 6 tiêu chí
+  else if (b.dataset.den === 'Đã phỏng vấn') chotPhongVan();  // cần có biên bản
   else if (b.dataset.buoc) moLyDo(b.dataset.den);       // cần lý do
   else doiTrangThai(b.dataset.den, '', '');
 });

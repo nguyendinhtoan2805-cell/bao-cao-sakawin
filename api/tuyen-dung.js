@@ -26,9 +26,10 @@ const COT_DUOC_GHI = [
   'Trạng thái', 'Lịch sử', 'Loại ở bước', 'Lý do loại',
   'Ngày duyệt CV', 'Ngày sơ vấn', 'Ngày phỏng vấn', 'Ngày gửi offer', 'Ngày chốt',
   'Lịch phỏng vấn', 'Hình thức', 'Địa điểm / Link',
-  /* Kết quả phỏng vấn — nhập trên web, tính điểm theo công thức Ranking.base */
-  'Kỹ năng lõi 1', 'Kỹ năng lõi 2', 'Kỹ năng lõi 3', 'Thực thi', 'Giao tiếp', 'Phù hợp JD',
-  'Ghi chú phỏng vấn', 'Điểm mạnh', 'Rủi ro', 'Người phỏng vấn',
+  /* Biên bản phỏng vấn — MỘT ô văn bản, người phỏng vấn gõ thẳng trong buổi.
+     Cố ý không tách thành 6 cột điểm: chấm điểm cần ngồi nghĩ, mà vault đòi
+     mỗi điểm phải gắn với tình huống thật — làm sau, từ biên bản này. */
+  'Biên bản phỏng vấn',
 ];
 
 /* ─────────────── KHOÁ GHI — lớp 3: luồng trạng thái hợp lệ ───────────────
@@ -272,6 +273,24 @@ module.exports = async (req, res) => {
     if (req.method === 'POST') {
       const b = req.body || {};
       const id = String(b.id || '').trim();
+
+      /* Lưu biên bản giữa buổi — buổi phỏng vấn 30 phút, chỉ lưu lúc bấm xong
+         là lỡ đóng tab mất sạch. Nhánh này chỉ ghi đúng một cột, không đụng
+         trạng thái, nên vẫn nằm trong ba lớp khoá. */
+      if (b.chiLuuBienBan) {
+        if (!toi.quyen.ghi_tuyen_dung && !toi.quyen.duyet_tuyen_dung)
+          return res.status(403).json({ ok: false, error: 'Chưa được cấp quyền ghi tuyển dụng.' });
+        const bb = String(b.bienBan || '');
+        const r0 = await fetch(
+          `${HOST}/open-apis/bitable/v1/apps/${BASE}/tables/${bUV.table_id}/records/${id}`,
+          { method: 'PUT',
+            headers: { Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({ fields: { 'Biên bản phỏng vấn': bb.slice(0, 20000) } }) });
+        const j0 = await r0.json();
+        if (j0.code !== 0) throw new Error(`Lưu biên bản thất bại (${j0.code}): ${j0.msg}`);
+        return res.status(200).json({ ok: true, daLuu: true });
+      }
+
       const den = String(b.den || '').trim();
       if (!id || !den) return res.status(400).json({ ok: false, error: 'Thiếu hồ sơ hoặc trạng thái đích.' });
 
@@ -310,22 +329,14 @@ module.exports = async (req, res) => {
       if (nuoc.buoc && !lyDo)
         return res.status(400).json({ ok: false, error: 'Cần chọn lý do trước khi loại.' });
 
-      /* Chấm phỏng vấn: đủ 6 tiêu chí mới cho ghi. Thiếu một cái là điểm tổng
-         không tính được, mà ghi nửa vời thì lần sau không ai biết thiếu chỗ nào. */
-      let vaDiem = null;
+      /* Bấm "Đã phỏng vấn" mà biên bản còn rỗng thì chặn — buổi phỏng vấn không
+         để lại gì thì sau này không ai chấm điểm hay so sánh được. */
+      let vaBienBan = null;
       if (nuoc.canDiem){
-        const ds = b.diem || {};
-        const thieu = TIEU_CHI.filter(t => {
-          const v = Number(ds[t.ten]);
-          return !Number.isFinite(v) || v < 1 || v > THANG;
-        });
-        if (thieu.length) return res.status(400).json({ ok: false,
-          error: `Cần chấm đủ 6 tiêu chí, thang 1–${THANG}. Còn thiếu: ${thieu.map(t => t.ten).join(', ')}.` });
-        vaDiem = {};
-        for (const t of TIEU_CHI) vaDiem[t.ten] = Number(ds[t.ten]);
-        for (const [cot, khoa] of [['Ghi chú phỏng vấn','ghiChuPV'],['Điểm mạnh','diemManh'],
-                                   ['Rủi ro','ruiRo'],['Người phỏng vấn','nguoiPV']])
-          if (b[khoa]) vaDiem[cot] = String(b[khoa]).slice(0, 4000);
+        const bb = String(b.bienBan || '').trim();
+        if (bb.length < 30) return res.status(400).json({ ok: false,
+          error: 'Cần ghi biên bản phỏng vấn trước khi đánh dấu đã phỏng vấn.' });
+        vaBienBan = { 'Biên bản phỏng vấn': bb.slice(0, 20000) };
       }
 
       /* Hẹn phỏng vấn mà không có thời gian thì cái hẹn đó vô nghĩa — chặn ở
@@ -341,7 +352,7 @@ module.exports = async (req, res) => {
       const vaThô = { 'Trạng thái': den };
       if (nuoc.ngay) vaThô[nuoc.ngay] = epochHomNay();
       if (nuoc.buoc) { vaThô['Loại ở bước'] = nuoc.buoc; vaThô['Lý do loại'] = lyDo; }
-      if (vaDiem) Object.assign(vaThô, vaDiem);
+      if (vaBienBan) Object.assign(vaThô, vaBienBan);
       if (lichEpoch){
         vaThô['Lịch phỏng vấn'] = lichEpoch;
         if (b.hinhThuc) vaThô['Hình thức'] = String(b.hinhThuc).slice(0, 40);
@@ -351,7 +362,7 @@ module.exports = async (req, res) => {
       const cu = txt(pick(f, 'Lịch sử'));
       const dong = `${gioPhutVN()} · ${toi.ten || toi.email} · ${tuThat} → ${den}`
         + (lichEpoch ? ` (${b.gioHen} ngày ${b.ngayHen}${b.hinhThuc ? ', ' + b.hinhThuc : ''})` : '')
-        + (vaDiem ? ` (${diemPV(vaDiem)}/100 — ${deXuat(diemPV(vaDiem))})` : '')
+
         + (lyDo ? ` (${lyDo})` : '') + (b.ghiChu ? ` — ${String(b.ghiChu).slice(0, 200)}` : '');
       vaThô['Lịch sử'] = (cu ? cu + '\n' : '') + dong;
 
@@ -482,8 +493,7 @@ module.exports = async (req, res) => {
         diem: TIEU_CHI.map(t => num(pick(f, t.ten))),
         tenLoi: loiTheoViTri.get(norm(viTri)) || null,
         diemTong: diemPV(f), deXuat: deXuat(diemPV(f)),
-        ghiChuPV: txt(pick(f, 'Ghi chú phỏng vấn')),
-        diemManh: txt(pick(f, 'Điểm mạnh')), ruiRo: txt(pick(f, 'Rủi ro')),
+        bienBan: txt(pick(f, 'Biên bản phỏng vấn')),
         ghiChu: txt(pick(f, 'Ghi chú')),
         lichSu: txt(pick(f, 'Lịch sử')),
         dangMo: !KET_THUC.includes(tt),
