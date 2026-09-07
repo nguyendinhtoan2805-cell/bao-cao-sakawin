@@ -686,7 +686,9 @@ tbody tr.tong td{background:#FAFAF9!important;font-weight:800;border-top:2px sol
 
 body.chup #hoSo,body.chup .srch,body.chup .bao{display:none!important}
 </style>
-<body class="locked">
+<link rel="stylesheet" href="/assets/recruitment/recruitment.css">
+</head>
+<body class="locked recruitment-page">
 
 <div id="gate">
   <h2 id="gateTitle">Đang kiểm tra quyền…</h2>
@@ -695,24 +697,28 @@ body.chup #hoSo,body.chup .srch,body.chup .bao{display:none!important}
 </div>
 
 <div class="wrap">
-  <nav class="appnav">
-    <span class="applogo">Sakawin <b>Reports</b></span>
-    <a class="navtab" href="/">🏠 Tổng quan</a>
-    <a class="navtab" id="tabDoanhSo" href="/doanh-so.html" style="display:none">📈 Doanh số &amp; Target</a>
-    <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none">💰 Tài chính &amp; Lãi lỗ</a>
-    <a class="navtab" id="tabLuong" href="/quy-luong.html" style="display:none">💵 Quỹ lương</a>
-    <a class="navtab" id="tabNhanSu" href="/nhan-su.html" style="display:none">🧭 Nhân sự</a>
-    <a class="navtab active" href="/tuyen-dung.html">🎯 Tuyển dụng</a>
-    <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none">⚙️ Quản trị</a>
-    <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout">Đăng xuất</a></span>
+  <nav class="appnav" aria-label="Điều hướng chính">
+    <span class="applogo"><span class="logo-crop"><img src="/assets/recruitment/sakawin-logo.png" alt="Sakawin" width="3508" height="2481"></span><span class="workspace-label">WORKSPACE</span></span>
+    <a class="navtab" href="/" title="Tổng quan"><i class="ui-icon icon-grid" aria-hidden="true"></i><span class="nav-label">Tổng quan</span></a>
+    <a class="navtab" id="tabDoanhSo" href="/doanh-so.html" style="display:none" title="Doanh số &amp; Target"><i class="ui-icon icon-trending-up" aria-hidden="true"></i><span class="nav-label">Doanh số &amp; Target</span></a>
+    <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none" title="Tài chính &amp; Lãi lỗ"><i class="ui-icon icon-pie-chart" aria-hidden="true"></i><span class="nav-label">Tài chính &amp; Lãi lỗ</span></a>
+    <a class="navtab" id="tabLuong" href="/quy-luong.html" style="display:none" title="Quỹ lương"><i class="ui-icon icon-credit-card" aria-hidden="true"></i><span class="nav-label">Quỹ lương</span></a>
+    <a class="navtab" id="tabNhanSu" href="/nhan-su.html" style="display:none" title="Nhân sự"><i class="ui-icon icon-users" aria-hidden="true"></i><span class="nav-label">Nhân sự</span></a>
+    <a class="navtab active" aria-current="page" href="/tuyen-dung.html" title="Tuyển dụng"><i class="ui-icon icon-user-plus" aria-hidden="true"></i><span class="nav-label">Tuyển dụng</span></a>
+    <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none" title="Quản trị"><i class="ui-icon icon-shield" aria-hidden="true"></i><span class="nav-label">Quản trị</span></a>
+    <button class="sidebar-toggle" type="button" aria-label="Thu gọn menu" aria-expanded="true"><i class="ui-icon icon-chevrons-left" aria-hidden="true"></i><span class="nav-label">Thu gọn menu</span></button>
+    <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout" title="Đăng xuất"><i class="ui-icon icon-log-out" aria-hidden="true"></i><span class="nav-label">Đăng xuất</span></a></span>
   </nav>
 
+  <main class="recruitment-main">
+  <div class="recruitment-hero">
+    <span class="brand-watermark logo-crop" aria-hidden="true"><img src="/assets/recruitment/sakawin-logo.png" alt="" width="3508" height="2481"></span>
   <div class="masthead">
     <div class="brand">
-      <h1>SAKAWIN <span>· TUYỂN DỤNG</span></h1>
+      <h1>Tuyển dụng</h1>
       <p>Hồ sơ đi từ lúc nhận CV tới lúc nhận việc — không để ai rơi giữa đường.</p>
     </div>
-    <div class="toolbar"><button class="btn primary" id="btnSync">🔄 Đồng bộ từ Lark</button></div>
+    <div class="toolbar"><button class="btn primary" id="btnSync"><i class="ui-icon icon-refresh-cw" aria-hidden="true"></i> Đồng bộ từ Lark</button></div>
   </div>
 
   <div class="riengtu">🔒 Trang này chứa hồ sơ ứng viên và số điện thoại của họ.
@@ -723,13 +729,14 @@ body.chup #hoSo,body.chup .srch,body.chup .bao{display:none!important}
   <div class="syncbar" id="syncBar">⏳ Đang tải…</div>
 
   <div class="kpis" id="kpiRow"></div>
+  </div>
 
   <div class="card" id="cardCanhBao" style="display:none">
     <div class="ch"><h2>Điểm cần xử lý</h2><p id="cbSub"></p></div>
     <div class="cb"><div class="findings" id="findings"></div></div>
   </div>
 
-  <div class="card">
+  <div class="card pipeline-card">
     <div class="ch">
       <h2>Bảng tiến độ</h2>
       <p>Mỗi cột là một khâu, mỗi thẻ là một ứng viên. Bấm vào thẻ để mở hồ sơ và duyệt.
@@ -737,8 +744,8 @@ body.chup #hoSo,body.chup .srch,body.chup .bao{display:none!important}
     </div>
     <div class="cb">
       <div class="srch">
-        <input id="tim" placeholder="Tìm theo tên, vị trí, nguồn…">
-        <select id="locVT"><option value="">Tất cả vị trí</option></select>
+        <input id="tim" aria-label="Tìm ứng viên" placeholder="Tìm theo tên, vị trí, nguồn…">
+        <select id="locVT" aria-label="Lọc theo vị trí"><option value="">Tất cả vị trí</option></select>
         <label style="font-size:13px;display:flex;align-items:center;gap:7px;cursor:pointer">
           <input type="checkbox" id="hienXong" style="width:16px;height:16px;accent-color:var(--red)">
           Hiện cả hồ sơ đã đóng
@@ -788,6 +795,7 @@ body.chup #hoSo,body.chup .srch,body.chup .bao{display:none!important}
   </div>
 
   <div class="foot" id="reportFooter"></div>
+  </main>
 </div>
 
 <div id="hoSo"><div class="hsbox">
@@ -1616,5 +1624,6 @@ document.addEventListener('keydown', e => {
   });
 })();
 </script>
+<script src="/assets/recruitment/recruitment-ui.js"></script>
 </body>
 </html>
