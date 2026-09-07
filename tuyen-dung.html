@@ -529,7 +529,12 @@ tr.itnguon td{background:#FFFBEB}
   align-items:center;justify-content:center;padding:2.5vh 2vw;overflow:auto}
 #hoSo.mo{display:flex}
 .hsbox{background:var(--card);border-radius:14px;width:100%;
-  display:flex;flex-direction:column;max-height:95vh;
+  display:flex;flex-direction:column;
+  /* Chiều cao CỐ ĐỊNH, không để nội dung cột phải quyết định. Trước đây ở khâu
+     Mới nhận cột phải chỉ có tóm tắt ngắn nên hộp co lại, kéo khung CV nhỏ theo
+     — mà CV thì lúc nào cũng cần chỗ để đọc, nhất là ngay khâu duyệt CV. Cố định
+     luôn để mọi khâu mở ra bằng nhau, khỏi giật cỡ khi chuyển hồ sơ. */
+  height:min(92vh, 960px);
   box-shadow:0 22px 60px rgba(0,0,0,.3)}
 .hshead{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:flex-start}
 .hshead h3{margin:0;font-size:21px;font-weight:800;line-height:1.3}
