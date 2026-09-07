@@ -5,11 +5,12 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
-const { AUTH, user, guard, load, lark, fixtures } = require('./fixtures.cjs');
+const { AUTH, user, guard, load, lark, fixtures, ENV, redis, call } = require('./fixtures.cjs');
 const ROOT = path.resolve(__dirname, '..');
 const baseline = execFileSync('git', ['show', '0027c37:tuyen-dung.html'], { cwd: ROOT });
 const all = Object.fromEntries(Object.keys(AUTH.quyenRong()).map(k => [k, true]));
 const roles = {
+  guest: null,
   all: { ...user('', all), ten: 'TÀI KHOẢN MINH HOẠ' },
   restricted: { ...user('Team A'), ten: 'CHỈ XEM · MINH HOẠ', quyen: { ...AUTH.quyenRong(), xem_tuyen_dung: true } },
   none: { ...user(), ten: 'CHƯA CẤP QUYỀN', quyen: AUTH.quyenRong() },
@@ -36,6 +37,24 @@ function reset() {
   data.kh.rows = [];
 }
 reset();
+// Synthetic cross-page data; all API requests remain in this process.
+for (const table of Object.values(data)) for (const row of table.rows) {
+  delete row.fields['Hình ảnh']; delete row.fields['Ảnh'];
+}
+const makeRow = (record_id, fields) => ({record_id, fields});
+data.revenue = { name: 'Doanh thu minh hoạ', rows: [] };
+data.finance = { name: 'Tài chính minh hoạ', rows: [] };
+data.salary = { name: 'Quỹ lương minh hoạ', rows: [] };
+for (let m=1; m<=9; m++) for (let i=0; i<3; i++) {
+ const base = {'Tháng':m,'Năm':2026,'Quý':'Q'+Math.ceil(m/3)};
+ const shop = ['Gian hàng minh hoạ A','Gian hàng minh hoạ B','Gian hàng minh hoạ C'][i];
+ const dt = (m*15 + 200 + i*80)*1000000;
+ data.revenue.rows.push(makeRow(`r${m}-${i}`, {...base,'Kênh Kinh Doanh':shop,'Nền Tảng':['Shopee','TikTok','Khác'][i], 'Doanh Thu Kinh Doanh (số thực)':dt,'Số Lượng Đơn Hàng':(m+10)*50,'Ngân Sách ADS':dt*.1,'Target':dt*1.1,'% Tăng trưởng':.1,'SỐ ĐƠN (target)':1600,'% Trần ADS':.15,'Lên báo cáo':true}));
+ data.finance.rows.push(makeRow(`f${m}-${i}`, {...base,'Shop':shop,'Nguồn Doanh Thu':['Shopee','TikTok','Khác'][i],'Doanh Thu Thuần':dt,'Giá Vốn Hàng Bán':dt*.5,'Lợi Nhuận Gộp':dt*.5,'LỢI NHUẬN RÒNG':dt*.15,'Chi phí quảng cáo':dt*.1,'Chi phí vận hành':dt*.25}));
+ data.salary.rows.push(makeRow(`s${m}-${i}`, {...base,'Tên Nhân Sự':'Nhân viên minh hoạ '+String.fromCharCode(65+i),'Bộ Phận':i?'Team B':'Team A','Chức Vụ':'Chuyên viên','Giới Tính':i?'Nữ':'Nam','Ngày Công':26,'Hệ Số Lương':1,'Lương Cứng (Thực tế)':10000000,'Lương TN (Thực tế)':2000000,'Phụ Cấp (Thực tế)':500000,'% Hoa Hồng':1000000,'Thưởng Thêm (nếu có)':500000,'Giảm Trừ':0,'Tổng Cộng':14000000,'Thực Nhận':14000000}));
+}
+const mockEnv = {...ENV,LARK_TABLE_REVENUE:'revenue',LARK_TABLE_FINANCE:'finance',REPORT_AUTHOR:'Tài khoản minh hoạ'};
+const mockStore = redis(JSON.stringify([roles.all, {...user('Team A'),email:'demo.member',ten:'Thành viên minh hoạ',loai:'mk'}]));
 const requests = [];
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml' };
 http.createServer(async (req, res) => {
@@ -55,8 +74,8 @@ http.createServer(async (req, res) => {
     }
     const role = (req.headers.cookie || '').match(/(?:^|;\s*)demo_role=(\w+)/)?.[1] || 'none';
     const state = (req.headers.cookie || '').match(/(?:^|;\s*)demo_state=(\w+)/)?.[1] || 'normal';
-    const who = roles[role] || roles.none;
-    if (url.pathname === '/api/auth/me') return res.json({ ...who, dangNhap: true });
+    const who = role === 'guest' ? null : roles[role] || roles.none;
+    if (url.pathname === '/api/auth/me') return res.json({ ...who, dangNhap: !!who });
     if (url.pathname === '/api/tuyen-dung') {
       if (state === 'error') return res.status(503).json({ ok: false, error: 'Lỗi kết nối minh hoạ' });
       let raw = ''; for await (const part of req) { raw += part; if (raw.length > 60000) throw Error('Body too large'); }
@@ -78,15 +97,31 @@ http.createServer(async (req, res) => {
       };
       return await load('api/tuyen-dung.js', { './_auth.js': guard(who) }, { fetch })(req, res);
     }
+    if (['/api/doanh-so','/api/tai-chinh','/api/quy-luong','/api/nhan-su','/api/users'].includes(url.pathname)) {
+      if (state === 'error') return res.status(503).json({ok:false,error:'Lỗi kết nối minh hoạ'});
+      req.query = Object.fromEntries(url.searchParams);
+      let raw = ''; for await (const part of req) { raw += part; if(raw.length > 60000) throw Error('Body too large'); }
+      req.body = raw ? JSON.parse(raw) : {};
+      const copy = structuredClone(data);
+      if (state === 'empty') for (const t of Object.values(copy)) t.rows = [];
+      const deps = {'./_auth.js':guard(who),'./_store.js':mockStore.store};
+      return await load(url.pathname.slice(1)+'.js',deps,{process:{env:mockEnv},fetch:lark(copy).fetch})(req,res);
+    }
     if (url.pathname === '/review-requests') return res.json(requests);
     if (url.pathname.startsWith('/api/')) return res.status(404).json({ ok: false, error: 'Local fixture only' });
     const file = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
     const target = path.resolve(ROOT, file);
     if (url.pathname === '/baseline') { res.setHeader('Content-Type', types['.html']); return res.end(baseline); }
-    if (!(target.startsWith(path.join(ROOT, 'assets', 'recruitment') + path.sep) || ['index.html','tuyen-dung.html','nhan-su.html','admin.html','doanh-so.html','tai-chinh.html','quy-luong.html'].includes(file))) return res.status(404).end();
+    if (!(target.startsWith(path.join(ROOT, 'assets') + path.sep) || ['Sakawin_BaoCao_Thang_Web.html','index.html','tuyen-dung.html','nhan-su.html','admin.html','doanh-so.html','tai-chinh.html','quy-luong.html'].includes(file))) return res.status(404).end();
     const type = types[path.extname(target)];
     if (!type || !fs.existsSync(target)) return res.status(404).end();
     res.setHeader('Content-Type', type);
+    if (file === 'Sakawin_BaoCao_Thang_Web.html') {
+      const result = await call(load('api/doanh-so.js',{'./_auth.js':guard(roles.all)},{process:{env:mockEnv},fetch:lark(data).fetch}));
+      const html = fs.readFileSync(target,'utf8').replace(/let DATA = \{[\s\S]*?\n\};/, 'let DATA = '+JSON.stringify(result.body.data)+';');
+      if (!html.includes('Gian hàng minh hoạ')) throw Error('Legacy fixture replacement failed');
+      return res.end(html);
+    }
     return res.end(fs.readFileSync(target));
   } catch (error) { res.statusCode = 500; res.end('Fixture error: ' + error.message); }
 }).listen(4321, '127.0.0.1', () => process.stdout.write('FAKE DATA ONLY — http://127.0.0.1:4321/fixture?role=all\n'));

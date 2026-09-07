@@ -142,12 +142,15 @@
   .theme-dark .charts-title{border-left-color:#FF4D6A}
 
 </style>
+<link rel="stylesheet" href="/assets/workspace/workspace.css">
 </head>
-<body>
+<body class="workspace-page without-sidebar page-Sakawin_BaoCao_Thang_Web">
 <div class="wrap">
+  <main class="workspace-main">
+  <span class="workspace-watermark logo-crop" aria-hidden="true"><img src="/assets/recruitment/sakawin-logo.png" alt="" width="3508" height="2481"></span>
   <div class="masthead">
     <div class="brand">
-      <h1>SAKAWIN <span id="titleMonth"></span></h1>
+      <h1><span class="brand-prefix">SAKAWIN </span><span id="titleMonth"></span></h1>
       <p id="reportSub"></p>
     </div>
     <div class="kpis" id="kpiRow"></div>
@@ -200,6 +203,7 @@
   </div>
 
   <footer id="reportFooter"></footer>
+  </main>
 </div>
 
 <script>
@@ -488,5 +492,6 @@ $('btnTheme').addEventListener('click', () => {
 applyTheme();
 render();
 </script>
+<script src="/assets/recruitment/recruitment-ui.js"></script>
 </body>
 </html>

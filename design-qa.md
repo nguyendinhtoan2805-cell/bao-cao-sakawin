@@ -70,3 +70,48 @@ State: all-access synthetic reviewer, 8 open candidates, 1 closed candidate. The
 ## Follow-up polish
 
 No blocking findings. Further palette/spacing adjustments can be reviewed in the local preview without changing business functionality.
+
+# Whole-workspace extension — 2026-09-07
+
+final result: passed
+
+## Scope
+
+Extended the approved recruitment direction to `index.html`, `doanh-so.html`, `tai-chinh.html`, `quy-luong.html`, `nhan-su.html`, `admin.html` and the existing standalone `Sakawin_BaoCao_Thang_Web.html`. Recruitment remains at its previously reviewed implementation. The legacy standalone report retains its original navigation/auth behavior. Shared rules are in `assets/workspace/workspace.css`; the existing presentation-only sidebar toggle is reused. No API handler, environment variable, permission policy, calculation or source dataset was changed.
+
+## Visual evidence and findings
+
+Evidence directory: `tests/workspace-ui-evidence/`. Desktop 1672×941 and mobile 390×844 CSS viewports, using the user's existing Codex browser. Captures may proportionally rescale when exported by the browser (see recruitment evidence notes above).
+
+Reviewed home, sales, finance, salary, HR, admin, login and legacy report. The selected source image and final HR desktop were displayed together in one comparison input. Shared typography, 224px sidebar, original logo, red headings, faint brand watermark and curves follow that direction. Dense report tables retain their original internal scrolling and data colors; no attempt was made to turn reporting workflows into recruitment cards.
+
+Fixed during review:
+- Old `!important` navigation padding/borders conflicting with sidebar styles.
+- Sales masthead squeezing four KPIs beside the title; moved the KPI row below it using CSS.
+- Missing surface token on older pages and distinct meanings of `.hot` across sales versus HR/payroll. Sales keeps a red tile with white text; HR/payroll keep white surfaces and their original red warning values.
+- Mobile compact-sidebar logo size, native period-select styling and privacy-text wrapping.
+- Narrow grids now use `minmax(0,...)` so charts and scrollable tables fit their containers.
+
+No remaining actionable P0/P1/P2 visual findings in the reviewed scope. Intentional differences from the recruitment concept: actual logo, preserved full instructional copy, full report sections, existing dark-theme semantics, and wrapped mobile navigation.
+
+## Regression evidence
+
+- All eight HTML files: every original inline script is byte-identical to security baseline `0027c37`; original HTML ID sets unchanged, no duplicate IDs.
+- 32/32 existing access-control tests pass. One test harness selector was updated to end at its own script closing tag instead of the final script tag, because the presentation script is now appended to Home. Test assertions and production initialization logic are unchanged.
+- Browser: Home/Finance quarter filters, Sales custom-date mode, Sales dark/light toggle, links across pages, Admin Lark/password-form toggle, sidebar collapse/expand, HR search and profile open/close work with synthetic data.
+- Unauthorized Admin and Payroll display their gates; protected wrappers stay hidden. Guest Home displays only login controls.
+- Mobile root width stayed within the viewport on all reviewed pages. Payroll tables retain `overflow:auto` with approximately 341px viewport for 1031px/1234px table content. Chart widths on Home remain within their cards.
+- Normal browser checks reported no JavaScript errors. Backend access tests cover denied/malformed scope and stale writes independently of the visual layer.
+- Expanded local preview uses the unchanged production handlers with in-memory fake Lark and fake account store. The legacy embedded DATA is substituted only in the test server response before rendering, leaving the actual file's script/data unchanged.
+
+## Limits and delivery
+
+This is local visual and regression verification with fake data, not live production integration testing. Login submission, real account writes, real Lark edits and deployments were not performed. Existing external font and Chart.js loading remain as before. New pages reuse already-bundled images/icons; there is no additional external runtime dependency.
+
+- [x] Extend approved presentation to every existing HTML page.
+- [x] Preserve inline application logic, IDs and server/API files.
+- [x] Review desktop, mobile, dark theme, access gates and key controls.
+- [x] Save review evidence with synthetic data only.
+- [x] Keep localhost preview available for user review; no push/deploy.
+
+Additional check: Sales screenshot mode still hides navigation and removes sidebar offset. Existing chart tick formatting can show excessive fractional digits on synthetic constant-percentage data; it is inherited from the unchanged chart code and is outside this presentation-only change.

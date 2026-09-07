@@ -391,8 +391,9 @@
   .nsk .s{font-size:12px;color:var(--muted);line-height:1.5}
   .theme-dark .nsk.warn{background:#241D10}
 </style>
+<link rel="stylesheet" href="/assets/workspace/workspace.css">
 </head>
-<body class="locked">
+<body class="locked workspace-page page-index">
 <div id="gate">
   <div class="lg">Sakawin <b>Reports</b></div>
   <h2 id="gateTitle">Đăng nhập để xem báo cáo</h2>
@@ -424,17 +425,20 @@
 </div>
 
 <div class="wrap">
-  <nav class="appnav">
-    <span class="applogo">Sakawin <b>Reports</b></span>
-    <a class="navtab active" href="/">🏠 Tổng quan</a>
-    <a class="navtab" id="tabDoanhSo" href="/doanh-so.html" style="display:none">📈 Doanh số &amp; Target</a>
-    <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none">💰 Tài chính &amp; Lãi lỗ</a>
-    <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none">👥 Quỹ lương</a>
-    <a class="navtab" id="tabNhanSu" href="/nhan-su.html" style="display:none">🧭 Nhân sự</a>
-    <a class="navtab" id="tabTuyenDung" href="/tuyen-dung.html" style="display:none">🎯 Tuyển dụng</a>
-    <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none">⚙️ Quản trị</a>
-    <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout">Đăng xuất</a></span>
+  <nav class="appnav" aria-label="Điều hướng chính">
+    <span class="applogo"><span class="logo-crop"><img src="/assets/recruitment/sakawin-logo.png" alt="Sakawin" width="3508" height="2481"></span><span class="workspace-label">WORKSPACE</span></span>
+    <a class="navtab active" href="/" aria-current="page" title="Tổng quan"><i class="ui-icon icon-grid" aria-hidden="true"></i><span class="nav-label">Tổng quan</span></a>
+    <a class="navtab" id="tabDoanhSo" href="/doanh-so.html" style="display:none" title="Doanh số &amp; Target"><i class="ui-icon icon-trending-up" aria-hidden="true"></i><span class="nav-label">Doanh số &amp; Target</span></a>
+    <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none" title="Tài chính &amp; Lãi lỗ"><i class="ui-icon icon-pie-chart" aria-hidden="true"></i><span class="nav-label">Tài chính &amp; Lãi lỗ</span></a>
+    <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none" title="Quỹ lương"><i class="ui-icon icon-credit-card" aria-hidden="true"></i><span class="nav-label">Quỹ lương</span></a>
+    <a class="navtab" id="tabNhanSu" href="/nhan-su.html" style="display:none" title="Nhân sự"><i class="ui-icon icon-users" aria-hidden="true"></i><span class="nav-label">Nhân sự</span></a>
+    <a class="navtab" id="tabTuyenDung" href="/tuyen-dung.html" style="display:none" title="Tuyển dụng"><i class="ui-icon icon-user-plus" aria-hidden="true"></i><span class="nav-label">Tuyển dụng</span></a>
+    <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none" title="Quản trị"><i class="ui-icon icon-shield" aria-hidden="true"></i><span class="nav-label">Quản trị</span></a>
+    <button class="sidebar-toggle" type="button" aria-label="Thu gọn menu" aria-expanded="true"><i class="ui-icon icon-chevrons-left" aria-hidden="true"></i><span class="nav-label">Thu gọn menu</span></button>
+    <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout" title="Đăng xuất"><i class="ui-icon icon-log-out" aria-hidden="true"></i><span class="nav-label">Đăng xuất</span></a></span>
   </nav>
+  <main class="workspace-main">
+  <span class="workspace-watermark logo-crop" aria-hidden="true"><img src="/assets/recruitment/sakawin-logo.png" alt="" width="3508" height="2481"></span>
 
   <div class="hero">
     <h2>Sakawin Reports — số liệu điều hành, lấy thẳng từ Lark</h2>
@@ -547,6 +551,7 @@
   </div>
 
   <footer id="reportFooter"></footer>
+  </main>
 </div>
 <script>
 const $ = id => document.getElementById(id);
@@ -1057,5 +1062,6 @@ $('selMoc').addEventListener('change', () => tai());
   tai();
 })();
 </script>
+<script src="/assets/recruitment/recruitment-ui.js"></script>
 </body>
 </html>

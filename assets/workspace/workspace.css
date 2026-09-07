@@ -1,0 +1,188 @@
+/* Workspace presentation only. Existing inline business code and IDs are retained.
+   Icons: Feather 4.29.2 (MIT), bundled locally. Logo: supplied original, unchanged. */
+.workspace-page {
+  --sidebar-width: 224px;
+  --red: #C8102E;
+  --ink: #232323;
+  --muted: #6B6866;
+  --line: #E8E5E3;
+  --line-2: #DDD8D5;
+  padding: 0;
+  background: #FEFDFC;
+}
+.workspace-main { min-width: 0; margin-left: var(--sidebar-width); padding: 34px 32px 32px; }
+.workspace-page .appnav {
+  position: fixed; inset: 0 auto 0 0; z-index: 30; width: var(--sidebar-width);
+  margin: 0; padding: 26px 14px 20px; gap: 6px; flex-direction: column;
+  flex-wrap: nowrap; align-items: stretch; background: #FFF;
+  border: 0; border-right: 1px solid var(--line); overflow-y: auto;
+}
+.workspace-page .applogo { display: block; padding: 0 10px 18px; margin: 0; }
+/* Crop only the empty margin in the supplied PNG. Its original pixels and aspect ratio are preserved. */
+.logo-crop { display: block; position: relative; width: 156px; aspect-ratio: 1.76; overflow: hidden; }
+.logo-crop img { position: absolute; width: 176.9%; height: auto; max-width: none; left: -38.5%; top: -59.6%; }
+.workspace-label { display: block; margin-top: 26px; font-size: 10px; font-weight: 600; letter-spacing: 1.8px; color: #898481; }
+.workspace-page .navtab {
+  flex: 0 0 auto; min-height: 47px; margin: 0; padding: 11px 12px; border: 0;
+  border-radius: 9px; gap: 11px; font-size: 13px; font-weight: 500; line-height: 1.45;
+  color: #484340; position: relative;
+}
+.workspace-page .navtab:hover { background: #F8F6F4; color: var(--red); }
+.workspace-page .navtab.active { background: #FDEFF1; color: var(--red); font-weight: 700; box-shadow: inset 3px 0 0 var(--red); }
+.nav-label { min-width: 0; }
+.ui-icon { display: inline-block; flex: 0 0 auto; width: 20px; height: 20px; background: currentColor; mask: var(--icon) center / contain no-repeat; }
+.icon-grid { --icon: url('../recruitment/icons/grid.svg'); }
+.icon-trending-up { --icon: url('../recruitment/icons/trending-up.svg'); }
+.icon-pie-chart { --icon: url('../recruitment/icons/pie-chart.svg'); }
+.icon-credit-card { --icon: url('../recruitment/icons/credit-card.svg'); }
+.icon-users { --icon: url('../recruitment/icons/users.svg'); }
+.icon-user-plus { --icon: url('../recruitment/icons/user-plus.svg'); }
+.icon-shield { --icon: url('../recruitment/icons/shield.svg'); }
+.icon-log-out { --icon: url('../recruitment/icons/log-out.svg'); }
+.icon-refresh-cw { --icon: url('../recruitment/icons/refresh-cw.svg'); }
+.icon-chevrons-left { --icon: url('../recruitment/icons/chevrons-left.svg'); }
+.sidebar-toggle { display: flex; align-items: center; gap: 11px; padding: 12px; margin-top: auto; border: 0; border-radius: 8px; background: #FFF; color: var(--muted); cursor: pointer; font: inherit; font-size: 11px; min-height: 44px; }
+.sidebar-toggle:hover { background: #F8F6F4; color: var(--red); }
+.workspace-page .navuser { margin: 8px 0 0; padding: 16px 10px 0; border-top: 1px solid var(--line); flex-direction: column; align-items: flex-start; gap: 12px; font-size: 11px; }
+.workspace-page .navuser .who { white-space: normal; line-height: 1.6; overflow-wrap: anywhere; }
+.workspace-page .navuser .who b { display: block; font-size: 12px; }
+.workspace-page .navuser a { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 8px 0; border: 0; font-size: 12px; }
+.sidebar-compact { --sidebar-width: 80px; }
+.sidebar-compact .applogo { padding: 0 0 20px; }
+.sidebar-compact .applogo .logo-crop { width: 50px; }
+.sidebar-compact .workspace-label, .sidebar-compact .nav-label, .sidebar-compact .navuser .who { display: none; }
+.sidebar-compact .navtab { justify-content: center; }
+.sidebar-compact .sidebar-toggle .ui-icon { transform: rotate(180deg); }
+.sidebar-compact .navuser { align-items: center; padding-inline: 0; }
+.sidebar-compact .sidebar-toggle { justify-content: center; padding-inline: 0; }
+
+/* Shared visual system; no selectors alter permission visibility or business state. */
+.workspace-page .wrap{width:100%;max-width:none;margin:0;min-width:0}
+.workspace-main{position:relative;isolation:isolate;background:url('../recruitment/header-motif.png') top right / 100% auto no-repeat}
+.workspace-watermark{position:absolute;z-index:-1;top:28px;right:32px;width:min(42%,440px);opacity:.04;pointer-events:none}
+.workspace-page .masthead{border:0;margin:0 0 25px;padding:0 0 18px;align-items:center;gap:20px}
+.workspace-page .brand{border-left:5px solid var(--red);padding-left:18px;min-width:0;flex:1}
+.workspace-page .brand h1{font-size:clamp(24px,2.15vw,34px);line-height:1.35;letter-spacing:-.7px;color:var(--ink);overflow-wrap:anywhere}
+.workspace-page .brand-prefix{display:none}
+.workspace-page .brand h1 span{color:var(--ink)}
+.workspace-page .brand p{font-size:12px;line-height:1.75;margin-top:8px;max-width:80ch}
+.workspace-page .hero{background:transparent;border:0;border-left:5px solid var(--red);border-radius:0;box-shadow:none;padding:4px 22px 10px;margin-bottom:26px}
+.workspace-page .hero h2{font-size:clamp(24px,2.1vw,34px);line-height:1.35;max-width:32ch;letter-spacing:-.6px}
+.workspace-page .hero p{font-size:13px;line-height:1.85;max-width:100ch;color:var(--muted)}
+.workspace-page .hero .chips{margin-top:18px}
+.workspace-page .btn{min-height:40px;border-radius:8px;border-width:1px;font-size:12px;padding:9px 14px;gap:7px}
+.workspace-page button.btn{display:inline-flex;align-items:center;justify-content:center}
+.workspace-page .btn:disabled{cursor:not-allowed;opacity:.6}
+.workspace-page .filterbar{padding:13px 15px;border-radius:11px;box-shadow:none;background:var(--card);gap:10px;min-width:0}
+.workspace-page .filterbar select{min-width:0;max-width:100%;font-size:12px}
+.workspace-page .segs{max-width:100%;overflow-x:auto;flex-shrink:1}
+.workspace-page .segs button{font-size:12px;padding:9px 13px}
+.workspace-page .kyinfo{font-size:11.5px;line-height:1.7;overflow-wrap:anywhere}
+.workspace-page .syncbar,.workspace-page .riengtu{font-size:11.5px;line-height:1.7;border-radius:8px;padding:9px 12px;flex-wrap:wrap;gap:9px}
+.workspace-page .kpis{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:26px}
+.workspace-page .kpi{padding:18px 18px 18px 22px;border-radius:12px;box-shadow:0 2px 8px #231E1905;background:var(--card)}
+.workspace-page .kpi .l{font-size:11.5px;line-height:1.5;text-transform:none;letter-spacing:0;font-weight:600}
+.workspace-page .kpi .v{font-size:clamp(24px,2.15vw,32px);letter-spacing:-.7px;line-height:1.3;overflow-wrap:anywhere}
+.workspace-page .kpi .s{font-size:11.5px;font-weight:400;line-height:1.6}
+.workspace-page .card,.workspace-page .analysis,.workspace-page .box,.workspace-page .flow{border-radius:12px;padding:22px;box-shadow:0 2px 9px #231E1905;min-width:0;background:var(--card)}
+.workspace-page .tablecard{border-radius:12px;box-shadow:none;max-width:100%}
+.workspace-page :is(.card,.box,.flow)>h3,.workspace-page .analysis .hd h3,.workspace-page .blocktitle{font-size:16px;text-transform:none;letter-spacing:-.25px;line-height:1.5;color:var(--ink);border-left:3px solid var(--red);padding-left:11px}
+.workspace-page .ch{margin-bottom:18px}
+.workspace-page .ch h2{position:relative;font-size:20px;line-height:1.4;letter-spacing:-.35px;background:transparent;color:var(--ink);box-shadow:none;padding:5px 0 5px 46px;margin-bottom:8px;border-radius:0}
+.workspace-page .ch h2::before{content:'';position:absolute;left:0;top:0;width:35px;height:35px;background:var(--red);border-radius:9px}
+.workspace-page .ch h2::after{content:'';position:absolute;left:8px;top:8px;width:19px;height:19px;background:white;mask:url('../recruitment/icons/bar-chart-2.svg') center / contain no-repeat}
+.workspace-page .ch p{font-size:12px;line-height:1.75}
+.workspace-page .secHead{gap:15px;flex-wrap:wrap;margin:25px 0 15px}
+.workspace-page .secHead h3{font-size:19px;letter-spacing:-.3px}
+.workspace-page .grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.workspace-page .grid2,.workspace-page .duo{grid-template-columns:repeat(2,minmax(0,1fr))}
+.workspace-page .findings{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.workspace-page .fd .t{font-size:13px}
+.workspace-page .fd .d{font-size:12px}
+.workspace-page .chartbox{max-width:100%}
+.workspace-page .nskpi{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.workspace-page .nsk .v{font-size:30px}
+.workspace-page .nsk .s{font-size:11.5px}
+.workspace-page .srch{flex-wrap:wrap;min-width:0}
+.workspace-page .srch input:not([type=checkbox]),.workspace-page .srch select{min-height:40px;max-width:100%;min-width:0}
+.workspace-page #gate{border-radius:18px;box-shadow:0 14px 50px #3D172212;border-color:var(--line);border-top:4px solid var(--red);padding:35px;max-width:560px}
+.workspace-page #gate::before{content:'';display:block;width:156px;height:89px;margin:0 auto 25px;background:url('../recruitment/sakawin-logo.png') 50% 50% / 177% auto no-repeat}
+.workspace-page #gate input{min-height:44px;border-radius:8px}
+.workspace-page #gate button{min-height:44px;border-radius:8px}
+.workspace-page #gate h2{font-size:25px;line-height:1.4}
+.workspace-page :is(a,button,input,select,textarea):focus-visible{outline:3px solid var(--red);outline-offset:3px}
+.page-admin .workspace-main>h1{font-size:clamp(24px,2.1vw,34px);border-left:5px solid var(--red);padding-left:18px;line-height:1.4;letter-spacing:-.6px}
+.page-admin .lead{max-width:95ch;font-size:13px;line-height:1.85;margin-bottom:24px}
+.page-admin .addrow{gap:15px;flex-wrap:wrap}
+.page-admin .fld{min-width:0;flex:1 1 220px}
+.page-admin .card{margin-bottom:24px}
+.page-admin table{min-width:1200px}
+.workspace-page.without-sidebar{--sidebar-width:0px}
+.workspace-page.without-sidebar .workspace-main{margin-left:0}
+.workspace-page.theme-dark{--ink:#F4EFEC;--muted:#B5AAA4;--card:#211E1E;--line:#403638;--paper:#171515;background:var(--paper)}
+.workspace-page.theme-dark .appnav{background:#211E1E;border-color:var(--line)}
+.workspace-page.theme-dark .navtab{color:#D8CFCC}
+.workspace-page.theme-dark .navtab.active{background:#40202A;color:#FF9AA9}
+.workspace-page.theme-dark .sidebar-toggle{background:#211E1E;color:#D8CFCC}
+.workspace-page.theme-dark .workspace-main{background-image:none}
+.workspace-page.theme-dark .workspace-watermark{opacity:.07}
+.workspace-page.theme-dark #gate{background:var(--card)}
+@media(max-width:1200px){
+ .workspace-page{--sidebar-width:194px}.workspace-main{padding:25px 22px}
+ .workspace-page .applogo .logo-crop{width:142px}.workspace-page .navtab{font-size:11px;gap:8px;padding-inline:8px}
+ .workspace-page.sidebar-compact{--sidebar-width:80px}.workspace-page.sidebar-compact .applogo .logo-crop{width:50px}
+ .workspace-page .grid,.workspace-page .grid2,.workspace-page .duo{grid-template-columns:minmax(0,1fr)}
+ .workspace-page .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .workspace-page .nskpi{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .workspace-page.without-sidebar{--sidebar-width:0px}
+}
+@media(max-width:820px){
+ .workspace-page{--sidebar-width:0px}.workspace-main{margin:0;padding:20px 16px 60px}
+ .workspace-page .appnav{position:relative;inset:auto;width:100%;padding:14px 16px 10px;flex-direction:row;flex-wrap:wrap;gap:5px;overflow:visible;border:0;border-bottom:1px solid var(--line)}
+ .workspace-page .applogo{display:block;width:100%;padding:0 0 7px}.workspace-page .applogo .logo-crop{width:92px}
+ .workspace-page .workspace-label,.workspace-page .sidebar-toggle{display:none}
+ .workspace-page .navtab{font-size:11px;min-height:40px;gap:6px;padding:9px;white-space:normal}
+ .workspace-page .nav-label{display:inline}.workspace-page .navtab .ui-icon{width:16px;height:16px}
+ .workspace-page .navuser{width:100%;margin:5px 0 0;padding:9px 0 0;flex-direction:row;align-items:center;justify-content:space-between;gap:12px}
+ .workspace-page .navuser .who{display:block;max-width:none;flex:1;white-space:normal}.workspace-page .navuser .who b{display:inline;font-size:11px}
+ .workspace-page .navuser a{font-size:11px;flex:0 0 auto}
+ .workspace-page .masthead{align-items:stretch}.workspace-watermark{width:65%;right:0;top:10px;opacity:.025}
+ .workspace-page .hero{padding-left:16px}.workspace-page .hero p{font-size:12px}
+ .workspace-page .kpi{padding:14px 16px}.workspace-page .kpi .v{font-size:24px}.workspace-page .kpi .s{font-size:11px}
+ .workspace-page .filterbar{padding:12px}.workspace-page #rangeWrap{display:flex;max-width:100%;gap:5px;align-items:center}
+ .workspace-page .card,.workspace-page .analysis,.workspace-page .box,.workspace-page .flow{padding:17px}
+ .workspace-page .ch h2{font-size:18px}.workspace-page .grid2{grid-template-columns:minmax(0,1fr)}
+ .workspace-page #gate{margin:24px 14px;padding:26px 22px}
+ .page-admin .fld{flex-basis:100%}.page-admin .workspace-main>h1{font-size:24px}
+}
+body.workspace-page.chup{padding:22px 20px 30px}
+body.workspace-page.chup .workspace-main{margin:0;padding:0;background:none}
+body.workspace-page.chup .workspace-watermark{display:none}
+@media print{.workspace-page .appnav{display:none}.workspace-page .workspace-main{margin:0;padding:0}}
+@media(prefers-reduced-motion:reduce){.workspace-page *{transition:none!important;scroll-behavior:auto!important}}
+/* Override legacy nav !important rules without changing visibility. */
+.workspace-page{--card:#fff}
+.workspace-page .navtab{padding:11px 12px!important;border:0!important}
+.workspace-page .applogo{padding-bottom:18px!important}
+.workspace-page .masthead:has(>.kpis) .brand{flex-basis:100%}
+.workspace-page .masthead>.kpis{display:grid;width:100%;grid-template-columns:repeat(4,minmax(0,1fr));margin:5px 0 0}
+.page-doanh-so .kpi.hot,.without-sidebar .kpi.hot{background:var(--red);border-color:var(--red)}
+.workspace-page .khoi>h3{font-size:19px;letter-spacing:-.25px;text-transform:none;margin-bottom:16px;line-height:1.5}
+.workspace-page .g3{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.workspace-page .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.workspace-page.theme-dark .navtab.active,.workspace-page.theme-dark .navtab:hover{color:#FF9AA9!important}
+@media(max-width:1200px){.workspace-page .g3,.workspace-page .g2{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:820px){
+ .workspace-page .navtab{padding:9px!important}
+ .workspace-page .masthead>.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .workspace-page .kpi{min-width:0}
+ .workspace-page .khoi>h3{font-size:17px;flex-wrap:wrap}
+}
+.workspace-page .toolbar select{font:inherit;font-size:12px;min-height:40px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);max-width:100%}
+.page-nhan-su #cardCanhBao .ch h2::after{mask-image:url('../recruitment/icons/bell.svg')}
+.page-nhan-su #cardHopDong .ch h2::after{mask-image:url('../recruitment/icons/file-text.svg')}
+.page-admin .workspace-main>h1{border-bottom:0;padding-bottom:8px;margin-bottom:12px}
+@media(max-width:820px){.workspace-page.sidebar-compact .applogo .logo-crop{width:92px}}
+.workspace-page .riengtu{display:block}
+.workspace-page .riengtu>span{margin-left:12px!important}
+@media(max-width:820px){.workspace-page .riengtu>span{display:block;margin:6px 0 0!important}}

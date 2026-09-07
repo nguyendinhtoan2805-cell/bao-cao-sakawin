@@ -213,7 +213,8 @@ for (const [file, key, allowed, denied, grants] of [
 
 function bootHome(grants, overrides = {}) {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const source = html.slice(html.indexOf('(async function khoiDong(){'), html.lastIndexOf('</script>'));
+  const start = html.indexOf('(async function khoiDong(){');
+  const source = html.slice(start, html.indexOf('</script>', start));
   const nodes = new Map(), events = [];
   const me = { dangNhap: true, ten: 'Fixture', email: 'fixture.user', quyen: { ...AUTH.quyenRong(), ...grants }, ...overrides };
   const context = { fetch: async () => ({ json: async () => clone(me) }),

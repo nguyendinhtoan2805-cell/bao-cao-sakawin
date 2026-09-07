@@ -439,8 +439,9 @@
   #btnChup:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(200,16,46,.42)}
   @media print{#btnChup{display:none}}
 </style>
+<link rel="stylesheet" href="/assets/workspace/workspace.css">
 </head>
-<body class="locked">
+<body class="locked workspace-page page-doanh-so">
 
 <div id="gate">
   <div class="lg">Sakawin <b>Reports</b></div>
@@ -473,31 +474,34 @@
 </div>
 
 <div class="wrap">
-  <nav class="appnav">
-    <span class="applogo">Sakawin <b>Reports</b></span>
-    <a class="navtab" href="/">🏠 Tổng quan</a>
-    <a class="navtab active" href="/doanh-so.html">📈 Doanh số &amp; Target</a>
-    <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none">💰 Tài chính &amp; Lãi lỗ</a>
-    <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none">👥 Quỹ lương</a>
-    <a class="navtab" id="tabNhanSu" href="/nhan-su.html" style="display:none">🧭 Nhân sự</a>
-    <a class="navtab" id="tabTuyenDung" href="/tuyen-dung.html" style="display:none">🎯 Tuyển dụng</a>
-    <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none">⚙️ Quản trị</a>
+  <nav class="appnav" aria-label="Điều hướng chính">
+    <span class="applogo"><span class="logo-crop"><img src="/assets/recruitment/sakawin-logo.png" alt="Sakawin" width="3508" height="2481"></span><span class="workspace-label">WORKSPACE</span></span>
+    <a class="navtab" href="/" title="Tổng quan"><i class="ui-icon icon-grid" aria-hidden="true"></i><span class="nav-label">Tổng quan</span></a>
+    <a class="navtab active" href="/doanh-so.html" aria-current="page" title="Doanh số &amp; Target"><i class="ui-icon icon-trending-up" aria-hidden="true"></i><span class="nav-label">Doanh số &amp; Target</span></a>
+    <a class="navtab" id="tabTaiChinh" href="/tai-chinh.html" style="display:none" title="Tài chính &amp; Lãi lỗ"><i class="ui-icon icon-pie-chart" aria-hidden="true"></i><span class="nav-label">Tài chính &amp; Lãi lỗ</span></a>
+    <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none" title="Quỹ lương"><i class="ui-icon icon-credit-card" aria-hidden="true"></i><span class="nav-label">Quỹ lương</span></a>
+    <a class="navtab" id="tabNhanSu" href="/nhan-su.html" style="display:none" title="Nhân sự"><i class="ui-icon icon-users" aria-hidden="true"></i><span class="nav-label">Nhân sự</span></a>
+    <a class="navtab" id="tabTuyenDung" href="/tuyen-dung.html" style="display:none" title="Tuyển dụng"><i class="ui-icon icon-user-plus" aria-hidden="true"></i><span class="nav-label">Tuyển dụng</span></a>
+    <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none" title="Quản trị"><i class="ui-icon icon-shield" aria-hidden="true"></i><span class="nav-label">Quản trị</span></a>
+    <button class="sidebar-toggle" type="button" aria-label="Thu gọn menu" aria-expanded="true"><i class="ui-icon icon-chevrons-left" aria-hidden="true"></i><span class="nav-label">Thu gọn menu</span></button>
     <span class="navuser">
       <span class="who" id="navWho"></span>
-      <a href="/api/auth/logout">Đăng xuất</a>
+      <a href="/api/auth/logout" title="Đăng xuất"><i class="ui-icon icon-log-out" aria-hidden="true"></i><span class="nav-label">Đăng xuất</span></a>
     </span>
   </nav>
+  <main class="workspace-main">
+  <span class="workspace-watermark logo-crop" aria-hidden="true"><img src="/assets/recruitment/sakawin-logo.png" alt="" width="3508" height="2481"></span>
 
   <div class="masthead">
     <div class="brand">
-      <h1>SAKAWIN <span id="titleMonth"></span></h1>
+      <h1><span class="brand-prefix">SAKAWIN </span><span id="titleMonth"></span></h1>
       <p id="reportSub"></p>
     </div>
     <div class="kpis" id="kpiRow"></div>
   </div>
 
   <div class="toolbar">
-    <button class="btn primary" id="btnSync">🔄 Đồng bộ từ Lark</button>
+    <button class="btn primary" id="btnSync"><i class="ui-icon icon-refresh-cw" aria-hidden="true"></i> Đồng bộ từ Lark</button>
     <button class="btn" id="btnEdit">✏️ Nhập số liệu</button>
     <button class="btn" id="btnCopy">📋 Sao chép dữ liệu</button>
     <button class="btn" id="btnPaste">📥 Dán dữ liệu tháng trước</button>
@@ -576,6 +580,7 @@
   </div>
 
   <footer id="reportFooter"></footer>
+  </main>
 </div>
 
 <script>
@@ -1182,5 +1187,6 @@ khoiDong();
 })();
 
 </script>
+<script src="/assets/recruitment/recruitment-ui.js"></script>
 </body>
 </html>
