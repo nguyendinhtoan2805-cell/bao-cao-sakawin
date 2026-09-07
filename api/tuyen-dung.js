@@ -26,6 +26,9 @@ const COT_DUOC_GHI = [
   'Trạng thái', 'Lịch sử', 'Loại ở bước', 'Lý do loại',
   'Ngày duyệt CV', 'Ngày sơ vấn', 'Ngày phỏng vấn', 'Ngày gửi offer', 'Ngày chốt',
   'Lịch phỏng vấn', 'Hình thức', 'Địa điểm / Link',
+  /* Kết quả phỏng vấn — nhập trên web, tính điểm theo công thức Ranking.base */
+  'Kỹ năng lõi 1', 'Kỹ năng lõi 2', 'Kỹ năng lõi 3', 'Thực thi', 'Giao tiếp', 'Phù hợp JD',
+  'Ghi chú phỏng vấn', 'Điểm mạnh', 'Rủi ro', 'Người phỏng vấn',
 ];
 
 /* ─────────────── KHOÁ GHI — lớp 3: luồng trạng thái hợp lệ ───────────────
@@ -48,7 +51,7 @@ const LUONG = {
     { den: 'Loại',           quyen: 'duyet', ngay: 'Ngày chốt', buoc: 'Sau sơ vấn' },
   ],
   'Hẹn phỏng vấn': [
-    { den: 'Đã phỏng vấn',   quyen: 'ghi',   ngay: 'Ngày phỏng vấn' },
+    { den: 'Đã phỏng vấn',   quyen: 'ghi',   ngay: 'Ngày phỏng vấn', canDiem: true },
     { den: 'Loại',           quyen: 'duyet', ngay: 'Ngày chốt', buoc: 'Sau sơ vấn' },
   ],
   'Đã phỏng vấn': [
@@ -307,6 +310,24 @@ module.exports = async (req, res) => {
       if (nuoc.buoc && !lyDo)
         return res.status(400).json({ ok: false, error: 'Cần chọn lý do trước khi loại.' });
 
+      /* Chấm phỏng vấn: đủ 6 tiêu chí mới cho ghi. Thiếu một cái là điểm tổng
+         không tính được, mà ghi nửa vời thì lần sau không ai biết thiếu chỗ nào. */
+      let vaDiem = null;
+      if (nuoc.canDiem){
+        const ds = b.diem || {};
+        const thieu = TIEU_CHI.filter(t => {
+          const v = Number(ds[t.ten]);
+          return !Number.isFinite(v) || v < 1 || v > THANG;
+        });
+        if (thieu.length) return res.status(400).json({ ok: false,
+          error: `Cần chấm đủ 6 tiêu chí, thang 1–${THANG}. Còn thiếu: ${thieu.map(t => t.ten).join(', ')}.` });
+        vaDiem = {};
+        for (const t of TIEU_CHI) vaDiem[t.ten] = Number(ds[t.ten]);
+        for (const [cot, khoa] of [['Ghi chú phỏng vấn','ghiChuPV'],['Điểm mạnh','diemManh'],
+                                   ['Rủi ro','ruiRo'],['Người phỏng vấn','nguoiPV']])
+          if (b[khoa]) vaDiem[cot] = String(b[khoa]).slice(0, 4000);
+      }
+
       /* Hẹn phỏng vấn mà không có thời gian thì cái hẹn đó vô nghĩa — chặn ở
          máy chủ chứ không chỉ ở giao diện. */
       let lichEpoch = null;
@@ -320,6 +341,7 @@ module.exports = async (req, res) => {
       const vaThô = { 'Trạng thái': den };
       if (nuoc.ngay) vaThô[nuoc.ngay] = epochHomNay();
       if (nuoc.buoc) { vaThô['Loại ở bước'] = nuoc.buoc; vaThô['Lý do loại'] = lyDo; }
+      if (vaDiem) Object.assign(vaThô, vaDiem);
       if (lichEpoch){
         vaThô['Lịch phỏng vấn'] = lichEpoch;
         if (b.hinhThuc) vaThô['Hình thức'] = String(b.hinhThuc).slice(0, 40);
@@ -329,6 +351,7 @@ module.exports = async (req, res) => {
       const cu = txt(pick(f, 'Lịch sử'));
       const dong = `${gioPhutVN()} · ${toi.ten || toi.email} · ${tuThat} → ${den}`
         + (lichEpoch ? ` (${b.gioHen} ngày ${b.ngayHen}${b.hinhThuc ? ', ' + b.hinhThuc : ''})` : '')
+        + (vaDiem ? ` (${diemPV(vaDiem)}/100 — ${deXuat(diemPV(vaDiem))})` : '')
         + (lyDo ? ` (${lyDo})` : '') + (b.ghiChu ? ` — ${String(b.ghiChu).slice(0, 200)}` : '');
       vaThô['Lịch sử'] = (cu ? cu + '\n' : '') + dong;
 
@@ -453,10 +476,14 @@ module.exports = async (req, res) => {
         nguoiPV: txt(pick(f, 'Người phỏng vấn')),
         lich: lich ? isoNgay(lich) : '', lichGio: lich ? gioVN(lich) : '',
         hinhThuc: txt(pick(f, 'Hình thức')), diaDiem: txt(pick(f, 'Địa điểm / Link')),
+        /* Bản phát hành của Interview Prep — vault giữ bản đầy đủ có phân tích gap
+           và wikilink, Lark chỉ giữ danh sách câu hỏi để Lead đọc được trên web. */
+        cauHoi: txt(pick(f, 'Câu hỏi phỏng vấn')),
         diem: TIEU_CHI.map(t => num(pick(f, t.ten))),
         tenLoi: loiTheoViTri.get(norm(viTri)) || null,
         diemTong: diemPV(f), deXuat: deXuat(diemPV(f)),
         ghiChuPV: txt(pick(f, 'Ghi chú phỏng vấn')),
+        diemManh: txt(pick(f, 'Điểm mạnh')), ruiRo: txt(pick(f, 'Rủi ro')),
         ghiChu: txt(pick(f, 'Ghi chú')),
         lichSu: txt(pick(f, 'Lịch sử')),
         dangMo: !KET_THUC.includes(tt),

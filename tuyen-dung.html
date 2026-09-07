@@ -496,6 +496,42 @@ tr.itnguon td{background:#FFFBEB}
   font-variant-numeric:tabular-nums}
 .gio .g:hover{border-color:var(--red)}
 .gio .g.on{border-color:var(--red);background:var(--red-tint);color:var(--red);font-weight:700}
+
+/* Khối câu hỏi phỏng vấn — Lead đọc thẳng ở đây, không cần mở Obsidian */
+.blk.cauhoi{border-color:#CECBF6;background:#FBFAFF}
+.theme-dark .blk.cauhoi{border-color:#3C3489;background:#17162A}
+.blk.cauhoi .txt{font-size:13px;line-height:1.75}
+
+/* ---- Form chấm điểm phỏng vấn ---- */
+.chamluoi{display:flex;flex-direction:column;gap:9px}
+.chamhang{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.chamhang .nh{flex:1;min-width:150px;display:flex;align-items:baseline;gap:7px}
+.chamhang .nh b{font-size:13px;font-weight:700}
+.chamhang .nh span{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chamhang .nut{display:flex;gap:5px;flex:none}
+.chamhang .d{font:inherit;font-size:13px;font-weight:700;width:34px;height:34px;border-radius:8px;
+  border:1.5px solid var(--line);background:var(--card);cursor:pointer;color:var(--muted);
+  font-variant-numeric:tabular-nums;transition:.12s}
+.chamhang .d:hover{border-color:var(--red);color:var(--ink)}
+.chamhang .d.on{border-color:var(--red);background:var(--red);color:#fff}
+.tongdiem{padding:11px 15px;border-radius:9px;background:#FAFAF9;border:1px solid var(--line);
+  font-size:13.5px;color:var(--muted);text-align:center;line-height:1.5}
+.theme-dark .tongdiem{background:#1A1615}
+.tongdiem b{font-size:22px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.tongdiem.ok{background:#E2F4EE;border-color:#5DCAA5;color:#0F6E56}
+.tongdiem.ok b{color:#0F6E56}
+.tongdiem.warn{background:#FAEEDA;border-color:#EF9F27;color:#854F0B}
+.tongdiem.warn b{color:#854F0B}
+.tongdiem.err{background:#FCEBEB;border-color:#F09595;color:#A32D2D}
+.tongdiem.err b{color:#A32D2D}
+
+/* Nút nối sang Obsidian trong đầu hồ sơ */
+.nutobs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.obs{font:inherit;font-size:12px;font-weight:600;padding:6px 12px;border-radius:7px;
+  border:1px solid var(--line-2);background:var(--card);color:var(--ink);cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:.12s}
+.obs:hover{border-color:#7C3AED;color:#7C3AED;background:#F4F0FE}
+.theme-dark .obs:hover{background:#1F1830}
 /* ---- Hồ sơ ứng viên ---- */
 #hoSo{position:fixed;inset:0;background:rgba(28,25,23,.55);z-index:400;display:none;
   align-items:center;justify-content:center;padding:2.5vh 2vw;overflow:auto}
@@ -771,7 +807,10 @@ body.chup #hoSo,body.chup .srch,body.chup .bao{display:none!important}
 
 <script>
 const $ = id => document.getElementById(id);
-let DATA = null, charts = {}, syncing = false, MO = null, LYDO = '';
+let DATA = null, charts = {}, syncing = false, MO = null, LYDO = '', TOI_TEN = '';
+/* Chỉ máy có vault Obsidian mới mở được link obsidian:// — nên hai nút đó chỉ
+   hiện với quản trị viên. Team dùng chung web, phần lớn không có vault. */
+let COOBS = false;
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const norm = s => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -991,6 +1030,89 @@ function moHenLich(){
     { ngayHen: HEN.ngay, gioHen: HEN.gio, hinhThuc: HEN.hinhThuc, diaDiem: $('henDiaDiem').value.trim() });
 }
 function kiemHen(){ $('xacNhanHen').disabled = !(HEN.ngay && HEN.gio); }
+
+
+/* ═══════════ Nối sang Obsidian ═══════════
+   Không sao chép nội dung Interview Prep sang web — vault giữ bản gốc, web chỉ
+   mở cửa sang. Dùng obsidian://search vì đường dẫn thư mục ứng viên có số thứ
+   tự thay đổi, tìm theo tên thì luôn đúng. */
+const VAULT = 'Sakawin Global';
+const linkObsidian = ten =>
+  `obsidian://search?vault=${encodeURIComponent(VAULT)}&query=${encodeURIComponent(ten)}`;
+
+/* Web không gọi được Claude — nên soạn sẵn câu lệnh để dán vào chat, đỡ phải gõ */
+function chepLenh(p){
+  const t = `Soạn câu hỏi phỏng vấn cho ${p.ten} — vị trí ${p.viTri || 'chưa rõ'}`
+    + (p.lich ? `, phỏng vấn ${p.lichGio} ngày ${p.lich}` : '')
+    + (p.hinhThuc ? ` (${p.hinhThuc})` : '') + '.';
+  navigator.clipboard.writeText(t)
+    .then(() => bao('ok', 'Đã chép lệnh — dán vào chat với Claude, kèm file CV'))
+    .catch(() => bao('err', 'Trình duyệt không cho chép tự động'));
+}
+
+/* ═══════════ Form chấm phỏng vấn ═══════════
+   Bám hai mẫu trong vault: 05. Mẫu chấm điểm (6 tiêu chí, thang 1–5, ba ô nhận
+   xét) và 04. Mẫu ghi chú phỏng vấn (ghi chú nhanh, trích dẫn, 4 Fits). */
+let CHAM = {};
+function moChamDiem(){
+  const hop = $('lyDoBox');
+  CHAM = {};
+  const thang = DATA.thang || 5;
+  const ten = MO.tenLoi;
+  hop.className = 'lydo mo';
+  hop.innerHTML = `<h5>Chấm điểm phỏng vấn — ${esc(MO.ten)}</h5>
+    <div class="chamluoi">${DATA.tieuChi.map((t, i) => {
+      const nhan = (ten && i < 3) ? ten[i] : t.ten;
+      return `<div class="chamhang">
+        <div class="nh"><b>${esc(nhan)}</b><span>${Math.round(t.ts*100)}%</span></div>
+        <div class="nut" data-tc="${esc(t.ten)}">${Array.from({length:thang},(_,k)=>
+          `<button class="d" data-v="${k+1}">${k+1}</button>`).join('')}</div>
+      </div>`;
+    }).join('')}</div>
+    <div class="tongdiem" id="tongDiem">Chấm đủ 6 tiêu chí để ra điểm</div>
+    <div class="thangchu" style="margin:0">1 mơ hồ không bằng chứng · 2 từng làm nhưng cần hướng dẫn ·
+      3 đáp ứng chuẩn, làm độc lập · 4 vượt chuẩn, xây hệ thống được · 5 hiểu nguyên lý sâu.
+      Mỗi điểm cần gắn với tình huống thật, không chấm cao vì trả lời lưu loát.</div>
+    <textarea id="pvGhiChu" placeholder="Ghi chú nhanh trong lúc phỏng vấn · trích dẫn đáng chú ý · 4 Fits (P–O giá trị, P–J công việc, P–S quản lý)" style="min-height:88px"></textarea>
+    <textarea id="pvManh" placeholder="Điểm mạnh nổi bật"></textarea>
+    <textarea id="pvRuiRo" placeholder="Rủi ro / điểm cần lưu ý"></textarea>
+    <div class="hang">
+      <input id="pvNguoi" placeholder="Người phỏng vấn" value="${esc(TOI_TEN)}"
+        style="font:inherit;font-size:13px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);width:180px">
+      <button class="act ghi" id="xacNhanCham" disabled>Lưu kết quả phỏng vấn</button>
+      <button class="act loai" id="huyCham">Huỷ</button>
+    </div>`;
+
+  hop.querySelectorAll('.nut').forEach(o => o.onclick = e => {
+    const b = e.target.closest('button.d'); if (!b) return;
+    CHAM[o.dataset.tc] = Number(b.dataset.v);
+    o.querySelectorAll('.d').forEach(x => x.classList.toggle('on', x === b));
+    tinhTong();
+  });
+  $('huyCham').onclick = () => { hop.className = 'lydo'; CHAM = {}; };
+  $('xacNhanCham').onclick = () => doiTrangThai('Đã phỏng vấn', '', '', {
+    diem: CHAM, ghiChuPV: $('pvGhiChu').value.trim(), diemManh: $('pvManh').value.trim(),
+    ruiRo: $('pvRuiRo').value.trim(), nguoiPV: $('pvNguoi').value.trim(),
+  });
+}
+
+/* Điểm và đề xuất hiện ngay khi chấm đủ — đúng công thức Ranking.base */
+function tinhTong(){
+  const du = DATA.tieuChi.every(t => CHAM[t.ten]);
+  $('xacNhanCham').disabled = !du;
+  const o = $('tongDiem');
+  if (!du){
+    const con = DATA.tieuChi.filter(t => !CHAM[t.ten]).length;
+    o.className = 'tongdiem';
+    o.textContent = `Còn ${con} tiêu chí chưa chấm`;
+    return;
+  }
+  const d = Math.round(DATA.tieuChi.reduce((a, t) => a + CHAM[t.ten] * t.ts, 0) * 20 * 10) / 10;
+  const ng = DATA.nguong || { offer: 80, canNhac: 65 };
+  const dx = d >= ng.offer ? ['🟢 Mời offer', 'ok'] : (d >= ng.canNhac ? ['🟡 Cân nhắc', 'warn'] : ['🔴 Từ chối', 'err']);
+  o.className = 'tongdiem ' + dx[1];
+  o.innerHTML = `<b>${d}</b> / 100 · ${dx[0]}`;
+}
 
 /* ---------- Phễu ---------- */
 function vePheu(){
@@ -1246,7 +1368,13 @@ function moHoSo(id){
       <p>${esc(p.viTri) || 'chưa rõ vị trí'} · ${esc(p.boPhan)} · nguồn ${esc(p.nguon)}</p>
       <p style="margin-top:8px"><span class="chip" style="background:${MAU[p.trangThai]}22;color:${MAU[p.trangThai]}">
         ${esc(p.trangThai)}</span>${p.gioCho != null ? ` <span class="chip" style="background:#F5F5F4;color:#78716C">chờ ${choLau(p.gioCho)}</span>` : ''}</p>
+      ${COOBS ? `<div class="nutobs">
+        <a class="obs" href="${linkObsidian(p.ten)}" title="Mở Obsidian và tìm hồ sơ của ứng viên này">📓 Mở trong Obsidian</a>
+        <button class="obs" data-chep="1">📋 Chép lệnh soạn câu hỏi</button>
+      </div>` : ''}
     </div><button class="hsx" id="hsDong" aria-label="Đóng">×</button>`;
+  const nutChep = $('hsHead').querySelector('[data-chep]');
+  if (nutChep) nutChep.onclick = () => chepLenh(p);
 
   /* ── Phiếu tóm tắt: thứ Lead đọc trước khi quyết ── */
   const ICO = {tot:'✅', canh:'⚠️', tin:'·'};
@@ -1280,6 +1408,11 @@ function moHoSo(id){
       ${p.hinhThuc ? ' · ' + esc(p.hinhThuc) : ''}
       ${p.diaDiem ? '<br>' + esc(p.diaDiem) : ''}</div></div>`;
 
+  if (p.cauHoi)
+    h += `<div class="blk cauhoi"><h5>🎤 Câu hỏi phỏng vấn
+      <span class="chip" style="background:#EFEAFA;color:#3C3489">soạn từ CV + JD</span></h5>
+      <div class="txt">${esc(p.cauHoi)}</div></div>`;
+
   if (p.ketQuaSoVan)
     h += `<div class="blk"><h5>📞 Kết quả sơ vấn</h5><div class="txt">${esc(p.ketQuaSoVan)}</div></div>`;
 
@@ -1305,6 +1438,8 @@ function moHoSo(id){
       </div>`;
   }
 
+  if (p.diemManh) h += `<div class="blk" style="border-color:#9FE1CB"><h5>💪 Điểm mạnh nổi bật</h5><div class="txt">${esc(p.diemManh)}</div></div>`;
+  if (p.ruiRo)    h += `<div class="blk" style="border-color:#FAC775"><h5>⚠️ Rủi ro / cần lưu ý</h5><div class="txt">${esc(p.ruiRo)}</div></div>`;
   if (p.ghiChuPV) h += `<div class="blk"><h5>📝 Ghi chú phỏng vấn</h5><div class="txt">${esc(p.ghiChuPV)}</div></div>`;
   if (p.ghiChu)   h += `<div class="blk"><h5>Ghi chú</h5><div class="txt">${esc(p.ghiChu)}</div></div>`;
   if (p.lyDoLoai) h += `<div class="blk" style="border-color:#F0999B"><h5>🔴 Đã loại ở ${esc(p.loaiOBuoc)}</h5>
@@ -1428,7 +1563,8 @@ $('lanes').addEventListener('click', e => {
 });
 $('hsActs').addEventListener('click', e => {
   const b = e.target.closest('.act[data-den]'); if (!b) return;
-  if (b.dataset.den === 'Hẹn phỏng vấn') moHenLich();   // cần ngày giờ
+  if (b.dataset.den === 'Hẹn phỏng vấn') moHenLich();        // cần ngày giờ
+  else if (b.dataset.den === 'Đã phỏng vấn') moChamDiem();   // cần chấm 6 tiêu chí
   else if (b.dataset.buoc) moLyDo(b.dataset.den);       // cần lý do
   else doiTrangThai(b.dataset.den, '', '');
 });
@@ -1445,6 +1581,8 @@ document.addEventListener('keydown', e => {
   if (!me.quyen.xem_tuyen_dung)
     return khoa('Không đủ quyền', (me.ten || me.email) + ' chưa được cấp quyền xem trang Tuyển dụng.');
 
+  TOI_TEN = me.ten || '';
+  COOBS = !!me.quyen.quan_tri;
   $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten || me.email) + '</b>';
   $('tabAdmin').style.display    = me.quyen.quan_tri      ? '' : 'none';
   $('tabTaiChinh').style.display = me.quyen.xem_tai_chinh ? '' : 'none';
