@@ -182,6 +182,17 @@ async function dsBang(tk, base) {
   }
   return out;
 }
+/* Danh sách cột kèm kiểu — để soát tên cột bảng ỨNG VIÊN trước khi ghi.
+   Viết riêng ở đây chứ không dùng chung với nhan-su.js: file này cố ý độc lập,
+   và lần trước gọi dsCot mà quên khai ở đây làm cả trang không đọc được. */
+async function dsCot(tk, base, tableId) {
+  const j = await (await fetch(
+    `${HOST}/open-apis/bitable/v1/apps/${base}/tables/${tableId}/fields?page_size=200`,
+    { headers: { Authorization: `Bearer ${tk}` } })).json();
+  if (j.code !== 0) throw new Error(`Đọc cột thất bại (${j.code}): ${j.msg}`);
+  return j.data?.items || [];
+}
+
 /* Khác nhan-su.js ở chỗ GIỮ LẠI record_id — không có id thì không ghi ngược được */
 async function docBang(tk, base, tableId) {
   const out = []; let page = '';
