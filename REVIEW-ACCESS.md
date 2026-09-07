@@ -38,8 +38,17 @@ git diff --check
 - Trình duyệt localhost: lưu bộ phận bằng bàn phím, tải lại vẫn còn; bật/tắt quyền khác không làm mất bộ phận; tài khoản chỉ Tuyển dụng đi đúng trang, chỉ thấy Team A; tài khoản chỉ Nhân sự hiển thị 2 nhân sự giả, không có liên kết Tài chính/Quỹ lương hoặc bộ lọc kỳ trống.
 
 Mọi dữ liệu kiểm thử đều giả. Mạng Lark/Redis được thay bằng mock, không đọc `.env`.
-Kiểm thử CAS kiểm tra giao thức và hành vi xung đột với Redis giả; **chưa chạy Lua trên
-Redis/Upstash thật**. Chưa kiểm chứng cấu trúc Lark hiện tại bằng tài khoản nhân sự thật.
+Kiểm thử CAS kiểm tra giao thức và hành vi xung đột với Redis giả. Bổ sung trước triển
+khai: **kiểm thử Lua trên Redis 7.2.7 cục bộ đạt** (Unix socket riêng, không mở TCP,
+không lưu dữ liệu ra đĩa). Bao gồm khởi tạo kho trống, từ chối lần ghi/xóa cũ sau khi
+thu hồi quyền và đổi bộ phận, rồi xóa với bản đọc mới. Tổng cộng 32 nhóm kiểm thử
+thông thường và 1 kiểm thử tích hợp Redis đạt. Chưa chạy phép thử ghi trên Upstash
+production; chưa kiểm chứng cấu trúc Lark hiện tại bằng tài khoản nhân sự thật.
+
+```sh
+REDIS_SERVER_BIN=/path/to/redis-server REDIS_CLI_BIN=/path/to/redis-cli \
+  node --test tests/redis-integration.test.cjs
+```
 
 Có thể chạy lại giao diện thử bằng:
 
