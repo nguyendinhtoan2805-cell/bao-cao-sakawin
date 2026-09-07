@@ -383,6 +383,11 @@ module.exports = async (req, res) => {
           body: JSON.stringify({ fields: va }) });
       const j = await r.json();
       if (j.code !== 0) {
+        /* Lark báo lỗi tên cột bằng mã khó đoán — dịch sang câu người đọc hiểu */
+        if (/field|column/i.test(j.msg || '') || j.code === 1254045)
+          throw new Error(`Lark không tìm thấy cột cần ghi (${j.msg}). `
+            + `Kiểm tra bảng ỨNG VIÊN đã có đúng cột "Lịch phỏng vấn" và "Biên bản phỏng vấn" chưa — `
+            + `tên phải khớp, kể cả dấu.`);
         if (j.code === 91403 || j.code === 99991672)
           throw new Error(`Lark từ chối ghi (${j.code}). Kiểm tra: app đã có scope "bitable:app" chưa, `
             + `và đã thêm app vào Base với quyền "Can edit" chưa.`);
@@ -544,6 +549,21 @@ module.exports = async (req, res) => {
 
     /* ---------- Cảnh báo, bám đúng SLA trong SOP ---------- */
     const canhBao = [];
+
+    /* Soát tên cột ngay khi đọc. Lệch một chữ là nút bấm sẽ hỏng với thông báo
+       khó hiểu từ Lark — thà nói trước ở đây, kèm tên cột đang có để đối chiếu. */
+    {
+      const cot = (await dsCot(tk, BASE, bUV.table_id)).map(f => f.field_name);
+      const can = [
+        ['Lịch phỏng vấn',     'hẹn giờ phỏng vấn và hiện lên lịch'],
+        ['Biên bản phỏng vấn', 'ghi biên bản ngay trên web'],
+      ];
+      const thieu = can.filter(([c]) => !cot.some(k => norm(k) === norm(c)));
+      if (thieu.length) canhBao.push({ muc: 'canh-bao',
+        tieuDe: `Bảng ỨNG VIÊN thiếu ${thieu.length} cột — vài chức năng sẽ không chạy`,
+        noiDung: thieu.map(([c, v]) => `"${c}" (để ${v})`).join(' · ')
+          + `. Cột đang có: ${cot.slice(0, 16).join(' · ')}${cot.length > 16 ? '…' : ''}.` });
+    }
     const tonDong = uv.filter(x => x.trangThai === 'Mới nhận' && x.gioCho != null && x.gioCho > SLA.sangLoc);
     if (tonDong.length) canhBao.push({ muc: 'canh-bao',
       tieuDe: `${tonDong.length} hồ sơ quá ${SLA.sangLoc}h chưa ai sàng lọc`,
