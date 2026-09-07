@@ -178,6 +178,7 @@ async function dsBang(tk, base) {
     if (j.code !== 0) throw new Error(`Không đọc được danh sách bảng (${j.code}): ${j.msg}`);
     out.push(...(j.data.items || []));
     if (!j.data.has_more) break;
+    if (i === 9 || !j.data.page_token) throw new Error('Chưa đọc đủ danh sách bảng; đã dừng để kiểm tra phạm vi an toàn.');
     page = j.data.page_token;
   }
   return out;
@@ -204,6 +205,7 @@ async function docBang(tk, base, tableId) {
     if (j.code !== 0) throw new Error(`Đọc bảng thất bại (${j.code}): ${j.msg}`);
     for (const it of (j.data.items || [])) out.push({ id: it.record_id, f: it.fields || {} });
     if (!j.data.has_more) break;
+    if (i === 19 || !j.data.page_token) throw new Error('Chưa đọc đủ hồ sơ; đã dừng để tránh trả số liệu thiếu.');
     page = j.data.page_token;
   }
   return out;
@@ -237,37 +239,16 @@ function diemPV(f) {
 }
 
 module.exports = async (req, res) => {
+  res.setHeader('Cache-Control', 'private, no-store');
   try {
     const BASE = process.env.LARK_APP_TOKEN_HR;
     if (!BASE) throw new Error('Thiếu biến môi trường LARK_APP_TOKEN_HR trên Vercel.');
 
     const toi = await A.canhCong(req, res, 'xem_tuyen_dung');
     if (!toi) return;
-
-    /* ===== Tệp CV / ảnh: /api/tuyen-dung?cv=<file_token> =====
-       Phải có endpoint riêng gác bằng xem_tuyen_dung. Trước đây trang trỏ nhầm
-       sang /api/nhan-su?anh= — endpoint đó đòi quyền xem_nhan_su, nên HR chỉ có
-       quyền tuyển dụng bấm vào là nhận 403 mà không hiểu vì sao. */
-    if (req.query && req.query.cv) {
-      try {
-        const ft = String(req.query.cv).replace(/[^A-Za-z0-9_-]/g, '');
-        if (!ft) return res.status(400).end('token không hợp lệ');
-        const tkf = await larkToken();
-        const r = await fetch(`${HOST}/open-apis/drive/v1/medias/${ft}/download`,
-          { headers: { Authorization: `Bearer ${tkf}` } });
-        if (!r.ok) return res.status(404).end('không tải được tệp');
-        const buf = Buffer.from(await r.arrayBuffer());
-        const kieu = r.headers.get('content-type') || 'application/octet-stream';
-        res.setHeader('Content-Type', kieu);
-        /* inline để PDF và ảnh hiện thẳng trong khung, không bị tải xuống */
-        res.setHeader('Content-Disposition', 'inline');
-        res.setHeader('Cache-Control', 'private, max-age=3600');
-        return res.status(200).end(buf);
-      } catch (err) {
-        return res.status(502).end('lỗi tải tệp: ' + String(err.message || err));
-      }
-    }
-
+    const pv = A.phamViBoPhan(toi);
+    const gioiHan = pv.gioiHan;
+    const trongTam = x => pv.choPhep(x.boPhan);
     const tk = await larkToken();
     const bangs = await dsBang(tk, BASE);
     const bUV = timBang(bangs, 'ỨNG VIÊN', 'ung vien');
@@ -275,15 +256,45 @@ module.exports = async (req, res) => {
     const bJD = timBang(bangs, 'JD VỊ TRÍ NHÂN SỰ', 'jd vi tri');
     if (!bUV) throw new Error('Chưa có bảng "ỨNG VIÊN" trong Base — tạo bảng theo spec rồi thử lại.');
 
-    /* Lead chỉ thấy ứng viên vào bộ phận mình. Chặn ở máy chủ, xoá hẳn khỏi
-       phản hồi — không phải ẩn ở giao diện. */
-    const gioiHan = (!toi.quyen.quan_tri && toi.boPhan) ? norm(toi.boPhan) : '';
-    const trongTam = x => !gioiHan || norm(x.boPhan) === gioiHan;
+    /* ===== Tệp CV / ảnh: /api/tuyen-dung?cv=<file_token> =====
+       Phải có endpoint riêng gác bằng xem_tuyen_dung. Trước đây trang trỏ nhầm
+       sang /api/nhan-su?anh= — endpoint đó đòi quyền xem_nhan_su, nên HR chỉ có
+       quyền tuyển dụng bấm vào là nhận 403 mà không hiểu vì sao. */
+    if (req.query && req.query.cv) {
+      try {
+        const ft = String(req.query.cv);
+        if (!/^[A-Za-z0-9_-]+$/.test(ft)) return res.status(400).end('token không hợp lệ');
+        const rows = await docBang(tk, BASE, bUV.table_id);
+        const duocXem = rows.some(({ f }) => pv.choPhep(txt(pick(f, 'Bộ phận')))
+          && [pick(f, 'File CV'), pick(f, 'Ảnh', 'Ảnh đại diện', 'Hình ảnh', 'Ảnh ứng viên')]
+            .some(v => Array.isArray(v) && v[0]?.file_token === ft));
+        if (!duocXem) return res.status(403).end('không có quyền xem tệp');
+        const r = await fetch(`${HOST}/open-apis/drive/v1/medias/${ft}/download`,
+          { headers: { Authorization: `Bearer ${tk}` } });
+        if (!r.ok) return res.status(404).end('không tải được tệp');
+        const buf = Buffer.from(await r.arrayBuffer());
+        const kieu = r.headers.get('content-type') || 'application/octet-stream';
+        res.setHeader('Content-Type', kieu);
+        /* inline để PDF và ảnh hiện thẳng trong khung, không bị tải xuống */
+        res.setHeader('Content-Disposition', 'inline');
+        return res.status(200).end(buf);
+      } catch (err) {
+        return res.status(502).end('lỗi tải tệp: ' + String(err.message || err));
+      }
+    }
 
     /* ═══════════════ GHI: đổi trạng thái ═══════════════ */
     if (req.method === 'POST') {
-      const b = req.body || {};
+      const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
       const id = String(b.id || '').trim();
+      if (!/^[A-Za-z0-9_-]+$/.test(id)) return res.status(400).json({ ok: false, error: 'Mã hồ sơ không hợp lệ.' });
+      if (!toi.quyen.ghi_tuyen_dung && !toi.quyen.duyet_tuyen_dung)
+        return res.status(403).json({ ok: false, error: 'Chưa được cấp quyền ghi tuyển dụng.' });
+      // Cả lưu biên bản lẫn đổi trạng thái đều kiểm tra hồ sơ ở máy chủ.
+      const f = await docMot(tk, BASE, bUV.table_id, id);
+      if (!pv.choPhep(txt(pick(f, 'Bộ phận'))))
+        return res.status(403).json({ ok: false, error: 'Không có quyền cập nhật hồ sơ này.' });
+      const ten = txt(pick(f, 'Họ và tên')) || 'hồ sơ này';
 
       /* Lưu biên bản giữa buổi — buổi phỏng vấn 30 phút, chỉ lưu lúc bấm xong
          là lỡ đóng tab mất sạch. Nhánh này chỉ ghi đúng một cột, không đụng
@@ -304,15 +315,6 @@ module.exports = async (req, res) => {
 
       const den = String(b.den || '').trim();
       if (!id || !den) return res.status(400).json({ ok: false, error: 'Thiếu hồ sơ hoặc trạng thái đích.' });
-
-      /* Đọc lại hồ sơ NGAY TRƯỚC KHI GHI — vừa để biết trạng thái thật, vừa
-         để phát hiện người khác vừa bấm. Lark không khoá bản ghi nên đây là
-         cách duy nhất tránh ghi đè âm thầm. */
-      const f = await docMot(tk, BASE, bUV.table_id, id);
-      const ten = txt(pick(f, 'Họ và tên')) || 'hồ sơ này';
-      const boPhan = txt(pick(f, 'Bộ phận'));
-      if (gioiHan && norm(boPhan) !== gioiHan)
-        return res.status(403).json({ ok: false, error: `${ten} không thuộc bộ phận ${toi.boPhan}.` });
 
       const tuThat = txt(pick(f, 'Trạng thái')) || 'Mới nhận';
       if (b.tu && b.tu !== tuThat) {
@@ -408,7 +410,8 @@ module.exports = async (req, res) => {
     }
 
     /* ═══════════════ ĐỌC ═══════════════ */
-    const rUV = await docBang(tk, BASE, bUV.table_id);
+    if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Phương thức không hỗ trợ.' });
+    const rUV = (await docBang(tk, BASE, bUV.table_id)).filter(({ f }) => pv.choPhep(txt(pick(f, 'Bộ phận'))));
     const homNay = new Date();
 
     /* Tên 3 tiêu chí lõi theo vị trí — có bảng JD thì dùng, không có thì
@@ -417,6 +420,9 @@ module.exports = async (req, res) => {
     const jdTheoViTri = new Map();
     if (bJD) {
       for (const { f } of await docBang(tk, BASE, bJD.table_id)) {
+        // JD có thể chứa khung lương: thiếu bộ phận thì không suy đoán chỉ từ
+        // tên vị trí (nhiều team có thể tuyển cùng một chức danh).
+        if (!pv.choPhep(txt(pick(f, 'Bộ phận', 'Phòng ban/Nhóm', 'Phòng ban', 'Phòng ban/Bộ phận')))) continue;
         const vt = txt(pick(f, 'Vị trí', 'Vị trí tuyển dụng', 'Tên vị trí'));
         if (!vt) continue;
         const l = [1, 2, 3].map(i => txt(pick(f, `Tiêu chí lõi ${i}`))).filter(Boolean);

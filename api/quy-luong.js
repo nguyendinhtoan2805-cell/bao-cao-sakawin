@@ -257,6 +257,7 @@ function timAnh(r) {
 
 /* ---------- Handler ---------- */
 module.exports = async (req, res) => {
+  res.setHeader('Cache-Control', 'private, no-store');
   try {
     const toi = await A.canhCong(req, res, 'xem_luong');
     if (!toi) return;
@@ -266,15 +267,18 @@ module.exports = async (req, res) => {
        thẳng được — nên đi vòng qua đây. Gộp vào endpoint này thay vì tạo hàm
        riêng vì gói Hobby của Vercel chỉ cho 12 hàm. */
     if (req.query && req.query.anh) {
-      const fileToken = String(req.query.anh).replace(/[^A-Za-z0-9_-]/g, '');
-      if (!fileToken) return res.status(400).end('token không hợp lệ');
+      const fileToken = String(req.query.anh);
+      if (!/^[A-Za-z0-9_-]+$/.test(fileToken)) return res.status(400).end('token không hợp lệ');
       const tk = await larkToken();
+      if (!process.env.LARK_APP_TOKEN || !process.env.LARK_TABLE_SALARY)
+        return res.status(503).end('chưa cấu hình nguồn ảnh');
+      const rows = await readTable(tk, process.env.LARK_TABLE_SALARY, 'Lương - Thưởng - Sakawin');
+      if (!rows.some(r => timAnh(r) === fileToken)) return res.status(403).end('không có quyền xem tệp');
       const r = await fetch(`${HOST}/open-apis/drive/v1/medias/${fileToken}/download`,
         { headers: { Authorization: `Bearer ${tk}` } });
       if (!r.ok) return res.status(404).end('không tải được ảnh');
       const buf = Buffer.from(await r.arrayBuffer());
       res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
-      res.setHeader('Cache-Control', 'private, max-age=86400');   // ảnh ít đổi, cho trình duyệt giữ 1 ngày
       return res.status(200).end(buf);
     }
     for (const k of ['LARK_APP_ID', 'LARK_APP_SECRET', 'LARK_APP_TOKEN', 'LARK_TABLE_SALARY']) {

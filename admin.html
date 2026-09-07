@@ -287,7 +287,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;
 function ve(){
   $('thead').innerHTML = '<th>Người dùng</th>'
     + DANH_MUC.map(q => `<th class="v" title="${esc(q.nhan)}">${esc(NHAN_NGAN[q.ma] || q.nhan)}</th>`).join('')
-    + '<th class="v" title="Giới hạn phạm vi trang Nhân sự. Để trống là thấy toàn bộ.">Chỉ xem bộ phận</th>'
+    + '<th class="v" title="Giới hạn trang Nhân sự và Tuyển dụng. Để trống là thấy toàn bộ; quản trị viên luôn toàn quyền.">Chỉ xem bộ phận</th>'
     + '<th class="v">Kích hoạt</th><th></th>';
 
   $('tbody').innerHTML = USERS.map((u, i) => {
@@ -300,7 +300,7 @@ function ve(){
         ${u.bikhoa ? '<span class="kind lock">đang bị khoá tạm</span>' : ''}</td>
       ${DANH_MUC.map(q => `<td><input type="checkbox" data-i="${i}" data-q="${q.ma}"${u.quyen[q.ma] ? ' checked' : ''}${o}></td>`).join('')}
       <td><input class="bpin" data-i="${i}" value="${esc(u.boPhan || '')}" placeholder="tất cả"${o}
-        title="Để trống = thấy toàn bộ nhân sự. Điền đúng tên một bộ phận = chỉ thấy người của bộ phận đó."></td>
+        title="Nhân sự và Tuyển dụng: để trống = toàn bộ. Điền đúng tên bộ phận (có dấu). Quyền Quản trị luôn xem toàn bộ."></td>
       <td><input type="checkbox" data-i="${i}" data-q="__kichHoat"${u.kichHoat ? ' checked' : ''}${o}></td>
       <td style="white-space:nowrap">${goc ? '' : `
         ${u.loai === 'mk' ? `<button class="btn mini" data-dl="${esc(u.email)}">Đặt lại MK</button> ` : ''}
@@ -315,8 +315,7 @@ function ve(){
     + 'đây là lối vào lần đầu và cũng là lối thoát nếu lỡ tự gỡ quyền của mình.';
 
   document.querySelectorAll('#tbody input[type=checkbox]').forEach(cb => cb.addEventListener('change', doiQuyen));
-  document.querySelectorAll('#tbody .bpin').forEach(ip => ip.addEventListener('change', e => {
-    const u = USERS[+e.target.dataset.i]; u.boPhan = e.target.value.trim(); luu(u); }));
+  document.querySelectorAll('#tbody .bpin').forEach(ip => ip.addEventListener('change', doiBoPhan));
   document.querySelectorAll('#tbody button[data-xoa]').forEach(b => b.addEventListener('click', () => xoa(b.dataset.xoa)));
   document.querySelectorAll('#tbody button[data-dl]').forEach(b => b.addEventListener('click', () => datLai(b.dataset.dl)));
 }
@@ -335,20 +334,45 @@ async function goi(method, body, qs){
 
 async function doiQuyen(e){
   const cb = e.target, u = USERS[cb.dataset.i];
-  if(cb.dataset.q === '__kichHoat') u.kichHoat = cb.checked;
-  else u.quyen[cb.dataset.q] = cb.checked;
+  const k = cb.dataset.q;
+  const cu = k === '__kichHoat' ? u.kichHoat : !!u.quyen[k];
+  const moi = cb.checked;
   cb.disabled = true;
   try {
-    const j = await goi('POST', {email:u.email, ten:u.ten, quyen:u.quyen, kichHoat:u.kichHoat});
-    if(!j.ok) { baoTin(j.error, true); return taiLai(); }
+    const va = k === '__kichHoat' ? {kichHoat:moi} : {quyen:{[k]:moi}};
+    const j = await goi('POST', {email:u.email, revision:u.revision, ...va});
+    if(!j.ok) throw new Error(j.error || 'Không lưu được quyền.');
+    if(k === '__kichHoat') u.kichHoat = moi; else u.quyen[k] = moi;
+    u.revision = j.revision;
     baoTin('Đã lưu quyền cho ' + u.email);
-  } catch(err){ return; }
+  } catch(err){ cb.checked = cu; baoTin('Chưa lưu quyền: ' + err.message, true); }
   finally { cb.disabled = false; }
+}
+
+async function doiBoPhan(e){
+  const ip = e.target, u = USERS[ip.dataset.i];
+  const cu = u.boPhan || '', moi = ip.value.trim();
+  if(moi === cu) return;
+  const moToanBo = !!cu && !moi;
+  if(moToanBo && !confirm('Bỏ giới hạn bộ phận cho ' + u.email
+      + '? Họ sẽ thấy toàn bộ bộ phận ở trang Nhân sự và Tuyển dụng nếu đã được cấp quyền xem.')){
+    ip.value = cu; return;
+  }
+  ip.disabled = true;
+  try {
+    const j = await goi('POST', {email:u.email, revision:u.revision, boPhan:moi, xacNhanToanBo:moToanBo});
+    if(!j.ok) throw new Error(j.error || 'Không lưu được bộ phận.');
+    u.boPhan = moi; ip.value = moi;
+    u.revision = j.revision;
+    baoTin('Đã lưu phạm vi: ' + (moi || 'toàn bộ bộ phận') + ' — ' + u.email);
+  } catch(err){ ip.value = cu; baoTin('Chưa lưu bộ phận: ' + err.message, true); }
+  finally { ip.disabled = false; }
 }
 
 async function xoa(email){
   if(!confirm('Xoá tài khoản ' + email + '?\n\nHọ sẽ không xem được báo cáo nữa (đăng nhập vẫn được nhưng không thấy gì).')) return;
-  const j = await goi('DELETE', null, '?email=' + encodeURIComponent(email));
+  const u = USERS.find(x => x.email === email);
+  const j = await goi('DELETE', null, '?email=' + encodeURIComponent(email) + '&revision=' + encodeURIComponent(u.revision));
   if(!j.ok) return baoTin(j.error, true);
   await taiLai(); baoTin('Đã xoá ' + email);
 }
@@ -357,6 +381,7 @@ const chuanHoa = u => ({
   email: u.email, ten: u.ten || '', kichHoat: u.kichHoat !== false,
   loai: u.loai === 'mk' ? 'mk' : 'lark', phaiDoi: !!u.phaiDoi, bikhoa: !!u.bikhoa,
   boPhan: u.boPhan || '',
+  revision: u.revision || '0',
   quyen: Object.fromEntries(DANH_MUC.map(q => [q.ma, !!(u.quyen && u.quyen[q.ma])])),
 });
 
@@ -404,7 +429,7 @@ $('btnAdd').addEventListener('click', async () => {
 async function datLai(email){
   if(!confirm('Cấp mật khẩu mới cho ' + email + '?\n\nMật khẩu cũ mất hiệu lực ngay. Họ sẽ phải đổi lại ở lần đăng nhập kế tiếp.')) return;
   const u = USERS.find(x => x.email === email);
-  const j = await goi('POST', {email, ten: u ? u.ten : '', quyen: u ? u.quyen : {}, kichHoat: u ? u.kichHoat : true, datLaiMatKhau: true});
+  const j = await goi('POST', {email, revision:u.revision, datLaiMatKhau: true});
   if(!j.ok) return baoTin(j.error, true);
   await taiLai();
   if(j.matKhauMoi) hienMatKhau(j.matKhauMoi, email);

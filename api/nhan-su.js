@@ -144,6 +144,7 @@ async function dsBang(tk, base) {
     if (j.code !== 0) throw new Error(`Không đọc được danh sách bảng (${j.code}): ${j.msg}`);
     out.push(...(j.data.items || []));
     if (!j.data.has_more) break;
+    if (i === 9 || !j.data.page_token) throw new Error('Chưa đọc đủ danh sách bảng; đã dừng để kiểm tra phạm vi an toàn.');
     page = j.data.page_token;
   }
   return out;
@@ -167,6 +168,7 @@ async function docBang(tk, base, tableId) {
     if (j.code !== 0) throw new Error(`Đọc bảng thất bại (${j.code}): ${j.msg}`);
     for (const it of (j.data.items || [])) out.push(it.fields || {});
     if (!j.data.has_more) break;
+    if (i === 19 || !j.data.page_token) throw new Error('Chưa đọc đủ hồ sơ; đã dừng để tránh ghép nhầm người hoặc thiếu số liệu.');
     page = j.data.page_token;
   }
   return out;
@@ -231,6 +233,29 @@ const laLeader = cv => /leader|truong|quanly|giamdoc|phogiamdoc|phophong/.test(n
 const daNghiTheoTT = tt => /nghiviec|danghi|thoiviec|chamdut|offboard|resign|terminat|sathai/.test(norm(tt));
 const anhTu = v => (Array.isArray(v) && v[0] && typeof v[0] === 'object' && v[0].file_token) ? v[0].file_token : '';
 
+const khoaNguoi = v => txt(v).normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
+// Mã NV ưu tiên; khi thiếu mã chỉ ghép tên duy nhất trên TOÀN bộ hồ sơ gốc.
+// Không suy đoán tên trùng hoặc mã không tồn tại rồi gán vào một team khác.
+function timHoSo(ds, ma, ten) {
+  const m = khoaNguoi(ma), t = khoaNguoi(ten);
+  const hop = m ? ds.filter(x => khoaNguoi(x.ma) === m)
+    : t ? ds.filter(x => khoaNguoi(x.ten) === t) : [];
+  if (hop.length !== 1) return null;
+  if (m && t && khoaNguoi(hop[0].ten) !== t) return null;
+  return hop[0];
+}
+function chuChecklist(ds, raw) {
+  const r = khoaNguoi(raw);
+  const theoMa = ds.filter(x => {
+    const m = khoaNguoi(x.ma);
+    if (!m) return false;
+    const escaped = m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp('(^|[^\\p{L}\\p{N}])' + escaped + '($|[^\\p{L}\\p{N}])', 'u').test(r);
+  });
+  if (theoMa.length) return theoMa.length === 1 ? theoMa[0] : null;
+  return timHoSo(ds, '', raw);
+}
+
 /* Điểm có trọng số. Thiếu bất kỳ tiêu chí nào thì trả null — chấm nửa vời
    mà vẫn ra điểm thì con số đó đánh lừa người đọc. */
 function diem(row, tieuChi, ts) {
@@ -240,6 +265,7 @@ function diem(row, tieuChi, ts) {
 }
 
 module.exports = async (req, res) => {
+  res.setHeader('Cache-Control', 'private, no-store');
   try {
     const q = req.query || {};
 
@@ -254,15 +280,21 @@ module.exports = async (req, res) => {
       try {
         const toi = await A.canhCong(req, res, 'xem_nhan_su');
         if (!toi) return;
-        const ft = String(q.anh).replace(/[^A-Za-z0-9_-]/g, '');
-        if (!ft) return res.status(400).end('token không hợp lệ');
+        const ft = String(q.anh);
+        if (!/^[A-Za-z0-9_-]+$/.test(ft)) return res.status(400).end('token không hợp lệ');
         const tk = await larkToken();
+        const base = process.env.LARK_APP_TOKEN_HR;
+        if (!base) return res.status(503).end('chưa cấu hình nguồn nhân sự');
+        const bang = timBang(await dsBang(tk, base), 'QUẢN LÝ THÔNG TIN NHÂN SỰ', 'thong tin nhan su');
+        const pv = A.phamViBoPhan(toi);
+        const rows = bang ? await docBang(tk, base, bang.table_id) : [];
+        if (!rows.some(r => pv.choPhep(txt(pick(r, 'Phòng ban/Bộ phận')))
+            && anhTu(pick(r, 'Hình ảnh')) === ft)) return res.status(403).end('không có quyền xem tệp');
         const r = await fetch(`${HOST}/open-apis/drive/v1/medias/${ft}/download`,
           { headers: { Authorization: `Bearer ${tk}` } });
         if (!r.ok) return res.status(404).end('không tải được ảnh');
         const buf = Buffer.from(await r.arrayBuffer());
         res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
-        res.setHeader('Cache-Control', 'private, max-age=86400');
         return res.status(200).end(buf);
       } catch (err) {
         return res.status(502).end('lỗi tải ảnh: ' + String(err.message || err));
@@ -315,7 +347,19 @@ module.exports = async (req, res) => {
        bước lọc — dữ liệu không rời khỏi máy chủ, gọi thẳng API cũng không thấy. */
     const coCaNhan = !!toi.quyen.xem_ca_nhan;
     const cotDoc = coCaNhan ? COT_DUOC_DOC : COT_DUOC_DOC.filter(c => !COT_CA_NHAN.includes(c));
-    const recs = locTrang(await docBang(tk, BASE, bNS.table_id), cotDoc);
+    const tatCaRecs = locTrang(await docBang(tk, BASE, bNS.table_id), cotDoc);
+    const pv = A.phamViBoPhan(toi);
+    const gioiHan = pv.gioiHan;
+    const trongTam = x => pv.choPhep(x.boPhan);
+    const recs = tatCaRecs.filter(r => pv.choPhep(txt(pick(r, 'Phòng ban/Bộ phận'))));
+    const hoSoGoc = tatCaRecs.map(r => ({ ma: txt(pick(r, 'Mã NV')), ten: txt(pick(r, 'Họ và tên')),
+      boPhan: txt(pick(r, 'Phòng ban/Bộ phận')) }));
+    const chuDong = r => timHoSo(hoSoGoc, pick(r, 'Mã NV'), pick(r, 'Họ và tên'));
+    const dongTrongTam = r => {
+      if (!gioiHan) return true;
+      const chu = chuDong(r);
+      return !!chu && trongTam(chu);
+    };
     const homNay = new Date();
 
     /* ---------- Hồ sơ nhân sự ---------- */
@@ -358,9 +402,19 @@ module.exports = async (req, res) => {
     /* Checklist onboard / offboard — gắn vào từng hồ sơ. Bảng thiếu cũng không sao. */
     const clOn  = bCO ? await docChecklist(tk, BASE, bCO) : [];
     const clOff = bCF ? await docChecklist(tk, BASE, bCF) : [];
+    const theoChu = ds => {
+      const map = new Map();
+      if (gioiHan) for (const c of ds) {
+        const chu = chuChecklist(hoSoGoc, c.raw);
+        if (chu && !map.has(chu)) map.set(chu, c);
+      }
+      return map;
+    };
+    const onTheoChu = theoChu(clOn), offTheoChu = theoChu(clOff);
     for (const x of nhanSu) {
-      const a = ghepCL(clOn, x.ten, x.ma);
-      const b = ghepCL(clOff, x.ten, x.ma);
+      const chu = timHoSo(hoSoGoc, x.ma, x.ten);
+      const a = gioiHan ? onTheoChu.get(chu) : ghepCL(clOn, x.ten, x.ma);
+      const b = gioiHan ? offTheoChu.get(chu) : ghepCL(clOff, x.ten, x.ma);
       x.onbCL = a ? { soXong: a.soXong, tong: a.tong, buoc: a.buoc } : null;
       x.offCL = b ? { soXong: b.soXong, tong: b.tong, buoc: b.buoc } : null;
       /* Ngày nghỉ trong checklist là cột kiểu Ngày chuẩn, đáng tin hơn cột
@@ -370,11 +424,6 @@ module.exports = async (req, res) => {
 
     const dangLamDS = nhanSu.filter(x => x.conLam);
     const daNghi = nhanSu.filter(x => !x.conLam);
-
-    /* Trưởng bộ phận chỉ thấy team mình — chặn ở server, xoá hẳn khỏi phản hồi.
-       Tài khoản có trường boPhan thì bị giới hạn; admin và người không đặt thì thấy hết. */
-    const gioiHan = (!toi.quyen.quan_tri && toi.boPhan) ? norm(toi.boPhan) : '';
-    const trongTam = x => !gioiHan || norm(x.boPhan) === gioiHan;
 
     /* ---------- Bộ phận ---------- */
     const mBP = new Map();
@@ -426,13 +475,13 @@ module.exports = async (req, res) => {
     /* ---------- Hợp đồng sắp hết hạn ---------- */
     let hopDong = [];
     if (bHD) {
-      const rHD = await docBang(tk, BASE, bHD.table_id);
+      const rHD = (await docBang(tk, BASE, bHD.table_id)).filter(dongTrongTam);
       hopDong = rHD.map(r => {
         const het = ngay(pick(r, 'Ngày hết hạn'));
         const con = het ? soNgayLich(het) - soNgayLich(homNay) : null;
         return {
           ma: txt(pick(r, 'Mã NV')), ten: txt(pick(r, 'Họ và tên')),
-          boPhan: txt(pick(r, 'Bộ phận/Phòng ban')) || '(chưa phân)',
+          boPhan: (gioiHan ? chuDong(r).boPhan : txt(pick(r, 'Bộ phận/Phòng ban'))) || '(chưa phân)',
           viTri: txt(pick(r, 'Vị trí')), loai: txt(pick(r, 'Loại HĐ hiện tại')),
           hetHan: isoNgay(het), conLai: con,
           trangThai: txt(pick(r, 'Trạng thái')),
@@ -444,11 +493,10 @@ module.exports = async (req, res) => {
     /* ---------- Đánh giá Skill-Will ---------- */
     const danhGia = { coBang: !!bDG, dsKy: [], ky: '', nguoi: [], oThongKe: [], chuaCham: [], tieuChiS: TIEU_CHI_S, tieuChiW: TIEU_CHI_W, trongSo: { S: TS_S, W: TS_W }, nguong: NGUONG };
     if (bDG) {
-      const rDG = await docBang(tk, BASE, bDG.table_id);
+      const rDG = (await docBang(tk, BASE, bDG.table_id)).filter(dongTrongTam);
       const dg = rDG.map(r => {
         const ten = txt(pick(r, 'Họ và tên'));
-        const ho = nhanSu.find(x => norm(x.ten) === norm(ten))
-                || nhanSu.find(x => x.ma && norm(x.ma) === norm(txt(pick(r, 'Mã NV'))));
+        const ho = timHoSo(nhanSu, pick(r, 'Mã NV'), ten);
         const ld = ho ? ho.laLeader : laLeader(txt(pick(r, 'Vị trí Chuyên môn')));
         const s = diem(r, TIEU_CHI_S, ld ? TS_S.ld : TS_S.nv);
         const w = diem(r, TIEU_CHI_W, TS_W);
@@ -482,8 +530,9 @@ module.exports = async (req, res) => {
       danhGia.nguoi = trongKy.filter(trongTam).filter(x => x.o);
       danhGia.oThongKe = [1, 2, 3, 4].map(k => ({ ...O[k],
         so: danhGia.nguoi.filter(x => x.o === k).length }));
-      const daCham = new Set(trongKy.map(x => norm(x.ten)));
-      danhGia.chuaCham = dangLamDS.filter(trongTam).filter(x => !daCham.has(norm(x.ten)))
+      const khoaDanhGia = x => khoaNguoi(x.ma) || khoaNguoi(x.ten);
+      const daCham = new Set(trongKy.map(khoaDanhGia));
+      danhGia.chuaCham = dangLamDS.filter(trongTam).filter(x => !daCham.has(khoaDanhGia(x)))
         .map(x => ({ ma: x.ma, ten: x.ten, boPhan: x.boPhan, viTri: x.viTri, laLeader: x.laLeader }));
       danhGia.chuaNgoi = danhGia.nguoi.filter(x => !x.daNgoi).length;
       danhGia.satVach = danhGia.nguoi.filter(x => x.satVach).length;
@@ -504,7 +553,7 @@ module.exports = async (req, res) => {
     /* ---------- Đào tạo ---------- */
     const daoTao = { coBang: !!bDT, khoa: [], theoNguoi: [] };
     if (bDT) {
-      const rDT = await docBang(tk, BASE, bDT.table_id);
+      const rDT = (await docBang(tk, BASE, bDT.table_id)).filter(dongTrongTam);
       daoTao.khoa = rDT.map(r => ({
         ten: txt(pick(r, 'Họ và tên')), ma: txt(pick(r, 'Mã NV')),
         khoa: txt(pick(r, 'Tên khoá', 'Tên khóa')), loai: txt(pick(r, 'Loại')),
@@ -515,7 +564,7 @@ module.exports = async (req, res) => {
       })).filter(x => x.khoa && x.ten);
       const m = new Map();
       for (const k of daoTao.khoa) {
-        const n = norm(k.ten);
+        const n = khoaNguoi(k.ma) || khoaNguoi(k.ten);
         if (!m.has(n)) m.set(n, { ten: k.ten, tong: 0, xong: 0, boDo: 0, apDung: 0 });
         const o = m.get(n); o.tong++;
         if (/hoanthanh/.test(norm(k.trangThai))) o.xong++;
@@ -615,18 +664,18 @@ module.exports = async (req, res) => {
       toi: { email: toi.email, ten: toi.ten, quyen: toi.quyen, boPhan: toi.boPhan || '' },
       capNhat: new Date().toISOString(),
       data: {
-        nhanSu: nhanSu.filter(trongTam),
+        nhanSu,
         tong: {
           dangLam: dangLamDS.filter(trongTam).length,
           daNghi: daNghi.filter(trongTam).length,
-          boPhan: boPhan.filter(trongTam).length,
+          boPhan: boPhan.length,
           leader: dangLamDS.filter(trongTam).filter(x => x.laLeader).length,
           nam: dangLamDS.filter(trongTam).filter(x => /^nam$/.test(norm(x.gioiTinh))).length,
           nu: dangLamDS.filter(trongTam).filter(x => /^nu$/.test(norm(x.gioiTinh))).length,
           vaoNamNay, raNamNay, tyLeNghi, nghiSom, tyLeNghiSom, nam_: nam,
         },
-        boPhan: boPhan.filter(trongTam), thamNien, bienDong,
-        hopDong: hopDong.filter(trongTam),
+        boPhan, thamNien, bienDong,
+        hopDong,
         danhGia, daoTao, canhBao, gioiHan: gioiHan ? toi.boPhan : '',
         coCL: { onboard: !!bCO, offboard: !!bCF }, coCaNhan,
       },

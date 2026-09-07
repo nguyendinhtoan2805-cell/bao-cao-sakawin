@@ -154,7 +154,7 @@ async function nguoiDung(req) {
     email, ten: u.ten || p.ten || email,
     quyen: { ...quyenRong(), ...(u.quyen || {}) },
     loai: u.loai === 'mk' ? 'mk' : 'lark',
-    boPhan: u.boPhan || '',
+    boPhan: u.boPhan ?? '',
     phaiDoiMatKhau: u.loai === 'mk' && u.phaiDoi === true,
   };
 }
@@ -183,8 +183,21 @@ async function canhCong(req, res, quyenCan) {
 
 const siteUrl = req => (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, '');
 
+// Tên bộ phận là ranh giới quyền: giữ dấu và dấu câu để không nhập nhằng
+// giữa các tên khác nhau. Chỉ bỏ khoảng trắng thừa và khác biệt hoa/thường.
+const khoaBoPhan = s => typeof s === 'string' ? s.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase() : '';
+function phamViBoPhan(u) {
+  const raw = u.boPhan;
+  const gioiHan = !(u.quyen.quan_tri === true || raw === undefined || raw === null || raw === '');
+  const khoa = khoaBoPhan(raw);
+  return {
+    gioiHan,
+    choPhep: boPhan => !gioiHan || (!!khoa && /[\p{L}\p{N}]/u.test(khoa) && khoaBoPhan(boPhan) === khoa),
+  };
+}
+
 module.exports = {
   COOKIE, QUYEN, NHAN_QUYEN, quyenRong, quyenDay, adminGoc,
   sinhMatKhau, datMatKhau, kiemMatKhau, dangNhapMatKhau, chuanTaiKhoan, taiKhoanHopLe,
-  kyPhien, moPhien, docCookie, datCookie, nguoiDung, canhCong, siteUrl,
+  kyPhien, moPhien, docCookie, datCookie, nguoiDung, canhCong, siteUrl, phamViBoPhan,
 };

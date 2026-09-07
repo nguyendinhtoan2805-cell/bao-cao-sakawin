@@ -441,7 +441,7 @@
     <p>
       Toàn bộ con số trên các trang này được <b>đọc trực tiếp từ Lark Base</b> mỗi lần bạn mở,
       không ai gõ lại nên không có độ trễ và không có sai sót sao chép. Trang tổng quan gom những
-      chỉ số quan trọng nhất của cả ba báo cáo về một chỗ để nắm tình hình trong một phút;
+      chỉ số quan trọng từ các báo cáo được cấp quyền về một chỗ để nắm tình hình trong một phút;
       cần đi sâu thì bấm vào từng trang.
       Mỗi người chỉ thấy phần đã được cấp quyền — <b id="heroQuyen"></b>
     </p>
@@ -449,7 +449,7 @@
   </div>
 
   <div class="filterbar">
-    <span class="lb">Kỳ xem</span>
+    <span class="lb" id="kyLabel">Kỳ xem</span>
     <div class="segs" id="segKy">
       <button data-ky="thang" class="on">Tháng</button>
       <button data-ky="quy">Quý</button>
@@ -1032,8 +1032,11 @@ $('selMoc').addEventListener('change', () => tai());
   if(me.quyen.xem_doanh_so)  duoc.push(['📈 Doanh số & Target','/doanh-so.html']);
   if(me.quyen.xem_tai_chinh) duoc.push(['💰 Tài chính & Lãi lỗ','/tai-chinh.html']);
   if(me.quyen.xem_luong)     duoc.push(['👥 Quỹ lương','/quy-luong.html']);
+  if(me.quyen.xem_nhan_su)   duoc.push(['👥 Nhân sự','/nhan-su.html']);
+  if(me.quyen.xem_tuyen_dung) duoc.push(['🤝 Tuyển dụng','/tuyen-dung.html']);
+  if(me.quyen.quan_tri)      duoc.push(['⚙️ Quản trị','/admin.html']);
   $('heroQuyen').textContent = duoc.length
-    ? `bạn đang được xem ${duoc.length} báo cáo.`
+    ? `bạn được truy cập ${duoc.length} mục.`
     : 'tài khoản của bạn chưa được cấp quyền xem báo cáo nào, liên hệ quản trị viên.';
   $('heroChips').innerHTML = duoc.map(([t,h]) => `<a href="${h}">${t}</a>`).join('');
 
@@ -1041,7 +1044,15 @@ $('selMoc').addEventListener('change', () => tai());
     return khoaLai('Chưa được cấp quyền',
       (me.ten||me.email) + ' đăng nhập thành công nhưng chưa được cấp quyền xem báo cáo nào.', false);
   }
+  // Trang tổng quan hiện có số liệu từ bốn nguồn này. Tài khoản chỉ có
+  // tuyển dụng/quản trị đi thẳng tới trang đã được cấp, không tự thêm quyền.
+  if(!me.quyen.xem_doanh_so && !me.quyen.xem_tai_chinh && !me.quyen.xem_luong && !me.quyen.xem_nhan_su){
+    location.replace(me.quyen.xem_tuyen_dung ? '/tuyen-dung.html' : '/admin.html');
+    return;
+  }
   moKhoa();
+  if(!me.quyen.xem_doanh_so && !me.quyen.xem_tai_chinh && !me.quyen.xem_luong)
+    ['kyLabel','segKy','selMoc'].forEach(id => $(id).style.display = 'none');
   apDungKyNho();
   tai();
 })();
