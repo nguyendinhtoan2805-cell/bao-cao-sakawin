@@ -524,6 +524,8 @@ tr.itnguon td{background:#FFFBEB}
 .sc .it .bt{height:6px;background:#F1EFE8;border-radius:3px;overflow:hidden}
 .theme-dark .sc .it .bt{background:#2A2422}
 .sc .it .bf{height:100%;border-radius:3px;background:#1D4ED8}
+.thangchu{margin-top:11px;padding-top:9px;border-top:1px dashed var(--line);
+  font-size:11.5px;color:var(--muted);line-height:1.6}
 .lsu{font-family:ui-monospace,SFMono-Regular,monospace;font-size:12px;line-height:1.85;
   white-space:pre-wrap;color:var(--muted)}
 
@@ -877,7 +879,7 @@ function the(p){
     <div class="tag">
       <span class="chip" style="background:#F5F5F4;color:#78716C">${esc(p.nguon)}</span>
       ${gap ? `<span class="chip" style="background:#FCEBEB;color:#A32D2D">chờ ${choLau(p.gioCho)}</span>` : ''}
-      ${p.diemTong != null ? `<span class="chip" style="background:#EEF2FF;color:#3730A3">${d2(p.diemTong)} điểm</span>` : ''}
+      ${p.diemTong != null ? `<span class="chip" style="background:#EEF2FF;color:#3730A3">${p.diemTong}/100</span>` : ''}
       ${!p.hieuBiet && ['Hẹn phỏng vấn','Đã phỏng vấn'].includes(p.trangThai)
         ? '<span class="chip" style="background:#FAEEDA;color:#854F0B">thiếu gate</span>' : ''}
     </div></div>`;
@@ -1283,16 +1285,24 @@ function moHoSo(id){
 
   if (p.diemTong != null || p.diem.some(x => x != null)){
     const ten = p.tenLoi;
+    const thang = DATA.thang || 5;
+    const mauDX = { '🟢 Mời offer': ['#E2F4EE','#0F6E56'], '🟡 Cân nhắc': ['#FAEEDA','#854F0B'],
+                    '🔴 Từ chối': ['#FCEBEB','#A32D2D'] };
+    const dx = p.deXuat ? mauDX[p.deXuat] : null;
     h += `<div class="blk"><h5>🎯 Scorecard
-        ${p.diemTong != null ? `<span class="chip" style="background:#EEF2FF;color:#3730A3">${d2(p.diemTong)} / 10</span>`
+        ${p.diemTong != null ? `<span class="chip" style="background:#EEF2FF;color:#3730A3">${p.diemTong} / 100</span>`
                              : '<span class="chip" style="background:#FAEEDA;color:#854F0B">chấm chưa đủ</span>'}
+        ${dx ? `<span class="chip" style="background:${dx[0]};color:${dx[1]}">${esc(p.deXuat)}</span>` : ''}
         ${p.nguoiPV ? `<span style="margin-left:auto;font-size:11.5px;color:#78716C;font-weight:400">${esc(p.nguoiPV)}</span>` : ''}</h5>
       <div class="sc">${DATA.tieuChi.map((t, i) => {
         const nhan = (ten && i < 3) ? ten[i] : t.ten, v = p.diem[i];
         return `<div class="it"><div class="lb"><span>${esc(nhan)} · ${Math.round(t.ts*100)}%</span>
-          <b>${v == null ? '—' : v}</b></div>
-          <div class="bt"><div class="bf" style="width:${(v||0)*10}%"></div></div></div>`;
-      }).join('')}</div></div>`;
+          <b>${v == null ? '—' : v + '/' + thang}</b></div>
+          <div class="bt"><div class="bf" style="width:${(v||0)/thang*100}%"></div></div></div>`;
+      }).join('')}</div>
+      <div class="thangchu">Thang 1–${thang} theo mẫu chấm điểm trong Obsidian ·
+        1 mơ hồ · 2 cần hướng dẫn · 3 làm độc lập · 4 xây hệ thống được · 5 hiểu nguyên lý sâu</div>
+      </div>`;
   }
 
   if (p.ghiChuPV) h += `<div class="blk"><h5>📝 Ghi chú phỏng vấn</h5><div class="txt">${esc(p.ghiChuPV)}</div></div>`;
