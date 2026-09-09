@@ -1,0 +1,168 @@
+/* Navigation presentation only. Permission visibility stays on the existing links. */
+.appnav .nav-group {
+  flex: 0 0 auto;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.appnav .nav-group[hidden],
+.appnav .nav-order-links[hidden],
+.appnav .navtab[hidden] { display: none !important; }
+
+.appnav .nav-group-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 47px;
+  padding: 11px 12px;
+  border-radius: 9px;
+  color: #484340;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  transition: background .16s ease, color .16s ease;
+}
+.appnav .nav-group-heading::-webkit-details-marker { display: none; }
+.appnav .nav-group-heading::marker { content: ''; }
+.appnav .nav-group-heading .nav-label { flex: 1; overflow-wrap: anywhere; }
+.appnav .nav-group-heading:hover { background: #F8F6F4; color: var(--red, #C8102E); }
+.appnav .nav-group-heading:focus-visible {
+  outline: 3px solid var(--red, #C8102E);
+  outline-offset: 2px;
+}
+.appnav .nav-group.is-current > .nav-group-heading {
+  background: #FDF4F5;
+  color: var(--red, #C8102E);
+}
+.appnav .nav-chevron {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin: 0 3px 0 auto;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  opacity: .65;
+  transition: transform .16s ease;
+}
+.appnav .nav-group[open] > .nav-group-heading .nav-chevron { transform: rotate(45deg) translate(-1px, -1px); }
+
+.appnav .nav-group-items {
+  min-width: 0;
+  margin: 4px 0 7px 21px;
+  padding: 2px 0 2px 9px;
+  border-left: 1px solid var(--line, #E8E5E3);
+}
+.appnav .nav-order-links { min-width: 0; }
+.appnav .nav-group-items .navtab {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  margin: 2px 0;
+  padding: 9px 10px !important;
+  gap: 8px;
+  border: 0 !important;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.55;
+  white-space: normal;
+}
+.appnav .nav-group-items .navtab .ui-icon { width: 16px; height: 16px; }
+.appnav .nav-group-items .navtab .nav-label { overflow-wrap: anywhere; }
+.appnav .nav-group-items .navtab.active {
+  background: #FDEFF1;
+  color: var(--red, #C8102E);
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--red, #C8102E);
+}
+
+.theme-dark .appnav .nav-group-heading { color: #D8CFCC; }
+.theme-dark .appnav .nav-group-heading:hover { background: #322829; color: #FF9AA9; }
+.theme-dark .appnav .nav-group.is-current > .nav-group-heading { background: #322126; color: #FF9AA9; }
+.theme-dark .appnav .nav-group-items .navtab.active { background: #40202A; color: #FF9AA9 !important; }
+
+@media (min-width: 821px) {
+  .sidebar-compact .appnav .nav-group-heading { justify-content: center; padding-inline: 0; }
+  .sidebar-compact .appnav .nav-chevron,
+  .sidebar-compact .appnav .nav-group-items { display: none; }
+}
+@media (min-width: 821px) and (max-width: 1200px) {
+  .appnav .nav-group-heading { gap: 8px; padding-inline: 8px; font-size: 12px; }
+  .appnav .nav-group-items { margin-left: 17px; padding-left: 7px; }
+  .appnav .nav-group-items .navtab { padding-inline: 8px !important; font-size: 11px; }
+}
+@media (max-width: 820px) {
+  .appnav .nav-group { flex-basis: 100%; width: 100%; }
+  .appnav .nav-group-heading { min-height: 40px; gap: 9px; padding: 9px; font-size: 12px; }
+  .appnav .nav-group-heading .ui-icon { width: 17px; height: 17px; }
+  .appnav .nav-group-heading .nav-label { display: inline; }
+  .appnav .nav-group-items { margin: 2px 0 5px 17px; padding-left: 8px; }
+  .appnav .nav-group-items .navtab { justify-content: flex-start; min-height: 40px; padding: 9px !important; font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .appnav .nav-group-heading, .appnav .nav-chevron { transition: none; }
+}
+
+/* Order's former automatic icon-only menu cannot contain readable folder groups. */
+@media (min-width: 821px) {
+  body.page-order.grouped-navigation { --sidebar-width: 224px; }
+  body.page-order.grouped-navigation:not(.sidebar-compact) .appnav .nav-label { display: inline; }
+  body.page-order.grouped-navigation:not(.sidebar-compact) .workspace-label,
+  body.page-order.grouped-navigation:not(.sidebar-compact) .navuser .who { display: block; }
+  body.page-order.grouped-navigation:not(.sidebar-compact) .appnav .navtab { justify-content: flex-start; }
+  body.page-order.grouped-navigation:not(.sidebar-compact) .applogo { padding: 0 10px 18px; }
+  body.page-order.grouped-navigation:not(.sidebar-compact) .applogo .logo-crop { width: 156px; }
+  body.page-order.grouped-navigation.sidebar-compact { --sidebar-width: 80px; }
+  body.page-order.grouped-navigation.sidebar-compact .appnav .nav-label,
+  body.page-order.grouped-navigation.sidebar-compact .workspace-label,
+  body.page-order.grouped-navigation.sidebar-compact .navuser .who { display: none; }
+  body.page-order.grouped-navigation.sidebar-compact .applogo .logo-crop { width: 50px; }
+}
+@media (min-width: 821px) and (max-width: 1200px) {
+  body.page-order.grouped-navigation:not(.sidebar-compact) { --sidebar-width: 194px; }
+  body.page-order.grouped-navigation:not(.sidebar-compact) .applogo .logo-crop { width: 142px; }
+}
+@media (max-width: 820px) {
+  body.page-order.grouped-navigation { --sidebar-width: 0px; }
+  body.page-order.grouped-navigation .appnav {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    min-width: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    padding: 14px 16px 10px;
+    overflow: visible;
+    border: 0;
+    border-bottom: 1px solid var(--line, #E8E5E3);
+  }
+  body.page-order.grouped-navigation .appnav .applogo { flex: 0 0 100%; width: 100%; padding: 0 0 7px; }
+  body.page-order.grouped-navigation .applogo .logo-crop { width: 92px; }
+  body.page-order.grouped-navigation .workspace-label,
+  body.page-order.grouped-navigation .sidebar-toggle { display: none; }
+  body.page-order.grouped-navigation .appnav .nav-label { display: inline; }
+  body.page-order.grouped-navigation .appnav .navtab { justify-content: flex-start; min-height: 40px; white-space: normal; }
+  body.page-order.grouped-navigation .appnav .navuser {
+    display: flex;
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 5px 0 0;
+    padding: 9px 0 0;
+  }
+  body.page-order.grouped-navigation .navuser .who { display: block; flex: 1; min-width: 0; white-space: normal; }
+  body.page-order.grouped-navigation .navuser a { flex: 0 0 auto; }
+}

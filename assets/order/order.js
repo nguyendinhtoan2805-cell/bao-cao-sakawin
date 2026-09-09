@@ -10,7 +10,7 @@ const parseDay=v=>v?new Date(v+'T23:59:00+07:00').getTime():null;
 const parseTime=v=>v?new Date(v+':00+07:00').getTime():null;
 const contentPeople=t=>t.team==='media'?(t.requester||[]):[];
 const allNames=a=>(a||[]).map(p=>p.name).join(', ');
-let snapshot=null, me=null, team='media', shoot='all', filter='',person='',focusBeforeDialog=null,dirty=false,saving=false;
+let snapshot=null, me=null, team=new URLSearchParams(location.search).get('team')==='design'?'design':'media', shoot='all', filter='',person='',focusBeforeDialog=null,dirty=false,saving=false;
 const laneDefs=[['script','Kịch bản'],['ready','Chuẩn bị quay'],['editing','Đang dựng'],['delivery','Duyệt & bàn giao']];
 const designLanes=[['script','Kiểm tra brief'],['ready','Đã nhận order'],['editing','Đang thiết kế'],['delivery','Hoàn thành & bàn giao']];
 const actionNames={create:'Tạo mới',edit:'Cập nhật nội dung',stage:'Đổi tiến độ',assignShoot:'Xếp / chuyển buổi quay',review:'Duyệt / phản hồi',refreshScript:'Báo đã sửa tài liệu Drive'};
@@ -55,9 +55,9 @@ function renderShoots(){
   }else $('shootSummary').innerHTML='<p class="empty">Chọn hoặc tạo buổi quay để xếp kịch bản.</p>';
   $('createShoot').disabled=!canWrite('shoots');
 }
-function render(){if(!snapshot)return;renderReport();renderShoots();const rows=visibleRows();
+function render(){if(!snapshot)return;document.dispatchEvent(new CustomEvent('order-team-change',{detail:{team}}));renderReport();renderShoots();const rows=visibleRows();
   $('teamPanel').setAttribute('aria-labelledby',team==='media'?'tabMedia':'tabDesign');
-  for(const b of document.querySelectorAll('[data-team]')){b.setAttribute('aria-selected',b.dataset.team===team);b.tabIndex=b.dataset.team===team?0:-1;}
+  for(const b of document.querySelectorAll('.team-tabs [data-team]')){b.setAttribute('aria-selected',b.dataset.team===team);b.tabIndex=b.dataset.team===team?0:-1;}
   $('createOrder').disabled=!canWrite();
   const session=snapshot.data.shoots.find(s=>s.id===shoot);
   $('progressTitle').textContent=team==='design'?'Tiến độ Design':shoot==='all'?'Tiến độ tất cả video':shoot==='none'?'Video chưa xếp buổi':'Tiến độ buổi '+dateLabel(session?.start);
@@ -109,7 +109,7 @@ $('collapseNav').onclick=()=>{document.body.classList.toggle('sidebar-compact');
 $('closeDialog').onclick=closeDialog;$('dialog').addEventListener('cancel',e=>{e.preventDefault();closeDialog();});$('dialogBody').addEventListener('input',()=>dirty=true);
 $('month').value=monthOf(Date.now());$('month').onchange=()=>{shoot='all';render();};
 $('search').oninput=e=>{filter=e.target.value.trim().toLocaleLowerCase('vi');render();};$('personFilter').onchange=e=>{person=e.target.value;render();};
-for(const b of document.querySelectorAll('[data-team]')){b.onclick=()=>{team=b.dataset.team;shoot='all';render();};b.onkeydown=e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const target=e.key==='Home'?$('tabDesign'):e.key==='End'?$('tabMedia'):team==='media'?$('tabDesign'):$('tabMedia');target.click();target.focus();}};}
+for(const b of document.querySelectorAll('.team-tabs [data-team]')){b.onclick=()=>{team=b.dataset.team;shoot='all';const url=new URL(location.href);url.searchParams.set('team',team);history.replaceState(history.state,'',url);render();};b.onkeydown=e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const target=e.key==='Home'?$('tabDesign'):e.key==='End'?$('tabMedia'):team==='media'?$('tabDesign'):$('tabMedia');target.click();target.focus();}};}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.task)details(b.dataset.task,b.dataset.openScript==='true');if(b.dataset.shoot){shoot=b.dataset.shoot;render();}if(b.dataset.assign)assignDialog(b.dataset.assign);if(b.dataset.detailShoot)shootForm(b.dataset.detailShoot);if(b.dataset.schedule)assignDialog(getTask(b.dataset.schedule).shoot[0],b.dataset.schedule);});
 $('createOrder').onclick=()=>{openDialog('Tạo order '+(team==='media'?'Media':'Design'),'ORDER MỚI',orderForm());bindOrderForm();};$('createShoot').onclick=()=>shootForm();$('reload').onclick=load;$('workload').onclick=()=>peopleReport(true);$('peopleReport').onclick=()=>peopleReport();$('clearFilters').onclick=()=>{shoot='all';filter='';person='';$('search').value='';$('personFilter').value='';render();};
 (async()=>{try{me=await api('/api/auth/me');if(!me.dangNhap){$('status').innerHTML='Bạn cần <a href="/">đăng nhập Sakawin</a> để xem Order.';return;}$('who').textContent=me.ten||'Thành viên';for(const a of document.querySelectorAll('[data-right]'))a.hidden=me.quyen?.[a.dataset.right]!==true;if(!me.quyen?.xem_order){notice('Tài khoản chưa được cấp quyền xem Order Design & Media.',true);return;}await load();}catch(e){notice(e.message,true);}})();
