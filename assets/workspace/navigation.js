@@ -8,36 +8,6 @@
   const find = path => links.find(link => pathOf(link) === path);
   const allowed = link => !link.hidden && link.style.display !== 'none';
   const groups = [];
-  let orderSource, orderMedia, orderWrapper;
-
-  const order = find('/order.html');
-  if (order) {
-    orderSource = order;
-    orderMedia = order.cloneNode(true);
-    orderMedia.removeAttribute('id');
-    orderMedia.removeAttribute('data-right');
-    orderMedia.removeAttribute('aria-current');
-    orderWrapper = document.createElement('div');
-    orderWrapper.className = 'nav-order-links';
-    orderWrapper.hidden = true;
-    order.before(orderWrapper);
-    for (const [link, team, label] of [[order, 'design', 'Design'], [orderMedia, 'media', 'Media']]) {
-      link.href = '/order.html?team=' + team;
-      link.dataset.orderTeam = team;
-      link.title = label;
-      link.setAttribute('aria-label', label);
-      link.querySelector('.nav-label').textContent = label;
-      link.classList.remove('active');
-      link.removeAttribute('aria-current');
-      orderWrapper.append(link);
-      link.addEventListener('click', event => {
-        if (location.pathname !== '/order.html' || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-        const tab = document.getElementById(team === 'design' ? 'tabDesign' : 'tabMedia');
-        if (tab) { event.preventDefault(); tab.click(); }
-      });
-    }
-  }
-
   for (const [key, label, icon, paths] of [
     ['pnl', 'PnL', 'pie-chart', ['/doanh-so.html', '/tai-chinh.html', '/quy-luong.html']],
     ['people', 'Nhân sự', 'users', ['/nhan-su.html', '/tuyen-dung.html']],
@@ -57,15 +27,14 @@
     const items = document.createElement('div');
     items.className = 'nav-group-items';
     group.append(heading, items);
-    const first = children[0] === orderSource ? orderWrapper : children[0];
-    first.before(group);
+    children[0].before(group);
     for (const link of children) {
       if (pathOf(link) === '/nhan-su.html') {
         link.querySelector('.nav-label').textContent = 'Hồ sơ nhân sự';
         link.title = 'Hồ sơ nhân sự';
         link.setAttribute('aria-label', 'Hồ sơ nhân sự');
       }
-      items.append(link === orderSource ? orderWrapper : link);
+      items.append(link);
     }
     const current = children.some(link => pathOf(link) === location.pathname);
     group.classList.toggle('is-current', current);
@@ -81,27 +50,10 @@
   }
 
   function syncVisibility() {
-    if (orderSource) {
-      // Both shortcuts follow the original Order link; neither grants an additional right.
-      orderWrapper.hidden = !allowed(orderSource);
-      orderMedia.hidden = orderSource.hidden;
-      orderMedia.style.display = orderSource.style.display;
-    }
     for (const {group, children} of groups) group.hidden = !children.some(allowed);
   }
-  function syncOrderTeam(team) {
-    if (location.pathname !== '/order.html' || !orderSource) return;
-    for (const link of [orderSource, orderMedia]) {
-      const current = link.dataset.orderTeam === team;
-      link.classList.toggle('active', current);
-      if (current) link.setAttribute('aria-current', 'page');
-      else link.removeAttribute('aria-current');
-    }
-  }
   const observer = new MutationObserver(syncVisibility);
-  // Observe only original nodes: updates to wrappers/clones cannot trigger a loop.
+  // Observe only original links; updating group visibility cannot trigger a loop.
   for (const link of links) observer.observe(link, {attributes:true, attributeFilter:['hidden', 'style']});
   syncVisibility();
-  syncOrderTeam(new URLSearchParams(location.search).get('team') === 'design' ? 'design' : 'media');
-  document.addEventListener('order-team-change', event => syncOrderTeam(event.detail.team));
 })();
