@@ -95,7 +95,7 @@ Không tự chuyển hàng loạt trạng thái hay gán ngày hoàn thành cho 
 Người dùng đã chọn dùng lại ứng dụng **WEBAPP BC Doanh số**. Đối chiếu App ID để chắc chắn đúng ứng dụng đang cấu hình trên Vercel; khi khớp, bật ORDER_USE_EXISTING_LARK_APP=true để dùng LARK_APP_ID/LARK_APP_SECRET hiện có. Không thay các giá trị cũ. Module Order vẫn chỉ gọi ba bảng đã cấu hình. Quyền API của ứng dụng dùng chung áp dụng cho mọi bên đang sử dụng ứng dụng đó, nên không mở rộng quyền API ngoài nhu cầu đã kiểm tra.
 
 1. Trong Lark Developer, chọn WEBAPP BC Doanh số. Không cần tạo ứng dụng mới.
-2. Đã kiểm tra ngày 09/09/2026: ứng dụng đã phát hành và có scope bitable:app cùng bitable:app:readonly (Tenant token). Không cần mở rộng scope ở bước này.
+2. Đã kiểm tra ngày 09/09/2026: ứng dụng đã phát hành và có scope bitable:app cùng bitable:app:readonly (Tenant token). API tra mã Base từ Wiki yêu cầu thêm wiki:node:retrieve; API Explorer báo quyền này chưa được cấp. Đang chờ người dùng xác nhận riêng, chưa thay đổi scope.
 3. Đã kiểm tra qua giao diện Lark: **cả hai Base Design và Media** đều có WEBAPP BC Doanh số với quyền Có thể chỉnh sửa. Không cần thêm lại. Giữ nguyên cấu hình và quyền của các Base cũ đang dùng chung ứng dụng.
 4. Lấy **Base App Token thực**, không dùng wiki node token thay thế. Hai URL hiện tại là wiki URL nên phải đối chiếu token trước.
 5. Cấu hình các biến trong `.env.order.example` vào môi trường riêng/Vercel. Giữ `ORDER_WRITES_ENABLED=false`.
@@ -145,3 +145,10 @@ Chưa tạo bất kỳ bản ghi KIỂM THỬ nào trong Lark trong đợt xây 
 Bảng BUỔI QUAY đã được người dùng tạo: tblGOY43BeI3yZPx; bảng Media tbl9dYmn7jk8K0VK; bảng Design tbloTVabCdgzgiU6. Hai Base App Token vẫn cần đối chiếu qua API trước khi triển khai.
 
 App ID đã đối chiếu với đường đăng nhập production: cli_aa1e551b0078def5. Các biến LARK_APP_ID/LARK_APP_SECRET hiện có trên Vercel ở môi trường Production; chưa thấy cấu hình Order. Preview chưa có đủ biến xác thực, nên không dùng preview để kết luận kết nối đã hoạt động.
+
+## Chuẩn bị phát hành
+
+- Đã push nhánh codex/order-design-media lên GitHub; main vẫn ở b09c39c.
+- Đã thêm năm biến Order không chứa bí mật trên Vercel Production: ORDER_USE_EXISTING_LARK_APP=true, ba table ID như trên, ORDER_WRITES_ENABLED=false. Hai Base App Token còn chờ đối chiếu.
+- Không trích xuất các khóa production. Kiểm tra kết nối sẽ thực hiện trên máy chủ Vercel, giữ khóa trong môi trường hiện có.
+- Deployment kiểm tra đầu tiên dùng --prod --skip-domain, bị Vercel chặn do email Git tự sinh không hợp lệ. Bản phát hành tiếp theo dùng cùng danh tính Git đã có trên main. Không thay tên miền chính khi chưa kiểm tra xong.
