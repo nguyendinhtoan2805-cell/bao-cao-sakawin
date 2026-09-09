@@ -31,7 +31,7 @@ test('Missing or wrong schema fails closed and leaves existing records untouched
 test('Staff can create a shoot and assign scripts without Lead rights; reassigning retains history',async()=>{
   const x=setup();x.user.quyen.duyet_order=false;
   const r=await post(x.handler,{team:'shoots',action:'create',key:crypto.randomUUID(),values:{title:'Buổi tự xếp',start:Date.parse('2026-09-20T09:00:00+07:00'),end:Date.parse('2026-09-20T12:00:00+07:00'),hosts:['ou_demoH'],crew:['ou_demoC'],location:'Studio',notes:''}});assert.equal(r.code,200,JSON.stringify(r.body));
-  let row=x.tables.media.records[0];const a=await post(x.handler,{team:'media',action:'assignShoot',id:row.record_id,revision:revision(row),shootId:r.body.record.id});assert.equal(a.code,200);const b=await post(x.handler,{team:'media',action:'assignShoot',id:row.record_id,revision:a.body.record.revision,shootId:'recShoot1'});assert.equal(b.code,200);assert.equal(b.body.record.history.length,2);assert.deepEqual(b.body.record.history[1].detail.from,[r.body.record.id]);
+  let row=x.tables.media.records[0];const a=await post(x.handler,{team:'media',action:'assignShoot',id:row.record_id,revision:revision(row),shootId:r.body.record.id});assert.equal(a.code,200);const b=await post(x.handler,{team:'media',action:'assignShoot',id:row.record_id,revision:a.body.record.revision,shootId:'recShoot1'});assert.equal(b.code,200);assert.equal(b.body.record.history.length,3);assert.deepEqual(b.body.record.history.at(-1).detail.from,[r.body.record.id]);
 });
 test('Stale browser cannot overwrite a revised order, including moved shoot assignment',async()=>{
   const x=setup(),r=x.tables.media.records[0],rev=revision(r);r.fields['NỘI DUNG']='Externally updated';const a=await post(x.handler,{team:'media',action:'edit',id:r.record_id,revision:rev,values:{title:'Stale'}});assert.equal(a.code,409);assert.ok(!x.calls.some(c=>c.method==='PUT'));
@@ -125,7 +125,7 @@ test('Natural field names retain readiness checks for every workflow column',asy
     }
   }
 });
-test('Single script-review column keeps audited approval and invalidates it after document changes',async()=>{
+test('Media history keeps audited approval and invalidates it after document changes',async()=>{
   const x=setup();let t=(await post(x.handler,{team:'media',action:'create',key:crypto.randomUUID(),values:vals()})).body.record;
   const run=async data=>{const r=await post(x.handler,{team:'media',id:t.id,revision:t.revision,...data});if(r.body.record)t=r.body.record;return r;};
   assert.equal(t.scriptApproval,'Cần duyệt');
@@ -135,7 +135,7 @@ test('Single script-review column keeps audited approval and invalidates it afte
   assert.equal(t.scriptApproval,'Đã duyệt');assert.equal(t.scriptApproved,true);assert.equal(t.scriptReview.by,x.user.email);assert.ok(t.scriptReview.fingerprint);
   await run({action:'edit',values:{importantScript:true,title:'Tên đã đổi'}});assert.equal(t.scriptApproved,true);
   await run({action:'refreshScript'});assert.equal(t.scriptApproval,'Cần duyệt');assert.equal(t.scriptApproved,false);assert.equal(t.scriptReview,null);
-  const raw=x.tables.media.records.find(r=>r.record_id===t.id);raw.fields[schemas.media.scriptApproval[0]]='Đã duyệt';
+  const raw=x.tables.media.records.find(r=>r.record_id===t.id);const history=JSON.parse(raw.fields['Lịch sử']);history.at(-1).detail.mediaState.scriptApproval='Đã duyệt';raw.fields['Lịch sử']=JSON.stringify(history);
   assert.equal(require('../lib/order-service.js').expose('media',raw).scriptApproved,false);
 });
 test('Media uses existing requester and link fields, rejects removed fields and forged review status',async()=>{
@@ -147,12 +147,10 @@ test('Media uses existing requester and link fields, rejects removed fields and 
   assert.equal(data[0].requester[0].name,'Content A');assert.equal(data[1].requester[0].name,'Content B');
   assert.ok(data.every(t=>!Object.hasOwn(t,'writers')&&!Object.hasOwn(t,'script')));
 });
-test('Missing review options block readiness and writes; dropdown alone cannot approve a script',async()=>{
-  const x=setup(),field=x.tables.media.fields.find(f=>f.field_name===schemas.media.scriptApproval[0]);field.property.options=[];
-  assert.ok((await call(x.handler)).body.connection.missing.media.some(f=>f.reason==='options'));
-  assert.equal((await post(x.handler,{team:'media',action:'create',key:crypto.randomUUID(),values:vals()})).code,409);
-  const y=setup(),row=y.tables.media.records[1];row.fields[schemas.media.scriptApproval[0]]='Đã duyệt';
-  assert.equal((await post(y.handler,{team:'media',action:'stage',id:row.record_id,revision:revision(row),stage:'Sẵn sàng quay'})).code,409);
+test('Only existing Media fields and Lịch sử are needed; forged review label is not approval',async()=>{
+  const x=setup();assert.deepEqual((await call(x.handler)).body.connection.missing.media,[]);
+  const row=x.tables.media.records[1],history=JSON.parse(row.fields['Lịch sử']);history.at(-1).detail.mediaState.scriptApproval='Đã duyệt';row.fields['Lịch sử']=JSON.stringify(history);
+  assert.equal((await post(x.handler,{team:'media',action:'stage',id:row.record_id,revision:revision(row),stage:'Sẵn sàng quay'})).code,409);
 });
 test('Existing Lark app reuse is explicit, uses only configured Order targets, and rejects partial credentials',async()=>{
   const env={LARK_APP_ID:'existing-app',LARK_APP_SECRET:'fake-secret',LARK_ORDER_DESIGN_BASE:'baseDesign',LARK_ORDER_DESIGN_TABLE:'tblDesign',LARK_ORDER_MEDIA_BASE:'baseMedia',LARK_ORDER_MEDIA_TABLE:'tblMedia',LARK_ORDER_SHOOTS_TABLE:'tblShoots'};
@@ -259,4 +257,45 @@ test('Legacy Media Progress stays faithful without inventing script status',()=>
     assert.equal(t.stage,stage);assert.equal(t.legacy,true);
   }
   assert.equal(decode('media',{fields:{}}).stage,'Chưa xác định tiến độ');
+});
+
+
+test('Media persists workflow exclusively in Lịch sử and reuses existing business fields',async()=>{
+  const x=setup(),body={team:'media',action:'create',key:crypto.randomUUID(),values:{...vals(),code:'M-DEMO-01'}};
+  const a=await post(x.handler,body);assert.equal(a.code,200,JSON.stringify(a.body));
+  const row=x.tables.media.records.find(r=>r.record_id===a.body.record.id);
+  assert.equal(row.fields['MÃ VIDEO'],'M-DEMO-01');assert.equal(row.fields.Progress,'Chưa thực hiện');
+  for(const name of ['Mã yêu cầu','Người tạo','Tiến độ chi tiết','Nhật ký','Hoàn thành lúc','Cần duyệt thành phẩm','Duyệt thành phẩm','Giờ dự kiến','Duyệt kịch bản'])assert.equal(Object.hasOwn(row.fields,name),false,name);
+  const history=JSON.parse(row.fields['Lịch sử']);assert.equal(history.length,1);assert.equal(history[0].detail.mediaState.importantFinal,true);assert.equal(history[0].detail.mediaState.scriptApproval,'Cần duyệt');
+  assert.equal((await post(x.handler,body)).body.record.id,a.body.record.id);
+});
+test('Media history preserves missing legacy completion dates and blocks malformed history',async()=>{
+  const x=setup(),row=x.tables.media.records[7];delete row.fields['Lịch sử'];
+  const saved=await post(x.handler,{team:'media',action:'stage',id:row.record_id,revision:revision(row),stage:'Hoàn thành'});
+  assert.equal(saved.code,200);assert.equal(saved.body.record.completedAt,null);
+  row.fields['Lịch sử']='Nội dung ghi tay phải được giữ';
+  const blocked=await post(x.handler,{team:'media',action:'edit',id:row.record_id,revision:revision(row),values:{title:'Unsafe edit'}});
+  assert.equal(blocked.code,409);assert.equal(row.fields['Lịch sử'],'Nội dung ghi tay phải được giữ');
+});
+test('Media completion history is invalidated by changed output or editor, with one current completion timestamp',async()=>{
+  const x=setup(),row=x.tables.media.records[4];
+  const act=async b=>post(x.handler,{team:'media',id:row.record_id,revision:revision(row),...b});
+  const done=await act({action:'stage',stage:'Hoàn thành'});assert.ok(done.body.record.completedAt);
+  const changed=await act({action:'edit',values:{assignees:['ou_demoD']}});assert.equal(changed.code,200);assert.equal(changed.body.record.stage,'Đang dựng');assert.equal(changed.body.record.completedAt,null);
+  const redone=await act({action:'stage',stage:'Hoàn thành'});assert.ok(redone.body.record.completedAt);
+  row.fields['Link video tiktok']={link:'https://example.com/direct-change'};
+  assert.equal(decode('media',row).completedAt,null);
+  row.fields.Progress='Chưa thực hiện';assert.equal(decode('media',row).stage,'Chưa thực hiện');
+});
+test('Media real transport receives no virtual columns and verifies the saved history',async()=>{
+  const x=fixture(),env={LARK_ORDER_APP_ID:'fake',LARK_ORDER_APP_SECRET:'fake',LARK_ORDER_DESIGN_BASE:'baseDesign',LARK_ORDER_DESIGN_TABLE:'tblDesign',LARK_ORDER_MEDIA_BASE:'baseMedia',LARK_ORDER_MEDIA_TABLE:'tblMedia',LARK_ORDER_SHOOTS_TABLE:'tblShoots'};
+  let saved;
+  const transport=makeClient({env,fetcher:async(u,o)=>{
+    if(String(u).includes('/auth/'))return{ok:true,json:async()=>({code:0,tenant_access_token:'FAKE'})};
+    if(o.method==='POST')saved=JSON.parse(o.body).fields;
+    return{ok:true,json:async()=>({code:0,data:{record:{record_id:'recTransport',fields:saved}}})};
+  }});
+  const client={...x.client,save:transport.save},ctx=await require('../lib/order-service.js').context(client);
+  const task=await require('../lib/order-service.js').create(client,ctx,x.user,{team:'media',action:'create',key:crypto.randomUUID(),values:vals()});
+  assert.equal(task.id,'recTransport');assert.ok(task.requestKey);assert.ok(saved['Lịch sử']);assert.equal(saved['Tiến độ chi tiết'],undefined);
 });

@@ -52,3 +52,11 @@ Cập nhật Media: Duyệt kịch bản là một cột lựa chọn đơn; b�
 - Đã thêm quyền wiki:node:read đúng phạm vi người dùng duyệt. API chưa đăng nhập trả 401.
 - Điều chỉnh Định dạng Design theo trường lựa chọn đơn thật; giữ nhãn Progress cũ của Media thay vì suy đoán trạng thái viết kịch bản. Bộ kiểm thử sau điều chỉnh: 66/66 đạt.
 - Chưa bật ghi, chưa tạo bản ghi thử thật. Còn cấu trúc Media đang chốt lại và trạng thái Design người dùng bổ sung.
+
+## Media dùng lại cột hiện có + Lịch sử
+
+Người dùng chốt mỗi bảng chỉ thêm Lịch sử. Đã bỏ các cột quy trình Media riêng; tiến độ chi tiết, kết quả duyệt, công sức và mốc hoàn thành lưu trong từng sự kiện lịch sử. Giữ Progress và các cột nghiệp vụ cũ.
+
+- 70 kiểm thử tự động đạt: lưu đúng trường, đọc lại lịch sử qua adapter, chống tạo trùng, duyệt quan trọng, từ chối lịch sử lỗi, không gán ngày hoàn thành giả, hủy mốc hoàn thành khi đổi thành phẩm/người dựng.
+- UI localhost dữ liệu giả: tạo Media có mã video, mở Lịch sử, chuyển Sẵn sàng quay, tải lại vẫn giữ tiến độ.
+- Production đang chỉ đọc, chờ người dùng thêm hai cột Lịch sử và lựa chọn Design trước kiểm thử ghi thật.

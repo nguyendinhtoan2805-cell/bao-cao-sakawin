@@ -63,34 +63,21 @@ Design giữ bước kiểm tra brief trước khi nhận order; không duyệt 
 
 Mốc hoàn thành Design nằm trong Lịch sử: lưu lặp giữ nguyên mốc; đổi thành phẩm/số ảnh/Designer hoặc mở lại order thì ngừng tính là hoàn thành. Khi hoàn thành lại, ghi mốc mới, báo cáo đếm mỗi order một lần theo trạng thái hiện tại. Order cũ thiếu mốc hoàn thành không tự được gán ngày hôm nay, kể cả khi lưu lại trạng thái Hoàn thành.
 
-**Thiết kế Media tạm thời trong mã (đang chờ chốt lại, KHÔNG tạo các cột dưới đây):**
-
-Ngày 09/09/2026 người dùng yêu cầu ưu tiên dùng cột Media hiện có. Đang chờ xác nhận phương án chỉ thêm Lịch sử để chứa dữ liệu quy trình; mã 8+2 cột dưới đây chưa được bật ghi.
+**Media cũng chỉ thêm 1 cột mới:**
 
 | Tên cột | Kiểu | Mục đích |
 |---|---|---|
-| Mã yêu cầu | Văn bản | Nhận diện yêu cầu tạo, tránh gửi trùng |
-| Người tạo | Văn bản | Tài khoản web thực hiện tạo order |
-| Tiến độ chi tiết | Văn bản | Bước chi tiết; giữ lại Progress cho báo cáo cũ |
-| Cần duyệt thành phẩm | Hộp kiểm | Đánh dấu thành phẩm quan trọng |
-| Duyệt thành phẩm | Văn bản | Kết quả, người duyệt, thời điểm và dấu phiên bản |
-| Hoàn thành lúc | Ngày | Bật giờ; tính sản lượng đúng tháng hoàn thành |
-| Nhật ký | Văn bản | Lịch sử thay đổi; web ghi dữ liệu có cấu trúc |
-| Giờ dự kiến | Số | Ước lượng công sức của cả order |
+| Lịch sử | Văn bản | Lưu thao tác, tiến độ chi tiết, duyệt việc quan trọng, công sức dự kiến và mốc hoàn thành |
 
-**Media chỉ thêm 1 cột ngoài cột Buổi quay ở bước 2:**
+Dùng lại MÃ VIDEO, NGƯỜI ORDER, Progress, KỊCH BẢN, Buổi quay, NGƯỜI DỰNG, CHANNEL, THÁNG, ORDER DATE, DEALLINE và các cột nội dung/thành phẩm đang có. Người viết là NGƯỜI ORDER. Không tạo thêm Mã yêu cầu, Người tạo, Tiến độ chi tiết, cột duyệt, Hoàn thành lúc, Nhật ký hay Giờ dự kiến cho Media.
 
-| Tên cột | Kiểu | Các lựa chọn chính xác |
-|---|---|---|
-| Duyệt kịch bản | Lựa chọn đơn | Không cần duyệt; Cần duyệt; Chờ duyệt; Cần sửa; Đã duyệt |
+Web vẫn hiển thị bước chi tiết và nút duyệt; dữ liệu đó nằm trong Lịch sử. Progress tiếp tục dùng các lựa chọn cũ để tương thích báo cáo. Lịch sử lưu định danh chống tạo trùng; MÃ VIDEO vẫn là mã công việc do người dùng nhập.
 
-Người viết chính là NGƯỜI ORDER hiện có. Không thêm Người viết, Kịch bản trên web hoặc Cần duyệt kịch bản. Kết quả duyệt lưu người duyệt, thời điểm và dấu phiên bản trong Nhật ký; chỉ đổi lựa chọn thành Đã duyệt chưa đủ để web công nhận phê duyệt. Tạo trường mới, chưa điền hàng loạt cho dữ liệu cũ.
+Chỉ việc được đánh dấu quan trọng mới cần Lead duyệt kịch bản/thành phẩm. Nhân sự tự xếp lịch không cần duyệt. Không viết kịch bản trên web; gắn link tài liệu riêng vào KỊCH BẢN.
 
-**Bảng Buổi quay thêm 3 cột hệ thống:** `Mã yêu cầu`, `Người tạo`, `Nhật ký`, đều là **Văn bản**.
+**Bảng Buổi quay giữ cấu trúc đã tạo:** 7 cột công việc và 3 cột hệ thống Mã yêu cầu, Người tạo, Nhật ký (Văn bản). Không đổi bảng Buổi quay sang tên Lịch sử.
 
-Tổng cộng: Design thêm 1 cột; Media thêm 10 cột; bảng Buổi quay có 7 cột công việc và 3 cột hệ thống.
-
-Không tự chuyển hàng loạt trạng thái hay gán ngày hoàn thành cho dữ liệu cũ. Thiếu ngày hoàn thành thì hiển thị rõ, không đoán tháng sản lượng.
+Tổng bổ sung còn lại: Lịch sử ở mỗi bảng Design và Media; 3 lựa chọn Trạng thái Design còn thiếu. Không tự chuyển hàng loạt trạng thái hay gán ngày hoàn thành cho order cũ.
 
 ## Bước 4 — kết nối ứng dụng Lark (đã xác minh đọc)
 
@@ -100,7 +87,7 @@ Cả hai Base đã chia sẻ quyền sửa cho ứng dụng. Vercel sử dụng 
 
 Production đã đọc được 1.695 bản ghi Design, 987 Media và 6 Buổi quay (bao gồm dòng trống). Cột Buổi quay liên kết đúng `tblGOY43BeI3yZPx`. `ORDER_WRITES_ENABLED=false` cho tới khi khớp xong cấu trúc và kiểm thử ghi.
 
-Lịch sử Design và các trường duyệt, ngày hoàn thành, nhật ký Media phải được bảo vệ khỏi chỉnh sửa trực tiếp tùy tiện trong Base. Quyền Lead trên web không thể ngăn một người có quyền sửa trực tiếp các cột này ở Lark. Cần rà soát quyền trường/bảng của Base trước khi dùng duyệt làm căn cứ vận hành.
+Cột Lịch sử ở Design và Media cần được bảo vệ khỏi chỉnh sửa trực tiếp tùy tiện trong Base. Quyền Lead trên web không thể ngăn một người có quyền sửa trực tiếp các cột này ở Lark. Cần rà soát quyền trường/bảng của Base trước khi dùng duyệt làm căn cứ vận hành.
 
 ## Bước 5 — kiểm tra chỉ đọc và đối chiếu nhân sự
 
@@ -131,7 +118,7 @@ Chưa tạo bất kỳ bản ghi KIỂM THỬ nào trong Lark trong đợt xây 
 
 - Sửa cùng lúc qua web được khóa ghi, và web kiểm tra bản ghi cũ trước khi cập nhật. Một thay đổi trực tiếp ở Lark xảy ra đúng giữa bước đọc và ghi vẫn có thể xung đột; adapter này không có giao dịch/conditional update xuyên Lark. Tránh sửa cùng order ở hai nơi trong lúc ghi.
 - Nếu sửa nội dung Drive nhưng giữ nguyên URL, bấm **Đã sửa nội dung kịch bản**. Web không đọc/chỉnh Google Drive và không tự phát hiện phiên bản Drive.
-- Bảng báo cáo cá nhân là **đóng góp trên sản phẩm đã hoàn thành**. Giờ dự kiến chỉ áp dụng cho order Media, chưa phải giờ thực tế hay định mức lương/KPI. Design phân bổ theo số order và số ảnh.
+- Bảng báo cáo cá nhân là **đóng góp trên sản phẩm đã hoàn thành**. Giờ dự kiến chỉ áp dụng cho order Media, được lưu trong Lịch sử, chưa phải giờ thực tế hay định mức lương/KPI. Design phân bổ theo số order và số ảnh.
 - Chưa có thông báo Lark/nhắc việc tự động, chưa upload file gốc lên Drive. Thành phẩm được gắn bằng link.
 - Nhánh phát triển đã thêm Order vào sidebar bảy trang hiện có và chuyển tài khoản chỉ có quyền Order đến /order.html. Thay đổi này đã có trên production.
 
@@ -149,6 +136,6 @@ Bảng BUỔI QUAY: tblGOY43BeI3yZPx; Media: tbl9dYmn7jk8K0VK; Design: tbloTVabC
 - API Order chưa đăng nhập trả 401. Đăng nhập Sakawin đọc được ba bảng.
 - Design thực tế có Định dạng là lựa chọn đơn, không phải văn bản. Adapter và form cần dùng các lựa chọn sẵn có; không đổi kiểu trường thật.
 - Design thiếu Lịch sử và ba lựa chọn trạng thái Cần bổ sung brief / Đã nhận order / Cần sửa. Người dùng sẽ bổ sung lựa chọn.
-- Media đang chờ chốt cách dùng lại cột hiện có; không tự tạo 9 cột quy trình cũ.
+- Đã chốt và triển khai Media dùng cột hiện có + Lịch sử. Người dùng tự thêm Lịch sử ở cả hai bảng. Không tạo 9 cột quy trình cũ.
 - Buổi quay đã đủ 10 cột và cột liên kết trên Media trỏ đúng bảng.
 - Không tự sửa dữ liệu cũ, ngày quay hay lựa chọn không đúng nội dung trong Base.
