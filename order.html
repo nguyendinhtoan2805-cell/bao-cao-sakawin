@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><title>Order Design & Media · Sakawin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/workspace/workspace.css"><link rel="stylesheet" href="/assets/order/order.css">
+  <script src="/assets/order/order.js" defer></script>
+</head>
+<body class="workspace-page page-order">
+  <nav class="appnav" aria-label="Điều hướng chính">
+    <a class="applogo" href="/"><span class="logo-crop"><img src="/assets/recruitment/sakawin-logo.png" alt="Sakawin" width="3508" height="2481"></span><span class="workspace-label">WORKSPACE</span></a>
+    <a class="navtab" href="/"><i class="ui-icon icon-grid" aria-hidden="true"></i><span class="nav-label">Tổng quan</span></a>
+    <a class="navtab" href="/doanh-so.html" data-right="xem_doanh_so" hidden><i class="ui-icon icon-trending-up" aria-hidden="true"></i><span class="nav-label">Doanh số & Target</span></a>
+    <a class="navtab" href="/tai-chinh.html" data-right="xem_tai_chinh" hidden><i class="ui-icon icon-pie-chart" aria-hidden="true"></i><span class="nav-label">Tài chính & Lãi lỗ</span></a>
+    <a class="navtab" href="/quy-luong.html" data-right="xem_luong" hidden><i class="ui-icon icon-credit-card" aria-hidden="true"></i><span class="nav-label">Quỹ lương</span></a>
+    <a class="navtab" href="/nhan-su.html" data-right="xem_nhan_su" hidden><i class="ui-icon icon-users" aria-hidden="true"></i><span class="nav-label">Nhân sự</span></a>
+    <a class="navtab" href="/tuyen-dung.html" data-right="xem_tuyen_dung" hidden><i class="ui-icon icon-user-plus" aria-hidden="true"></i><span class="nav-label">Tuyển dụng</span></a>
+    <a class="navtab active" href="/order.html" aria-current="page"><i class="ui-icon icon-order" aria-hidden="true"></i><span class="nav-label">Order Design & Media</span></a>
+    <a class="navtab" href="/admin.html" data-right="quan_tri" hidden><i class="ui-icon icon-shield" aria-hidden="true"></i><span class="nav-label">Quản trị</span></a>
+    <button class="sidebar-toggle" id="collapseNav" aria-expanded="true" aria-label="Thu gọn menu"><i class="ui-icon icon-chevrons-left" aria-hidden="true"></i><span class="nav-label">Thu gọn menu</span></button>
+    <div class="navuser"><span class="who">Xin chào <b id="who">Đang kiểm tra phiên…</b></span><a href="/api/auth/logout"><i class="ui-icon icon-log-out" aria-hidden="true"></i><span class="nav-label">Đăng xuất</span></a></div>
+  </nav>
+  <main class="workspace-main">
+    <span class="workspace-watermark logo-crop" aria-hidden="true"><img src="/assets/recruitment/sakawin-logo.png" alt="" width="3508" height="2481"></span>
+    <header class="masthead"><div class="brand"><h1>Order Design & Media</h1><p>Cùng phối hợp, rõ tiến độ, đúng lịch giao</p></div><div class="header-actions"><span id="demoBadge" class="badge" hidden>Dữ liệu minh hoạ</span><label class="sr-only" for="month">Tháng báo cáo</label><input type="month" id="month"><button class="button primary" id="createOrder" disabled>Tạo order</button></div></header>
+    <div id="status" role="status" aria-live="polite" class="notice">Đang kiểm tra quyền và tải dữ liệu…</div>
+    <section id="content" hidden>
+      <section class="overview" aria-labelledby="reportTitle"><div class="section-title"><h2 id="reportTitle"><i class="ui-icon icon-report" aria-hidden="true"></i>Báo cáo nhanh</h2><button class="text-button" id="peopleReport">Xem báo cáo nhân sự</button></div><div class="table-scroll"><table class="report"><thead><tr><th>Đội</th><th>Đang làm</th><th>Chờ duyệt</th><th>Quá hạn</th><th>Hoàn thành</th><th>Sản lượng</th></tr></thead><tbody id="reportRows"></tbody></table></div><p class="small muted" id="reportNote"></p></section>
+      <div class="team-tabs" role="tablist" aria-label="Đội thực hiện"><button id="tabDesign" role="tab" aria-controls="teamPanel" aria-selected="false" data-team="design">Design</button><button id="tabMedia" role="tab" aria-controls="teamPanel" aria-selected="true" data-team="media">Media</button></div>
+      <section id="teamPanel" role="tabpanel" aria-labelledby="tabMedia">
+        <div class="workbench">
+          <aside class="shoots" id="shootSidebar" aria-label="Buổi quay"><div class="section-title"><h2>Buổi quay</h2><button class="button small-button" id="createShoot">Tạo buổi</button></div><div id="shootList"></div><div id="shootSummary"></div></aside>
+          <section class="progress-area" aria-labelledby="progressTitle"><div class="board-toolbar"><div><h2 id="progressTitle">Tiến độ tất cả video</h2><p class="muted small" id="progressHint">Chọn buổi quay bên trái để lọc tiến độ</p></div><div class="board-filters"><label class="sr-only" for="search">Tìm order</label><input id="search" type="search" placeholder="Tìm tên, mã, người phụ trách…"><label class="sr-only" for="personFilter">Lọc nhân sự</label><select id="personFilter"><option value="">Tất cả nhân sự</option></select><button class="button" id="workload">Phân công</button></div></div><div class="board" id="board"></div><p class="small muted board-help">Bấm vào công việc để xem brief, kịch bản và thành phẩm.</p></section>
+        </div>
+        <section class="details-table" aria-labelledby="detailsTitle"><div class="section-title"><div><h2 id="detailsTitle">Bảng order chi tiết</h2><p class="muted small" id="detailCount"></p></div><div><button class="text-button" id="clearFilters">Bỏ lọc</button><button class="button" id="reload">Tải lại từ Lark</button></div></div><div class="table-scroll"><table class="order-table"><thead id="detailHead"></thead><tbody id="detailRows"></tbody></table></div></section>
+      </section>
+      <details id="setupDetails" hidden><summary>Các trường cần bổ sung để bật thao tác</summary><div id="setupFields"></div></details>
+    </section>
+  </main>
+  <dialog id="dialog" aria-labelledby="dialogTitle"><header class="dialog-header"><div><p id="dialogEyebrow" class="eyebrow"></p><h2 id="dialogTitle"></h2></div><button class="icon-button" id="closeDialog" aria-label="Đóng">Đóng</button></header><div id="dialogBody"></div><p class="form-error" id="dialogError" role="alert"></p></dialog>
+</body>
+</html>
