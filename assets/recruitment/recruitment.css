@@ -106,15 +106,16 @@
 .recruitment-page .srch input:not([type=checkbox]), .recruitment-page .srch select { min-height: 40px; font-size: 12px; }
 .recruitment-page .srch #tim { background: #FFF url('./icons/search.svg') 12px center / 16px no-repeat; padding-left: 38px; }
 .recruitment-page .srch label { font-size: 11px !important; }
-.recruitment-page .lanes { gap: 12px; grid-template-columns: repeat(var(--cot,7),minmax(180px,1fr)); padding-bottom: 10px; border: 0; border-radius: 0; background: transparent; max-height: 620px; scrollbar-width: thin; scrollbar-color: #C9C3BF #F8F6F4; }
-.recruitment-page .lane { border: 1px solid var(--line); border-radius: 10px; min-height: 305px; background: #F8F8F7; }
+.recruitment-page .lanes { gap: 12px; grid-template-columns: repeat(var(--cot,7),minmax(180px,1fr)); padding-bottom: 10px; border: 0; border-radius: 0; background: transparent; height: clamp(305px,70vh,620px); max-height: 620px; grid-template-rows: minmax(0,1fr); scrollbar-width: thin; scrollbar-color: #C9C3BF #F8F6F4; }
+.recruitment-page .lane { border: 1px solid var(--line); border-radius: 10px; min-height: 0; overflow: hidden; background: #F8F8F7; }
 .recruitment-page .lane:last-child { border-right: 1px solid var(--line); }
-.recruitment-page .lane > h4 { border-radius: 9px 9px 0 0; overflow: hidden; }
+.recruitment-page .lane > h4 { flex: 0 0 auto; border-radius: 9px 9px 0 0; overflow: hidden; }
 .recruitment-page .lane .sod { height: 3px; }
 .recruitment-page .lane .tit { padding: 12px 10px; border-bottom: 0; }
 .recruitment-page .lane .tit .tn { font-size: 12px; font-weight: 700; }
 .recruitment-page .lane .tit .n { border-radius: 6px; font-size: 11px; padding: 1px 6px; min-width: 21px; }
-.recruitment-page .lane .body { padding: 8px; gap: 9px; overflow-y: visible; }
+.recruitment-page .lane .body { min-height: 0; padding: 8px; gap: 9px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #C9C3BF #F8F6F4; }
+.recruitment-page .lane .body > * { flex-shrink: 0; }
 .recruitment-page .uvcard { padding: 12px 10px; border: 1px solid var(--line); border-radius: 9px; box-shadow: 0 1px 3px #231E1905; }
 .recruitment-page .uvcard:hover { border-color: var(--vc); box-shadow: 0 3px 10px #231E1912; }
 .recruitment-page .uvcard .dau { align-items: flex-start; gap: 8px; }
@@ -198,7 +199,9 @@ body.recruitment-page.chup { padding: 22px 20px 30px; }
 body.recruitment-page.chup .recruitment-main { margin: 0; padding: 0; }
 body.recruitment-page.chup .brand-watermark { display: none; }
 body.recruitment-page.chup .recruitment-hero { background: none; }
-body.recruitment-page.chup .lanes { max-height: none; }
+body.recruitment-page.chup .lanes { height: auto; max-height: none; grid-template-rows: auto; overflow: auto; }
+body.recruitment-page.chup .lane { min-height: 305px; overflow: visible; }
+body.recruitment-page.chup .lane .body { flex: 0 0 auto; overflow: visible; }
 @media print {
   .recruitment-page .appnav { display: none; }
   .recruitment-page .recruitment-main { margin: 0; padding: 0; }
