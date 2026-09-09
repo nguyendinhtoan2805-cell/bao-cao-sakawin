@@ -65,11 +65,11 @@ Không tự chuyển hàng loạt trạng thái hay gán ngày hoàn thành cho 
 
 ## Bước 4 — cấp kết nối ứng dụng Lark
 
-Nên dùng một ứng dụng Lark riêng cho Order để quyền ghi của module này được giới hạn vào hai Base Order. Không thay App ID/Secret đang phục vụ các trang báo cáo và tuyển dụng.
+Người dùng đã chọn dùng lại ứng dụng **WEBAPP BC Doanh số**. Đối chiếu App ID để chắc chắn đúng ứng dụng đang cấu hình trên Vercel; khi khớp, bật ORDER_USE_EXISTING_LARK_APP=true để dùng LARK_APP_ID/LARK_APP_SECRET hiện có. Không thay các giá trị cũ. Module Order vẫn chỉ gọi ba bảng đã cấu hình. Quyền API của ứng dụng dùng chung áp dụng cho mọi bên đang sử dụng ứng dụng đó, nên không mở rộng quyền API ngoài nhu cầu đã kiểm tra.
 
-1. Trong Lark Developer, tạo/chọn ứng dụng nội bộ dành cho Order.
-2. Trong phần quyền API, đối chiếu các API đọc trường/đọc bản ghi/tạo bản ghi/cập nhật bản ghi của Base và cấp quyền cần thiết; phát hành cấu hình ứng dụng theo quy trình của tổ chức.
-3. Thêm ứng dụng vào **đúng hai Base Design và Media** với quyền truy cập các bảng cần đọc/ghi. Không chia sẻ Base tài chính/lương cho ứng dụng này.
+1. Trong Lark Developer, chọn WEBAPP BC Doanh số. Không cần tạo ứng dụng mới.
+2. Đã kiểm tra ngày 09/09/2026: ứng dụng đã phát hành và có scope bitable:app cùng bitable:app:readonly (Tenant token). Không cần mở rộng scope ở bước này.
+3. Đã kiểm tra qua giao diện Lark: **cả hai Base Design và Media** đều có WEBAPP BC Doanh số với quyền Có thể chỉnh sửa. Không cần thêm lại. Giữ nguyên cấu hình và quyền của các Base cũ đang dùng chung ứng dụng.
 4. Lấy **Base App Token thực**, không dùng wiki node token thay thế. Hai URL hiện tại là wiki URL nên phải đối chiếu token trước.
 5. Cấu hình các biến trong `.env.order.example` vào môi trường riêng/Vercel. Giữ `ORDER_WRITES_ENABLED=false`.
 6. Không gửi App Secret, SESSION_SECRET, Redis token qua chat hoặc commit vào Git. `.env.order.local` đã được bỏ qua bởi Git.
@@ -107,10 +107,14 @@ Chưa tạo bất kỳ bản ghi KIỂM THỬ nào trong Lark trong đợt xây 
 - Nếu sửa nội dung Drive nhưng giữ nguyên URL, bấm **Đã sửa nội dung kịch bản**. Web không đọc/chỉnh Google Drive và không tự phát hiện phiên bản Drive.
 - Bảng báo cáo cá nhân là **đóng góp trên sản phẩm đã hoàn thành**. Giờ dự kiến là của order, chưa phải giờ thực tế hay định mức lương/KPI.
 - Chưa có thông báo Lark/nhắc việc tự động, chưa upload file gốc lên Drive. Thành phẩm được gắn bằng link.
-- Chưa thêm mục Order vào sidebar các trang production cũ; việc nối menu sẽ làm sau khi kiểm tra kết nối và chuẩn bị phát hành module.
+- Nhánh phát triển đã thêm Order vào sidebar bảy trang hiện có và chuyển tài khoản chỉ có quyền Order đến /order.html. Production chưa có thay đổi này.
 
 ## Tham chiếu kỹ thuật
 
 - [Lark API tạo bản ghi](https://open.larksuite.com/document/server-docs/docs/bitable-v1/app-table-record/create).
 - [SDK chính thức: create record, client_token, user_id_type](https://github.com/larksuite/oapi-sdk-python/blob/v2_main/lark_oapi/api/bitable/v1/model/create_app_table_record_request.py).
 - [Lark cấu trúc trường Base](https://open.larksuite.com/document/server-docs/docs/bitable-v1/app-table-field/guide).
+
+Bảng BUỔI QUAY đã được người dùng tạo: tblGOY43BeI3yZPx; bảng Media tbl9dYmn7jk8K0VK; bảng Design tbloTVabCdgzgiU6. Hai Base App Token vẫn cần đối chiếu qua API trước khi triển khai.
+
+App ID đã đối chiếu với đường đăng nhập production: cli_aa1e551b0078def5. Các biến LARK_APP_ID/LARK_APP_SECRET hiện có trên Vercel ở môi trường Production; chưa thấy cấu hình Order. Preview chưa có đủ biến xác thực, nên không dùng preview để kết luận kết nối đã hoạt động.

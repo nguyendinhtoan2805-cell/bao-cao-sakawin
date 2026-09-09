@@ -224,10 +224,18 @@ function bootHome(grants, overrides = {}) {
     location: { replace: url => events.push('redirect:' + url) } };
   return vm.runInNewContext(source, context).then(() => ({ events, nodes, me }));
 }
-test('Home admits HR-only and routes recruitment/admin-only to their permitted pages', async () => {
+test('Home routes Order-only users without loading financial data and preserves existing destinations', async () => {
   assert.deepEqual((await bootHome({ xem_nhan_su: true })).events, ['unlock', 'load']);
   assert.deepEqual((await bootHome({ xem_tuyen_dung: true })).events, ['redirect:/tuyen-dung.html']);
   assert.deepEqual((await bootHome({ quan_tri: true })).events, ['redirect:/admin.html']);
+  const order = await bootHome({ xem_order: true });
+  assert.deepEqual(order.events, ['redirect:/order.html']);
+  assert.equal(order.nodes.get('tabOrder').style.display, '');
+  assert.equal(order.nodes.get('tabTaiChinh').style.display, 'none');
+  assert.equal(order.me.quyen.xem_tai_chinh, false);
+  assert.equal((await bootHome({ xem_nhan_su: true })).nodes.get('tabOrder').style.display, 'none');
+  assert.deepEqual((await bootHome({ xem_order: true }, { phaiDoiMatKhau: true })).events, ['password']);
+  assert.deepEqual((await bootHome({ xem_order: true, xem_nhan_su: true })).events, ['unlock', 'load']);
   for (const k of ['xem_doanh_so', 'xem_tai_chinh', 'xem_luong'])
     assert.deepEqual((await bootHome({ [k]: true })).events, ['unlock', 'load']);
   assert.ok((await bootHome({})).events[0].startsWith('lock:'));

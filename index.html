@@ -433,6 +433,7 @@
     <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none" title="Quỹ lương"><i class="ui-icon icon-credit-card" aria-hidden="true"></i><span class="nav-label">Quỹ lương</span></a>
     <a class="navtab" id="tabNhanSu" href="/nhan-su.html" style="display:none" title="Nhân sự"><i class="ui-icon icon-users" aria-hidden="true"></i><span class="nav-label">Nhân sự</span></a>
     <a class="navtab" id="tabTuyenDung" href="/tuyen-dung.html" style="display:none" title="Tuyển dụng"><i class="ui-icon icon-user-plus" aria-hidden="true"></i><span class="nav-label">Tuyển dụng</span></a>
+    <a class="navtab" id="tabOrder" href="/order.html" style="display:none" title="Order Design &amp; Media"><i class="ui-icon" style="--icon:url('/assets/recruitment/icons/trello.svg')" aria-hidden="true"></i><span class="nav-label">Order Design &amp; Media</span></a>
     <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none" title="Quản trị"><i class="ui-icon icon-shield" aria-hidden="true"></i><span class="nav-label">Quản trị</span></a>
     <button class="sidebar-toggle" type="button" aria-label="Thu gọn menu" aria-expanded="true"><i class="ui-icon icon-chevrons-left" aria-hidden="true"></i><span class="nav-label">Thu gọn menu</span></button>
     <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout" title="Đăng xuất"><i class="ui-icon icon-log-out" aria-hidden="true"></i><span class="nav-label">Đăng xuất</span></a></span>
@@ -1026,6 +1027,7 @@ $('selMoc').addEventListener('change', () => tai());
 
   TOI = me;
   $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten||me.email) + '</b>';
+  if($('tabOrder')) $('tabOrder').style.display = me.quyen.xem_order === true ? '' : 'none';
   $('tabDoanhSo').style.display  = me.quyen.xem_doanh_so  ? '' : 'none';
   $('tabTaiChinh').style.display = me.quyen.xem_tai_chinh ? '' : 'none';
   if($('tabTuyenDung')) $('tabTuyenDung').style.display = me.quyen.xem_tuyen_dung ? '' : 'none';
@@ -1039,6 +1041,7 @@ $('selMoc').addEventListener('change', () => tai());
   if(me.quyen.xem_luong)     duoc.push(['👥 Quỹ lương','/quy-luong.html']);
   if(me.quyen.xem_nhan_su)   duoc.push(['👥 Nhân sự','/nhan-su.html']);
   if(me.quyen.xem_tuyen_dung) duoc.push(['🤝 Tuyển dụng','/tuyen-dung.html']);
+  if(me.quyen.xem_order === true) duoc.push(['Order Design & Media','/order.html']);
   if(me.quyen.quan_tri)      duoc.push(['⚙️ Quản trị','/admin.html']);
   $('heroQuyen').textContent = duoc.length
     ? `bạn được truy cập ${duoc.length} mục.`
@@ -1050,9 +1053,9 @@ $('selMoc').addEventListener('change', () => tai());
       (me.ten||me.email) + ' đăng nhập thành công nhưng chưa được cấp quyền xem báo cáo nào.', false);
   }
   // Trang tổng quan hiện có số liệu từ bốn nguồn này. Tài khoản chỉ có
-  // tuyển dụng/quản trị đi thẳng tới trang đã được cấp, không tự thêm quyền.
+  // tuyển dụng/order/quản trị đi thẳng tới trang đã được cấp, không tự thêm quyền.
   if(!me.quyen.xem_doanh_so && !me.quyen.xem_tai_chinh && !me.quyen.xem_luong && !me.quyen.xem_nhan_su){
-    location.replace(me.quyen.xem_tuyen_dung ? '/tuyen-dung.html' : '/admin.html');
+    location.replace(me.quyen.xem_tuyen_dung ? '/tuyen-dung.html' : me.quyen.xem_order === true ? '/order.html' : '/admin.html');
     return;
   }
   moKhoa();

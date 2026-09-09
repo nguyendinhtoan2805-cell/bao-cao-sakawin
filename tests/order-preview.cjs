@@ -13,8 +13,8 @@ http.createServer(async(req,res)=>{
   try{const url=new URL(req.url,'http://127.0.0.1:4323');
     if(url.pathname==='/api/auth/me')return res.json({...fx.user,dangNhap:true});
     if(url.pathname==='/api/orders'){let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>95000)return res.status(413).end();}req.body=body;req.query=Object.fromEntries(url.searchParams);return await handler(req,res);}
-    const relative=url.pathname==='/'?'order.html':url.pathname.slice(1),target=path.resolve(ROOT,relative);
-    if(relative!=='order.html'&&!target.startsWith(path.join(ROOT,'assets')+path.sep))return res.status(404).end();
+    const relative=url.pathname==='/'?'index.html':url.pathname.slice(1),target=path.resolve(ROOT,relative);
+    if(!['order.html','index.html'].includes(relative)&&!target.startsWith(path.join(ROOT,'assets')+path.sep))return res.status(404).end();
     const type=types[path.extname(target)];if(!type||!fs.existsSync(target))return res.status(404).end();res.setHeader('Content-Type',type);res.end(fs.readFileSync(target));
   }catch{res.status(500).json({ok:false,error:'Lỗi bản thử nghiệm.'});}
 }).listen(4323,'127.0.0.1',()=>process.stdout.write('Order preview · synthetic data only · http://127.0.0.1:4323/order.html\n'));

@@ -1,3 +1,7 @@
 tests/
 REVIEW-ACCESS.md
 design-qa.md
+ORDER-SETUP.md
+ORDER-RELEASE.md
+tools/
+.env.order.example

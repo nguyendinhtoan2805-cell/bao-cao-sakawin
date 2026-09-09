@@ -153,3 +153,13 @@ test('Missing review options block readiness and writes; dropdown alone cannot a
   const y=setup(),row=y.tables.media.records[1];row.fields[schemas.media.scriptApproval[0]]='Đã duyệt';
   assert.equal((await post(y.handler,{team:'media',action:'stage',id:row.record_id,revision:revision(row),stage:'Sẵn sàng quay'})).code,409);
 });
+test('Existing Lark app reuse is explicit, uses only configured Order targets, and rejects partial credentials',async()=>{
+  const env={LARK_APP_ID:'existing-app',LARK_APP_SECRET:'fake-secret',LARK_ORDER_DESIGN_BASE:'baseDesign',LARK_ORDER_DESIGN_TABLE:'tblDesign',LARK_ORDER_MEDIA_BASE:'baseMedia',LARK_ORDER_MEDIA_TABLE:'tblMedia',LARK_ORDER_SHOOTS_TABLE:'tblShoots'};
+  assert.throws(()=>makeClient({env}),/ứng dụng Order/);
+  const calls=[];const c=makeClient({env:{...env,ORDER_USE_EXISTING_LARK_APP:'true'},fetcher:async(u,o)=>{
+    calls.push({u:String(u),body:o.body?JSON.parse(o.body):null});
+    return{ok:true,json:async()=>String(u).includes('/auth/')?{code:0,tenant_access_token:'FAKE'}:{code:0,data:{items:[],has_more:false}}};
+  }});
+  await c.list('media','fields');assert.equal(calls[0].body.app_id,'existing-app');assert.match(calls[1].u,/apps\/baseMedia\/tables\/tblMedia\/fields/);
+  assert.throws(()=>makeClient({env:{...env,ORDER_USE_EXISTING_LARK_APP:'true',LARK_ORDER_APP_ID:'partial'}}),/Cần đủ/);
+});

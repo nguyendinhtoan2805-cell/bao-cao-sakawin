@@ -342,6 +342,7 @@
     <a class="navtab" id="tabQuyLuong" href="/quy-luong.html" style="display:none" title="Quỹ lương"><i class="ui-icon icon-credit-card" aria-hidden="true"></i><span class="nav-label">Quỹ lương</span></a>
     <a class="navtab" id="tabNhanSu" href="/nhan-su.html" style="display:none" title="Nhân sự"><i class="ui-icon icon-users" aria-hidden="true"></i><span class="nav-label">Nhân sự</span></a>
     <a class="navtab" id="tabTuyenDung" href="/tuyen-dung.html" style="display:none" title="Tuyển dụng"><i class="ui-icon icon-user-plus" aria-hidden="true"></i><span class="nav-label">Tuyển dụng</span></a>
+    <a class="navtab" id="tabOrder" href="/order.html" style="display:none" title="Order Design &amp; Media"><i class="ui-icon" style="--icon:url('/assets/recruitment/icons/trello.svg')" aria-hidden="true"></i><span class="nav-label">Order Design &amp; Media</span></a>
     <a class="navtab" id="tabAdmin" href="/admin.html" style="display:none" title="Quản trị"><i class="ui-icon icon-shield" aria-hidden="true"></i><span class="nav-label">Quản trị</span></a>
     <button class="sidebar-toggle" type="button" aria-label="Thu gọn menu" aria-expanded="true"><i class="ui-icon icon-chevrons-left" aria-hidden="true"></i><span class="nav-label">Thu gọn menu</span></button>
     <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout" title="Đăng xuất"><i class="ui-icon icon-log-out" aria-hidden="true"></i><span class="nav-label">Đăng xuất</span></a></span>
@@ -762,6 +763,7 @@ $('btnSync').addEventListener('click', () => sync());
     return khoa('Không đủ quyền', (me.ten||me.email) + ' chưa được cấp quyền xem trang Tài chính & Lãi lỗ. Liên hệ quản trị viên nếu cần.');
   }
   $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten||me.email) + '</b>';
+  if($('tabOrder')) $('tabOrder').style.display = me.quyen.xem_order === true ? '' : 'none';
   $('tabAdmin').style.display = me.quyen.quan_tri ? '' : 'none';
   if($('tabTuyenDung')) $('tabTuyenDung').style.display = me.quyen.xem_tuyen_dung ? '' : 'none';
   $('tabQuyLuong').style.display = me.quyen.xem_luong ? '' : 'none';

@@ -31,10 +31,11 @@ Viewport kiểm tra: desktop 1546 × 1017, laptop 1265 × 712, điện thoại 3
 - Theo quyết định mới, bỏ editor 7 phần. Đã thử lưu link kịch bản rồi mở lại đúng giá trị; không còn form viết nội dung. Kiểm tra báo cáo lấy người viết từ NGƯỜI ORDER, không phát sinh lỗi console.
 - Đổi qua Design và Media; kiểm tra bảng chi tiết và form đọc/sửa.
 - Không có warning/error trong log trình duyệt khi kiểm tra.
-- 55 kiểm thử Node đạt: 32 phân quyền cũ và 23 kiểm thử Order, gồm kiểm tra quyền riêng, stale revision, ghi lặp, phân trang, đọc lại sau ghi, cổng duyệt và lịch quay tự xếp.
+- 56 kiểm thử Node đạt: 32 phân quyền cũ và 24 kiểm thử Order, gồm kiểm tra quyền riêng, stale revision, ghi lặp, phân trang, đọc lại sau ghi, cổng duyệt, lịch quay tự xếp và dùng lại ứng dụng Lark theo cấu hình tường minh.
+- Đã kiểm tra trên trình duyệt: mở / với tài khoản giả chỉ có quyền Order tự chuyển đến /order.html. Menu không hiện các trang doanh số, tài chính hoặc quỹ lương. Điều hướng này cũng được kiểm thử tự động trước các lệnh tải báo cáo.
 
 ## Điều kiện trước khi phát hành
 
-Cần hoàn tất bảng Buổi quay, các trường quy trình mới, ứng dụng Lark và đối chiếu nhân sự; chạy diagnostic chỉ đọc rồi kiểm thử ghi/đọc lại bằng bản ghi KIỂM THỬ. Cần nối menu/điều hướng đăng nhập cho tài khoản chỉ có quyền Order trước phát hành. Chưa push GitHub, chưa deploy, chưa ghi dữ liệu Base thật. Xem ORDER-SETUP.md.
+Cần đối chiếu các trường quy trình mới và nhân sự; chạy diagnostic chỉ đọc rồi kiểm thử ghi/đọc lại bằng bản ghi KIỂM THỬ. Đã nối menu và điều hướng cho tài khoản chỉ có quyền Order trên nhánh phát triển. Đã xác nhận ứng dụng dùng chung có quyền sửa tại cả hai Base qua giao diện Lark; chưa xác minh API thật. Chưa push GitHub, chưa deploy, chưa ghi dữ liệu Base thật. Xem ORDER-SETUP.md.
 
 Cập nhật Media: Duyệt kịch bản là một cột lựa chọn đơn; bằng chứng duyệt gắn phiên bản được lưu trong Nhật ký. Kiểm thử xác nhận không thể tự gửi trạng thái đã duyệt qua API, và sửa tài liệu sẽ hủy kết quả cũ. Các ảnh desktop/Design trước đó ghi nhận bố cục; ảnh script-link.png ghi nhận form hiện tại.
