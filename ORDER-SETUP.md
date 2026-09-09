@@ -30,35 +30,35 @@ Trong bảng **Oder Media + Tiktok (active)** thêm:
 
 | Tên cột | Kiểu | Thiết lập |
 |---|---|---|
-| WEB - Buổi quay | Liên kết bản ghi / liên kết một chiều | Liên kết đúng bảng Buổi quay; mỗi order chọn một buổi |
+| Buổi quay | Liên kết bản ghi / liên kết một chiều | Liên kết đúng bảng Buổi quay; mỗi order chọn một buổi |
 
 Một buổi chứa nhiều order nhờ nhiều dòng order cùng trỏ tới buổi đó. Không tạo một cột riêng cho mỗi ngày quay. Không dùng cột `Các mục mẹ` cho mục đích khác nếu chưa kiểm tra các liên kết đang có.
 
 ## Bước 3 — các trường mới phục vụ quy trình
 
-Thêm **8 cột chung sau vào cả hai bảng order Design và Media**. Các trường bắt đầu bằng WEB là trường mới, không đổi tên trường cũ.
+Thêm **8 cột chung sau vào cả hai bảng order Design và Media**. Đây là các trường mới; giữ nguyên tên và kiểu của các trường cũ.
 
 | Tên cột | Kiểu | Mục đích |
 |---|---|---|
-| WEB - Mã yêu cầu | Văn bản | Nhận diện yêu cầu tạo, tránh gửi trùng |
-| WEB - Người tạo | Văn bản | Tài khoản web thực hiện tạo order |
-| WEB - Tiến độ | Văn bản | Bước chi tiết; giữ lại Trạng thái/Progress để báo cáo cũ tiếp tục dùng |
-| WEB - Cần duyệt thành phẩm | Hộp kiểm | Đánh dấu thành phẩm quan trọng |
-| WEB - Duyệt thành phẩm | Văn bản | Kết quả, người duyệt, thời điểm và dấu phiên bản |
-| WEB - Hoàn thành lúc | Ngày | Bật giờ; tính sản lượng đúng tháng hoàn thành |
-| WEB - Nhật ký | Văn bản | Lịch sử thay đổi; web ghi dữ liệu có cấu trúc |
-| WEB - Giờ dự kiến | Số | Ước lượng công sức của cả order |
+| Mã yêu cầu | Văn bản | Nhận diện yêu cầu tạo, tránh gửi trùng |
+| Người tạo | Văn bản | Tài khoản web thực hiện tạo order |
+| Tiến độ chi tiết | Văn bản | Bước chi tiết; giữ lại Trạng thái/Progress để báo cáo cũ tiếp tục dùng |
+| Cần duyệt thành phẩm | Hộp kiểm | Đánh dấu thành phẩm quan trọng |
+| Duyệt thành phẩm | Văn bản | Kết quả, người duyệt, thời điểm và dấu phiên bản |
+| Hoàn thành lúc | Ngày | Bật giờ; tính sản lượng đúng tháng hoàn thành |
+| Nhật ký | Văn bản | Lịch sử thay đổi; web ghi dữ liệu có cấu trúc |
+| Giờ dự kiến | Số | Ước lượng công sức của cả order |
 
 **Media có thêm 4 cột ngoài cột liên kết ở bước 2:**
 
 | Tên cột | Kiểu | Mục đích |
 |---|---|---|
-| WEB - Người viết | Người, chọn nhiều | Ghi nhận người viết content |
-| WEB - Kịch bản trên web | Văn bản | Lưu cấu trúc thông tin + 7 phần kịch bản, tách khỏi link Drive |
-| WEB - Cần duyệt kịch bản | Hộp kiểm | Đánh dấu kịch bản quan trọng |
-| WEB - Duyệt kịch bản | Văn bản | Người duyệt, kết quả, thời điểm và dấu phiên bản |
+| Người viết | Người, chọn nhiều | Ghi nhận người viết content |
+| Kịch bản trên web | Văn bản | Lưu cấu trúc thông tin + 7 phần kịch bản, tách khỏi link Drive |
+| Cần duyệt kịch bản | Hộp kiểm | Đánh dấu kịch bản quan trọng |
+| Duyệt kịch bản | Văn bản | Người duyệt, kết quả, thời điểm và dấu phiên bản |
 
-**Bảng Buổi quay thêm 3 cột hệ thống:** `WEB - Mã yêu cầu`, `WEB - Người tạo`, `WEB - Nhật ký`, đều là **Văn bản**.
+**Bảng Buổi quay thêm 3 cột hệ thống:** `Mã yêu cầu`, `Người tạo`, `Nhật ký`, đều là **Văn bản**.
 
 Tổng cộng: Design thêm 8 cột; Media thêm 13 cột; bảng Buổi quay có 7 cột công việc và 3 cột hệ thống.
 

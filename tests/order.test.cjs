@@ -107,3 +107,20 @@ test('Ordinary work does not enter a Lead review queue',async()=>{
   }
   assert.ok(!x.calls.some(c=>c.method==='PUT'));
 });
+
+test('Natural field names retain readiness checks for every workflow column',async()=>{
+  const {requirements}=require('../lib/order-service.js');
+  const {workflowKeys}=require('../lib/order-schema.js');
+  const x=setup();
+  const ctx={tables:x.tables,shootTable:x.client.targets.shoots.table};
+  for(const team of ['design','media','shoots']){
+    assert.deepEqual(requirements(ctx)[team],[]);
+    for(const key of workflowKeys[team]){
+      const name=schemas[team][key][0];
+      const fields=x.tables[team].fields;
+      x.tables[team].fields=fields.filter(f=>f.field_name!==name);
+      assert.ok(requirements(ctx)[team].some(f=>f.name===name&&f.reason==='missing'),name);
+      x.tables[team].fields=fields;
+    }
+  }
+});

@@ -31,8 +31,8 @@ Viewport kiểm tra: desktop 1546 × 1017, laptop 1265 × 712, điện thoại 3
 - Mở mẫu giáo dục, nhập mục tiêu, thoại và cảnh quay; lưu và mở lại xác nhận nguyên giá trị, đủ 7 phần.
 - Đổi qua Design và Media; kiểm tra bảng chi tiết và form đọc/sửa.
 - Không có warning/error trong log trình duyệt khi kiểm tra.
-- 51 kiểm thử Node đạt: 32 phân quyền cũ và 19 kiểm thử Order, gồm kiểm tra quyền riêng, stale revision, ghi lặp, phân trang, đọc lại sau ghi, cổng duyệt và lịch quay tự xếp.
+- 52 kiểm thử Node đạt: 32 phân quyền cũ và 20 kiểm thử Order, gồm kiểm tra quyền riêng, stale revision, ghi lặp, phân trang, đọc lại sau ghi, cổng duyệt và lịch quay tự xếp.
 
 ## Điều kiện trước khi phát hành
 
-Cần hoàn tất bảng Buổi quay, trường WEB, ứng dụng Lark và đối chiếu nhân sự; chạy diagnostic chỉ đọc rồi kiểm thử ghi/đọc lại bằng bản ghi KIỂM THỬ. Cần nối menu/điều hướng đăng nhập cho tài khoản chỉ có quyền Order trước phát hành. Chưa push GitHub, chưa deploy, chưa ghi dữ liệu Base thật. Xem ORDER-SETUP.md.
+Cần hoàn tất bảng Buổi quay, các trường quy trình mới, ứng dụng Lark và đối chiếu nhân sự; chạy diagnostic chỉ đọc rồi kiểm thử ghi/đọc lại bằng bản ghi KIỂM THỬ. Cần nối menu/điều hướng đăng nhập cho tài khoản chỉ có quyền Order trước phát hành. Chưa push GitHub, chưa deploy, chưa ghi dữ liệu Base thật. Xem ORDER-SETUP.md.
