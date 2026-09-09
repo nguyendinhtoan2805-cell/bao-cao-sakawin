@@ -3,6 +3,7 @@ const A=require('./_auth.js');
 const {makeClient,withLease,fail}=require('../lib/order-lark.js');
 const S=require('../lib/order-service.js');
 const schema=require('../lib/order-schema.js');
+function valueShape(v,depth=0){if(v===null)return 'null';if(depth>3)return typeof v;if(Array.isArray(v))return {array:v.length,item:v.length?valueShape(v[0],depth+1):null};if(typeof v==='object')return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,valueShape(x,depth+1)]));return typeof v;}
 function makeHandler({auth=A,env=process.env,clientFactory=()=>makeClient({env}),lease=(key,work)=>withLease(key,work,{env})}={}) {
   return async (req,res)=>{
     res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
@@ -29,7 +30,7 @@ function makeHandler({auth=A,env=process.env,clientFactory=()=>makeClient({env})
         const data=Object.fromEntries(Object.entries(ctx.tables).map(([team,t])=>[team,t.records.map(r=>S.expose(team,r))]));
         data.shoots ||= [];
         return res.json({ok:true,data,people:ctx.roster.map(({id,name})=>({id,name})),stages:schema.stages,
-          ...(req.query?.kiemtra==='1'&&user.quyen.quan_tri===true?{schema:Object.fromEntries(Object.entries(ctx.tables).map(([team,t])=>[team,{count:t.records.length,fields:t.fields.map(f=>({name:f.field_name,type:f.type,...(f.property?.options?{options:f.property.options.map(o=>o.name)}:{}),...(f.property?.table_id?{table:f.property.table_id}:{})}))}]))}:{}),
+          ...(req.query?.kiemtra==='1'&&user.quyen.quan_tri===true?{schema:Object.fromEntries(Object.entries(ctx.tables).map(([team,t])=>[team,{count:t.records.length,fields:t.fields.map(f=>({name:f.field_name,type:f.type,...(f.property?.options?{options:f.property.options.map(o=>o.name)}:{}),...(f.property?.table_id?{table:f.property.table_id,shape:valueShape(t.records.map(r=>r.fields[f.field_name]).find(v=>v&&(Array.isArray(v)?v.length:true)))}:{})}))}]))}:{}),
           options:Object.fromEntries(['design','media'].map(team=>[team,Object.fromEntries(ctx.tables[team].fields.filter(f=>[3,4].includes(f.type)).map(f=>[f.field_name,(f.property?.options||[]).map(o=>o.name)]))])),
           connection:{read:true,writeEnabled:env.ORDER_WRITES_ENABLED==='true',missing,checkedAt:Date.now()},permissions:{write:user.quyen.ghi_order===true,review:user.quyen.duyet_order===true}});
       }
