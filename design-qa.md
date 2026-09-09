@@ -7,7 +7,7 @@
 Tham chiếu: exec-ea8dd40a-4851-4bee-8f0a-df641c928877.png trong thư mục generated_images của phiên thiết kế.
 Viewport kiểm tra: desktop 1546 × 1017, laptop 1265 × 712, điện thoại 390 × 844. Đã reset viewport sau kiểm tra.
 
-Ảnh tại tests/order-ui-evidence/: desktop.png, mobile.png, design.png, script-form.png, detail-table.png.
+Ảnh tại tests/order-ui-evidence/: desktop.png, mobile.png, design.png, script-link.png, detail-table.png.
 Ảnh chỉ chứa dữ liệu giả. API của preview dùng service thật với adapter bộ nhớ; không gọi Lark.
 
 ## Kết quả thị giác
@@ -28,11 +28,13 @@ Viewport kiểm tra: desktop 1546 × 1017, laptop 1265 × 712, điện thoại 3
 - Chọn nhiều kịch bản và chuyển buổi, đọc lại thấy liên kết mới.
 - Tạo order bằng dữ liệu giả; kiểm tra ngày bắt buộc.
 - Tạo buổi quay trên viewport điện thoại, nhập giờ bắt đầu/kết thúc, Host và người quay; buổi mới xuất hiện trong danh sách.
-- Mở mẫu giáo dục, nhập mục tiêu, thoại và cảnh quay; lưu và mở lại xác nhận nguyên giá trị, đủ 7 phần.
+- Theo quyết định mới, bỏ editor 7 phần. Đã thử lưu link kịch bản rồi mở lại đúng giá trị; không còn form viết nội dung. Kiểm tra báo cáo lấy người viết từ NGƯỜI ORDER, không phát sinh lỗi console.
 - Đổi qua Design và Media; kiểm tra bảng chi tiết và form đọc/sửa.
 - Không có warning/error trong log trình duyệt khi kiểm tra.
-- 52 kiểm thử Node đạt: 32 phân quyền cũ và 20 kiểm thử Order, gồm kiểm tra quyền riêng, stale revision, ghi lặp, phân trang, đọc lại sau ghi, cổng duyệt và lịch quay tự xếp.
+- 55 kiểm thử Node đạt: 32 phân quyền cũ và 23 kiểm thử Order, gồm kiểm tra quyền riêng, stale revision, ghi lặp, phân trang, đọc lại sau ghi, cổng duyệt và lịch quay tự xếp.
 
 ## Điều kiện trước khi phát hành
 
 Cần hoàn tất bảng Buổi quay, các trường quy trình mới, ứng dụng Lark và đối chiếu nhân sự; chạy diagnostic chỉ đọc rồi kiểm thử ghi/đọc lại bằng bản ghi KIỂM THỬ. Cần nối menu/điều hướng đăng nhập cho tài khoản chỉ có quyền Order trước phát hành. Chưa push GitHub, chưa deploy, chưa ghi dữ liệu Base thật. Xem ORDER-SETUP.md.
+
+Cập nhật Media: Duyệt kịch bản là một cột lựa chọn đơn; bằng chứng duyệt gắn phiên bản được lưu trong Nhật ký. Kiểm thử xác nhận không thể tự gửi trạng thái đã duyệt qua API, và sửa tài liệu sẽ hủy kết quả cũ. Các ảnh desktop/Design trước đó ghi nhận bố cục; ảnh script-link.png ghi nhận form hiện tại.

@@ -28,7 +28,7 @@ function makeHandler({auth=A,env=process.env,clientFactory=()=>makeClient({env})
         const missing=S.requirements(ctx);
         const data=Object.fromEntries(Object.entries(ctx.tables).map(([team,t])=>[team,t.records.map(r=>S.expose(team,r))]));
         data.shoots ||= [];
-        return res.json({ok:true,data,people:ctx.roster.map(({id,name})=>({id,name})),stages:schema.stages,scriptParts:schema.scriptParts,
+        return res.json({ok:true,data,people:ctx.roster.map(({id,name})=>({id,name})),stages:schema.stages,
           options:Object.fromEntries(['design','media'].map(team=>[team,Object.fromEntries(ctx.tables[team].fields.filter(f=>[3,4].includes(f.type)).map(f=>[f.field_name,(f.property?.options||[]).map(o=>o.name)]))])),
           connection:{read:true,writeEnabled:env.ORDER_WRITES_ENABLED==='true',missing,checkedAt:Date.now()},permissions:{write:user.quyen.ghi_order===true,review:user.quyen.duyet_order===true}});
       }

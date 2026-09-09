@@ -7,7 +7,7 @@ const {schemas,decode}=require('../lib/order-schema.js');
 async function call(handler,{method='GET',body={},headers={origin:env.SITE_URL,host:'127.0.0.1:4323'}}={}){const res={code:200,headers:{},setHeader(k,v){this.headers[k]=v;},status(n){this.code=n;return this;},json(j){this.body=j;return this;}};await handler({method,body,headers,query:{}},res);return res;}
 function setup(patch={}){const f=fixture();return {...f,handler:makeHandler({env,auth:auth(f.user),clientFactory:()=>f.client,lease:async(k,work)=>work(),...patch})};}
 const post=(h,body)=>call(h,{method:'POST',body});
-function vals(){return {title:'Order mới minh hoạ',month:'T9.2026',deadline:Date.parse('2026-09-20T23:59:00+07:00'),writers:['ou_demoA'],assignees:['ou_demoC'],importantScript:true,importantFinal:true,scriptLink:'https://example.com/script/new'};}
+function vals(){return {title:'Order mới minh hoạ',month:'T9.2026',deadline:Date.parse('2026-09-20T23:59:00+07:00'),assignees:['ou_demoC'],importantScript:true,importantFinal:true,scriptLink:'https://example.com/script/new'};}
 test('No read or write happens before the separate Order permission gate',async()=>{
   for(const user of [null,{quyen:{xem_nhan_su:true,xem_tuyen_dung:true,duoc_sua:true}},{quyen:{xem_order:false,ghi_order:true}}]){const x=setup({auth:auth(user)});assert.equal((await call(x.handler)).code,user?403:401);assert.equal(x.calls.length,0);}
 });
@@ -123,4 +123,33 @@ test('Natural field names retain readiness checks for every workflow column',asy
       x.tables[team].fields=fields;
     }
   }
+});
+test('Single script-review column keeps audited approval and invalidates it after document changes',async()=>{
+  const x=setup();let t=(await post(x.handler,{team:'media',action:'create',key:crypto.randomUUID(),values:vals()})).body.record;
+  const run=async data=>{const r=await post(x.handler,{team:'media',id:t.id,revision:t.revision,...data});if(r.body.record)t=r.body.record;return r;};
+  assert.equal(t.scriptApproval,'Cần duyệt');
+  assert.equal((await run({action:'stage',stage:'Chờ duyệt kịch bản'})).code,200);assert.equal(t.scriptApproval,'Chờ duyệt');
+  assert.equal((await run({action:'review',kind:'script',decision:'rejected',note:'Bổ sung ví dụ'})).code,200);assert.equal(t.scriptApproval,'Cần sửa');
+  await run({action:'stage',stage:'Chờ duyệt kịch bản'});await run({action:'review',kind:'script',decision:'approved'});
+  assert.equal(t.scriptApproval,'Đã duyệt');assert.equal(t.scriptApproved,true);assert.equal(t.scriptReview.by,x.user.email);assert.ok(t.scriptReview.fingerprint);
+  await run({action:'edit',values:{importantScript:true,title:'Tên đã đổi'}});assert.equal(t.scriptApproved,true);
+  await run({action:'refreshScript'});assert.equal(t.scriptApproval,'Cần duyệt');assert.equal(t.scriptApproved,false);assert.equal(t.scriptReview,null);
+  const raw=x.tables.media.records.find(r=>r.record_id===t.id);raw.fields[schemas.media.scriptApproval[0]]='Đã duyệt';
+  assert.equal(require('../lib/order-service.js').expose('media',raw).scriptApproved,false);
+});
+test('Media uses existing requester and link fields, rejects removed fields and forged review status',async()=>{
+  for(const value of [{writers:['ou_demoB']},{script:{parts:[]}},{scriptApproval:'Đã duyệt'},{scriptReview:{decision:'approved'}}]){
+    const x=setup();assert.equal((await post(x.handler,{team:'media',action:'create',key:crypto.randomUUID(),values:{...vals(),...value}})).code,400);
+    assert.ok(!x.calls.some(c=>c.method==='POST'));
+  }
+  const x=setup(),data=(await call(x.handler)).body.data.media;
+  assert.equal(data[0].requester[0].name,'Content A');assert.equal(data[1].requester[0].name,'Content B');
+  assert.ok(data.every(t=>!Object.hasOwn(t,'writers')&&!Object.hasOwn(t,'script')));
+});
+test('Missing review options block readiness and writes; dropdown alone cannot approve a script',async()=>{
+  const x=setup(),field=x.tables.media.fields.find(f=>f.field_name===schemas.media.scriptApproval[0]);field.property.options=[];
+  assert.ok((await call(x.handler)).body.connection.missing.media.some(f=>f.reason==='options'));
+  assert.equal((await post(x.handler,{team:'media',action:'create',key:crypto.randomUUID(),values:vals()})).code,409);
+  const y=setup(),row=y.tables.media.records[1];row.fields[schemas.media.scriptApproval[0]]='Đã duyệt';
+  assert.equal((await post(y.handler,{team:'media',action:'stage',id:row.record_id,revision:revision(row),stage:'Sẵn sàng quay'})).code,409);
 });

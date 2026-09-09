@@ -6,7 +6,7 @@
 - Chưa xác minh kết nối API thật tới hai Base Order. Đọc được Base bằng trình duyệt không đồng nghĩa ứng dụng đã được cấp quyền API.
 - Bản xem thử dùng dữ liệu giả, không ghi Lark thật. Chưa deploy module Order.
 - Đã chốt: nhân sự tự tạo/xếp buổi quay; chỉ kịch bản/thành phẩm được đánh dấu quan trọng mới cần Lead duyệt.
-- Giữ link Drive cho dữ liệu cũ. Kịch bản mới trên web dùng mẫu giáo dục: thông tin chung và bảng 7 phần (thoại, cảnh quay, ghi chú).
+- Kịch bản được viết trong tài liệu riêng (Drive hoặc nguồn đang dùng), gắn link vào cột KỊCH BẢN hiện có. Web chỉ quản lý quy trình; không có form viết kịch bản.
 
 ## Bước 1 — tạo bảng Buổi quay trong Base Media
 
@@ -49,18 +49,17 @@ Thêm **8 cột chung sau vào cả hai bảng order Design và Media**. Đây l
 | Nhật ký | Văn bản | Lịch sử thay đổi; web ghi dữ liệu có cấu trúc |
 | Giờ dự kiến | Số | Ước lượng công sức của cả order |
 
-**Media có thêm 4 cột ngoài cột liên kết ở bước 2:**
+**Media chỉ thêm 1 cột ngoài cột Buổi quay ở bước 2:**
 
-| Tên cột | Kiểu | Mục đích |
+| Tên cột | Kiểu | Các lựa chọn chính xác |
 |---|---|---|
-| Người viết | Người, chọn nhiều | Ghi nhận người viết content |
-| Kịch bản trên web | Văn bản | Lưu cấu trúc thông tin + 7 phần kịch bản, tách khỏi link Drive |
-| Cần duyệt kịch bản | Hộp kiểm | Đánh dấu kịch bản quan trọng |
-| Duyệt kịch bản | Văn bản | Người duyệt, kết quả, thời điểm và dấu phiên bản |
+| Duyệt kịch bản | Lựa chọn đơn | Không cần duyệt; Cần duyệt; Chờ duyệt; Cần sửa; Đã duyệt |
+
+Người viết chính là NGƯỜI ORDER hiện có. Không thêm Người viết, Kịch bản trên web hoặc Cần duyệt kịch bản. Kết quả duyệt lưu người duyệt, thời điểm và dấu phiên bản trong Nhật ký; chỉ đổi lựa chọn thành Đã duyệt chưa đủ để web công nhận phê duyệt. Tạo trường mới, chưa điền hàng loạt cho dữ liệu cũ.
 
 **Bảng Buổi quay thêm 3 cột hệ thống:** `Mã yêu cầu`, `Người tạo`, `Nhật ký`, đều là **Văn bản**.
 
-Tổng cộng: Design thêm 8 cột; Media thêm 13 cột; bảng Buổi quay có 7 cột công việc và 3 cột hệ thống.
+Tổng cộng: Design thêm 8 cột; Media thêm 10 cột; bảng Buổi quay có 7 cột công việc và 3 cột hệ thống.
 
 Không tự chuyển hàng loạt trạng thái hay gán ngày hoàn thành cho dữ liệu cũ. Thiếu ngày hoàn thành thì hiển thị rõ, không đoán tháng sản lượng.
 
@@ -89,7 +88,7 @@ Công cụ chỉ đọc, báo số bản ghi và trường thiếu/sai kiểu, k
 
 - Media: Người Order là trường **Người**. Tài khoản web phải khớp email/open_id từ Lark. Nếu Lark không trả email, bổ sung ánh xạ `LARK_ORDER_USER_MAP` sau khi xác minh. Không suy đoán từ tên gần giống.
 - Design: Người Order là **lựa chọn đơn**. Tên phải khớp đúng lựa chọn hiện có; ánh xạ có thể dùng `designName`. Không tự thêm lựa chọn khi chưa đối chiếu.
-- Danh sách người viết/người dựng/host/người quay được lấy từ người đã xuất hiện trong Base hoặc ánh xạ đã xác minh. Nhân sự mới chưa có trong nguồn cần được bổ sung rõ ràng.
+- Danh sách người order/người dựng/host/người quay được lấy từ người đã xuất hiện trong Base hoặc ánh xạ đã xác minh. Nhân sự mới chưa có trong nguồn cần được bổ sung rõ ràng.
 - Media dùng cột THÁNG hiện có (ví dụ `T9.2026`); tháng mới phải có trong lựa chọn Lark trước khi tạo order thuộc tháng đó.
 
 ## Bước 6 — kiểm thử ghi có kiểm soát rồi mới đưa vào sử dụng
@@ -105,7 +104,7 @@ Chưa tạo bất kỳ bản ghi KIỂM THỬ nào trong Lark trong đợt xây 
 ## Các giới hạn cần biết của bản đầu
 
 - Sửa cùng lúc qua web được khóa ghi, và web kiểm tra bản ghi cũ trước khi cập nhật. Một thay đổi trực tiếp ở Lark xảy ra đúng giữa bước đọc và ghi vẫn có thể xung đột; adapter này không có giao dịch/conditional update xuyên Lark. Tránh sửa cùng order ở hai nơi trong lúc ghi.
-- Nếu sửa nội dung Drive nhưng giữ nguyên URL, bấm **Đã sửa nội dung trên Drive**. Web không đọc/chỉnh Google Drive và không tự phát hiện phiên bản Drive.
+- Nếu sửa nội dung Drive nhưng giữ nguyên URL, bấm **Đã sửa nội dung kịch bản**. Web không đọc/chỉnh Google Drive và không tự phát hiện phiên bản Drive.
 - Bảng báo cáo cá nhân là **đóng góp trên sản phẩm đã hoàn thành**. Giờ dự kiến là của order, chưa phải giờ thực tế hay định mức lương/KPI.
 - Chưa có thông báo Lark/nhắc việc tự động, chưa upload file gốc lên Drive. Thành phẩm được gắn bằng link.
 - Chưa thêm mục Order vào sidebar các trang production cũ; việc nối menu sẽ làm sau khi kiểm tra kết nối và chuẩn bị phát hành module.
