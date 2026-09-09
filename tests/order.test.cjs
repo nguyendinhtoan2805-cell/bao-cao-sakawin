@@ -299,3 +299,11 @@ test('Media real transport receives no virtual columns and verifies the saved hi
   const task=await require('../lib/order-service.js').create(client,ctx,x.user,{team:'media',action:'create',key:crypto.randomUUID(),values:vals()});
   assert.equal(task.id,'recTransport');assert.ok(task.requestKey);assert.ok(saved['Lịch sử']);assert.equal(saved['Tiến độ chi tiết'],undefined);
 });
+
+
+test('Design reuses the verified Brief capitalization without modifying Base options',async()=>{
+  const x=setup(),field=x.tables.design.fields.find(f=>f.field_name==='Trạng thái');field.property.options.find(o=>o.name==='Cần bổ sung brief').name='Cần bổ sung Brief';
+  assert.deepEqual((await call(x.handler)).body.connection.missing.design,[]);
+  const row=x.tables.design.records[0],r=await post(x.handler,{team:'design',action:'stage',id:row.record_id,revision:revision(row),stage:'Cần bổ sung brief'});
+  assert.equal(r.code,200);assert.equal(row.fields['Trạng thái'],'Cần bổ sung Brief');assert.equal(r.body.record.stage,'Cần bổ sung brief');
+});
