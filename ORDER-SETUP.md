@@ -36,13 +36,40 @@ Một buổi chứa nhiều order nhờ nhiều dòng order cùng trỏ tới bu
 
 ## Bước 3 — các trường mới phục vụ quy trình
 
-Thêm **8 cột chung sau vào cả hai bảng order Design và Media**. Đây là các trường mới; giữ nguyên tên và kiểu của các trường cũ.
+**Design chỉ thêm 1 cột mới:**
+
+| Tên cột | Kiểu | Mục đích |
+|---|---|---|
+| Lịch sử | Văn bản | Web ghi nối tiếp người thao tác, thời gian, thay đổi và mốc hoàn thành sau mỗi lần lưu |
+
+Giữ nguyên MÃ DESIGN (mã công việc), Người Order (người tạo yêu cầu), Trạng thái (tiến độ), Ngày Order, Designer và các cột nội dung/thành phẩm hiện có. Không thêm Mã yêu cầu, Người tạo, Tiến độ chi tiết, các cột duyệt, Hoàn thành lúc, Nhật ký hoặc Giờ dự kiến cho Design. Nếu đã tạo các cột này thì để nguyên, không cần xóa; bản mới không đọc/ghi chúng.
+
+Mã chống tạo trùng được lưu nội bộ trong Lịch sử, không ghi đè MÃ DESIGN. Người Order được đối chiếu với tài khoản đăng nhập khi tạo. Mỗi lần lưu tiếp theo giữ nguyên Người Order và ghi người thao tác vào Lịch sử. Web cho nhập MÃ DESIGN theo quy ước hiện có, không tự áp một quy tắc đánh số mới.
+
+Các bước Design cần có trong **Trạng thái**:
+
+| Bước trên web | Lựa chọn Lark dùng lại |
+|---|---|
+| Chờ kiểm tra brief | Chờ kiểm tra brief hoặc Chưa làm |
+| Cần bổ sung brief | Cần bổ sung brief |
+| Đã nhận order | Đã nhận order |
+| Đang thiết kế | Đang thiết kế hoặc Đang làm |
+| Cần sửa | Cần sửa |
+| Hoàn thành | Hoàn thành |
+
+Không tự thêm/đổi lựa chọn trên Base thật. Web báo rõ bước thiếu và chưa bật thao tác khi cấu trúc chưa đủ. Những báo cáo/automation Lark lọc đúng “Chưa làm” có thể không bao gồm “Đã nhận order”, “Cần bổ sung brief”, “Cần sửa”; cần đối chiếu các bộ lọc trước khi bật ghi. Order cũ vẫn giữ dữ liệu và trạng thái gốc.
+
+Design giữ bước kiểm tra brief trước khi nhận order; không duyệt thành phẩm. Lịch sử có cấu trúc để đọc lại chính xác và được trình bày dễ đọc trên web. Không điền tay hoặc sửa/xóa nội dung cột này. Nếu dữ liệu lịch sử không đúng định dạng, web dừng ghi để không làm mất nội dung cũ.
+
+Mốc hoàn thành Design nằm trong Lịch sử: lưu lặp giữ nguyên mốc; đổi thành phẩm/số ảnh/Designer hoặc mở lại order thì ngừng tính là hoàn thành. Khi hoàn thành lại, ghi mốc mới, báo cáo đếm mỗi order một lần theo trạng thái hiện tại. Order cũ thiếu mốc hoàn thành không tự được gán ngày hôm nay, kể cả khi lưu lại trạng thái Hoàn thành.
+
+**Media giữ 8 cột quy trình như đã chốt:**
 
 | Tên cột | Kiểu | Mục đích |
 |---|---|---|
 | Mã yêu cầu | Văn bản | Nhận diện yêu cầu tạo, tránh gửi trùng |
 | Người tạo | Văn bản | Tài khoản web thực hiện tạo order |
-| Tiến độ chi tiết | Văn bản | Bước chi tiết; giữ lại Trạng thái/Progress để báo cáo cũ tiếp tục dùng |
+| Tiến độ chi tiết | Văn bản | Bước chi tiết; giữ lại Progress cho báo cáo cũ |
 | Cần duyệt thành phẩm | Hộp kiểm | Đánh dấu thành phẩm quan trọng |
 | Duyệt thành phẩm | Văn bản | Kết quả, người duyệt, thời điểm và dấu phiên bản |
 | Hoàn thành lúc | Ngày | Bật giờ; tính sản lượng đúng tháng hoàn thành |
@@ -59,7 +86,7 @@ Người viết chính là NGƯỜI ORDER hiện có. Không thêm Người vi�
 
 **Bảng Buổi quay thêm 3 cột hệ thống:** `Mã yêu cầu`, `Người tạo`, `Nhật ký`, đều là **Văn bản**.
 
-Tổng cộng: Design thêm 8 cột; Media thêm 10 cột; bảng Buổi quay có 7 cột công việc và 3 cột hệ thống.
+Tổng cộng: Design thêm 1 cột; Media thêm 10 cột; bảng Buổi quay có 7 cột công việc và 3 cột hệ thống.
 
 Không tự chuyển hàng loạt trạng thái hay gán ngày hoàn thành cho dữ liệu cũ. Thiếu ngày hoàn thành thì hiển thị rõ, không đoán tháng sản lượng.
 
@@ -74,7 +101,7 @@ Người dùng đã chọn dùng lại ứng dụng **WEBAPP BC Doanh số**. Đ
 5. Cấu hình các biến trong `.env.order.example` vào môi trường riêng/Vercel. Giữ `ORDER_WRITES_ENABLED=false`.
 6. Không gửi App Secret, SESSION_SECRET, Redis token qua chat hoặc commit vào Git. `.env.order.local` đã được bỏ qua bởi Git.
 
-Các trường duyệt, ngày hoàn thành và nhật ký phải được bảo vệ khỏi chỉnh sửa trực tiếp tùy tiện trong Base. Quyền Lead trên web không thể ngăn một người có quyền sửa trực tiếp các cột này ở Lark. Cần rà soát quyền trường/bảng của Base trước khi dùng duyệt làm căn cứ vận hành.
+Lịch sử Design và các trường duyệt, ngày hoàn thành, nhật ký Media phải được bảo vệ khỏi chỉnh sửa trực tiếp tùy tiện trong Base. Quyền Lead trên web không thể ngăn một người có quyền sửa trực tiếp các cột này ở Lark. Cần rà soát quyền trường/bảng của Base trước khi dùng duyệt làm căn cứ vận hành.
 
 ## Bước 5 — kiểm tra chỉ đọc và đối chiếu nhân sự
 
@@ -94,9 +121,9 @@ Công cụ chỉ đọc, báo số bản ghi và trường thiếu/sai kiểu, k
 ## Bước 6 — kiểm thử ghi có kiểm soát rồi mới đưa vào sử dụng
 
 1. Hoàn tất cấu trúc và quyền; chạy lại bộ kiểm thử dữ liệu giả.
-2. Cấp tài khoản thử ba quyền riêng: `xem_order`, `ghi_order`, `duyet_order`. Nhân sự thông thường chỉ cần hai quyền đầu; chỉ cấp quyền duyệt cho Lead.
+2. Cấp tài khoản thử ba quyền riêng: `xem_order`, `ghi_order`, `duyet_order`. Nhân sự thông thường chỉ cần hai quyền đầu; chỉ cấp quyền duyệt cho Lead Media. Design không cần quyền duyệt.
 3. Ở môi trường kiểm thử đã cấu hình đúng hai Base, bật ghi để tạo một order và một buổi có nhãn **KIỂM THỬ**, đọc lại để xác nhận. Không thử trên hồ sơ thật đang chạy.
-4. Kiểm tra thêm xếp/chuyển buổi, phản hồi/duyệt việc quan trọng, ghi link thành phẩm và ngày hoàn thành. Việc không quan trọng không cần duyệt.
+4. Kiểm tra thêm xếp/chuyển buổi, phản hồi/duyệt việc quan trọng, ghi link thành phẩm và ngày hoàn thành. Media không quan trọng và thành phẩm Design không cần duyệt.
 5. Chỉ bật trên production sau khi đối chiếu bản ghi thật và kiểm tra không ảnh hưởng các trang cũ.
 
 Chưa tạo bất kỳ bản ghi KIỂM THỬ nào trong Lark trong đợt xây dựng giao diện ban đầu.
@@ -105,7 +132,7 @@ Chưa tạo bất kỳ bản ghi KIỂM THỬ nào trong Lark trong đợt xây 
 
 - Sửa cùng lúc qua web được khóa ghi, và web kiểm tra bản ghi cũ trước khi cập nhật. Một thay đổi trực tiếp ở Lark xảy ra đúng giữa bước đọc và ghi vẫn có thể xung đột; adapter này không có giao dịch/conditional update xuyên Lark. Tránh sửa cùng order ở hai nơi trong lúc ghi.
 - Nếu sửa nội dung Drive nhưng giữ nguyên URL, bấm **Đã sửa nội dung kịch bản**. Web không đọc/chỉnh Google Drive và không tự phát hiện phiên bản Drive.
-- Bảng báo cáo cá nhân là **đóng góp trên sản phẩm đã hoàn thành**. Giờ dự kiến là của order, chưa phải giờ thực tế hay định mức lương/KPI.
+- Bảng báo cáo cá nhân là **đóng góp trên sản phẩm đã hoàn thành**. Giờ dự kiến chỉ áp dụng cho order Media, chưa phải giờ thực tế hay định mức lương/KPI. Design phân bổ theo số order và số ảnh.
 - Chưa có thông báo Lark/nhắc việc tự động, chưa upload file gốc lên Drive. Thành phẩm được gắn bằng link.
 - Nhánh phát triển đã thêm Order vào sidebar bảy trang hiện có và chuyển tài khoản chỉ có quyền Order đến /order.html. Production chưa có thay đổi này.
 

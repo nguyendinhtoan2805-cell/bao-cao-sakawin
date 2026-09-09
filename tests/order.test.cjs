@@ -61,6 +61,7 @@ test('An ordinary completed video needs no Lead review and keeps its first compl
 });
 test('Design cannot skip initial brief acceptance',async()=>{
   const x=setup(),r=x.tables.design.records[0];const a=await post(x.handler,{team:'design',action:'stage',id:r.record_id,revision:revision(r),stage:'Đang thiết kế'});assert.equal(a.code,409);const b=await post(x.handler,{team:'design',action:'stage',id:r.record_id,revision:revision(r),stage:'Đã nhận order'});assert.equal(b.code,200);
+  r.fields['Trạng thái']='Legacy status not mapped';assert.equal((await post(x.handler,{team:'design',action:'stage',id:r.record_id,revision:revision(r),stage:'Đang thiết kế'})).code,409);
 });
 test('Lark client uses configured targets and fails incomplete pagination without returning partial data',async()=>{
   const env={LARK_ORDER_APP_ID:'fake',LARK_ORDER_APP_SECRET:'fake',LARK_ORDER_DESIGN_BASE:'baseDesign',LARK_ORDER_DESIGN_TABLE:'tblDesign',LARK_ORDER_MEDIA_BASE:'baseMedia',LARK_ORDER_MEDIA_TABLE:'tblMedia',LARK_ORDER_SHOOTS_TABLE:'tblShoots'};
@@ -162,4 +163,67 @@ test('Existing Lark app reuse is explicit, uses only configured Order targets, a
   }});
   await c.list('media','fields');assert.equal(calls[0].body.app_id,'existing-app');assert.match(calls[1].u,/apps\/baseMedia\/tables\/tblMedia\/fields/);
   assert.throws(()=>makeClient({env:{...env,ORDER_USE_EXISTING_LARK_APP:'true',LARK_ORDER_APP_ID:'partial'}}),/Cần đủ/);
+});
+
+test('Design creates with existing business columns only; retry identity is in history, not MÃ DESIGN',async()=>{
+  const x=setup();x.user.quyen.duyet_order=false;
+  const body={team:'design',action:'create',key:crypto.randomUUID(),values:{title:'Design test',code:'D-KEEP-01',deadline:Date.now()+86400000,assignees:['ou_demoC'],quantity:2}};
+  const a=await post(x.handler,body),b=await post(x.handler,body);
+  assert.equal(a.code,200,JSON.stringify(a.body));assert.equal(b.body.record.id,a.body.record.id);assert.equal(x.tables.design.records.length,7);
+  const row=x.tables.design.records.at(-1),t=decode('design',row);
+  assert.equal(row.fields['MÃ DESIGN'],'D-KEEP-01');assert.equal(row.fields['Người Order'],'Content A');assert.equal(row.fields['Trạng thái'],'Chờ kiểm tra brief');
+  assert.equal(t.history[0].by,x.user.email);assert.equal(t.requestKey,t.history[0].detail.requestKey);assert.notEqual(t.requestKey,t.code);
+  for(const name of ['Mã yêu cầu','Người tạo','Tiến độ chi tiết','Nhật ký','Hoàn thành lúc','Cần duyệt thành phẩm','Duyệt thành phẩm','Giờ dự kiến'])assert.equal(Object.hasOwn(row.fields,name),false,name);
+  assert.equal((await post(x.handler,{...body,values:{...body.values,code:'DIFFERENT'}})).code,409);
+});
+test('Design completion uses append-only history, preserves timestamp on save, and invalidates on reopening or changed output',async()=>{
+  const x=setup();x.user.quyen.duyet_order=false;const row=x.tables.design.records[1];let t=decode('design',row);t.revision=revision(row);
+  const run=async data=>{const r=await post(x.handler,{team:'design',id:t.id,revision:t.revision,...data});assert.equal(r.code,200,JSON.stringify(r.body));t=r.body.record;return t;};
+  await run({action:'edit',values:{result:'https://example.com/design/final'}});
+  assert.equal(t.stage,'Đang thiết kế');assert.equal(t.history.length,1);
+  await run({action:'stage',stage:'Hoàn thành'});const at=t.completedAt;assert.ok(at>0);assert.equal(t.history[1].detail.designState.completedAt,at);
+  await run({action:'stage',stage:'Hoàn thành'});assert.equal(t.completedAt,at);
+  await run({action:'edit',values:{title:'New title'}});assert.equal(t.completedAt,at);assert.deepEqual(t.history.at(-1).detail.changes.title,{before:'Banner chiến dịch tháng 9',after:'New title'});
+  const before=structuredClone(t.history);
+  await run({action:'stage',stage:'Cần sửa'});assert.equal(t.completedAt,null);assert.deepEqual(t.history.slice(0,-1),before);
+  await run({action:'stage',stage:'Hoàn thành'});assert.ok(t.completedAt>=at);
+  await run({action:'edit',values:{quantity:5}});assert.equal(t.completedAt,null);assert.equal(t.stage,'Đang thiết kế');
+  assert.equal(row.fields['MÃ DESIGN'],'D-002');assert.equal(Object.hasOwn(row.fields,'Hoàn thành lúc'),false);
+  assert.equal(t.history.length,7);assert.ok(t.history.every(h=>h.by===x.user.email&&Number.isFinite(h.at)));
+});
+test('Design handles legacy completion dates and malformed history without inventing a date or discarding history',async()=>{
+  const x=setup(),r=x.tables.design.records[5];r.fields['Lịch sử']='[]';assert.equal(decode('design',r).completedAt,null);
+  const a=await post(x.handler,{team:'design',action:'stage',id:r.record_id,revision:revision(r),stage:'Hoàn thành'});assert.equal(a.code,200);assert.equal(a.body.record.completedAt,null);
+  for(const raw of ['Manual history to preserve','[null]','{"not":"a list"}']){
+    r.fields['Lịch sử']=raw;const b=await post(x.handler,{team:'design',action:'edit',id:r.record_id,revision:revision(r),values:{title:'Overwrite'}});assert.equal(b.code,409);assert.equal(r.fields['Lịch sử'],raw);
+  }
+  const y=setup(),done=y.tables.design.records[5];assert.ok(decode('design',done).completedAt);done.fields['Số trang/ ảnh']=99;assert.equal(decode('design',done).completedAt,null);
+});
+test('Design rejects removed fields and Lead-review actions, while retaining brief acceptance',async()=>{
+  for(const values of [{hours:1},{importantFinal:true},{finalReview:'approved'},{completedAt:Date.now()},{creator:'spoof'},{requester:'Content B'},{history:'[]'}]){
+    const x=setup(),r=x.tables.design.records[1];assert.equal((await post(x.handler,{team:'design',action:'edit',id:r.record_id,revision:revision(r),values})).code,400);
+    assert.ok(!x.calls.some(c=>c.method==='PUT'));
+  }
+  const x=setup(),r=x.tables.design.records[4];
+  assert.equal((await post(x.handler,{team:'design',action:'review',id:r.record_id,revision:revision(r),kind:'final',decision:'approved'})).code,400);
+  assert.equal((await post(x.handler,{team:'design',action:'stage',id:r.record_id,revision:revision(r),stage:'Chờ duyệt thành phẩm'})).code,400);
+});
+test('Design reuses existing status aliases and fails before saving a missing status option',async()=>{
+  const x=setup(),f=x.tables.design.fields.find(f=>f.field_name==='Trạng thái'),r=x.tables.design.records[1];
+  f.property.options=f.property.options.map(o=>({name:o.name==='Chờ kiểm tra brief'?'Chưa làm':o.name==='Đang thiết kế'?'Đang làm':o.name}));
+  assert.deepEqual((await call(x.handler)).body.connection.missing.design,[]);
+  const a=await post(x.handler,{team:'design',action:'stage',id:r.record_id,revision:revision(r),stage:'Đang thiết kế'});
+  assert.equal(a.code,200);assert.equal(r.fields['Trạng thái'],'Đang làm');assert.equal(a.body.record.stage,'Đang thiết kế');
+  f.property.options=f.property.options.filter(o=>o.name!=='Cần sửa');const before=structuredClone(r.fields);
+  const b=await post(x.handler,{team:'design',action:'stage',id:r.record_id,revision:revision(r),stage:'Cần sửa'});
+  assert.equal(b.code,409);assert.deepEqual(r.fields,before);assert.ok((await call(x.handler)).body.connection.missing.design.some(f=>f.name.includes('Cần sửa')));
+});
+test('Design transport writes existing status and Lịch sử with a verified readback and no removed columns',async()=>{
+  const fx=fixture(),calls=[];let saved;
+  const c=makeClient({env:{LARK_ORDER_APP_ID:'fake',LARK_ORDER_APP_SECRET:'fake',LARK_ORDER_DESIGN_BASE:'baseDesign',LARK_ORDER_DESIGN_TABLE:'tblDesign',LARK_ORDER_MEDIA_BASE:'baseMedia',LARK_ORDER_MEDIA_TABLE:'tblMedia'},fetcher:async(u,o)=>{
+    calls.push({u:String(u),o});if(o.method==='PUT')saved=JSON.parse(o.body).fields;
+    return {ok:true,json:async()=>String(u).includes('/auth/')?{code:0,tenant_access_token:'FAKE'}:{code:0,data:{record:{record_id:'recTest',fields:saved}}}};
+  }});
+  await c.save('design',{stage:'Đã nhận order',history:'[]'},fx.tables.design.fields,{id:'recTest'});
+  assert.deepEqual(Object.keys(saved).sort(),['Lịch sử','Trạng thái']);assert.equal(calls.at(-1).o.method,'GET');
 });
