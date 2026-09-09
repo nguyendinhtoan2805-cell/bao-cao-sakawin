@@ -307,3 +307,13 @@ test('Design reuses the verified Brief capitalization without modifying Base opt
   const row=x.tables.design.records[0],r=await post(x.handler,{team:'design',action:'stage',id:row.record_id,revision:revision(row),stage:'Cần bổ sung brief'});
   assert.equal(r.code,200);assert.equal(row.fields['Trạng thái'],'Cần bổ sung Brief');assert.equal(r.body.record.stage,'Cần bổ sung brief');
 });
+
+
+test('Lark rich linked-record cells decode IDs and preserve empty relation semantics',async()=>{
+  assert.deepEqual(decode('media',{fields:{'Buổi quay':[{table_id:'tblShoots',type:'text',text_arr:[]}]}}).shoot,[]);
+  const linked=[{record_ids:['recShoot1'],table_id:'tblShoots',type:'text',text:'Demo shoot',text_arr:['Demo shoot']}];
+  assert.deepEqual(decode('media',{fields:{'Buổi quay':linked}}).shoot,['recShoot1']);
+  const x=fixture(),env={LARK_ORDER_APP_ID:'fake',LARK_ORDER_APP_SECRET:'fake',LARK_ORDER_DESIGN_BASE:'baseDesign',LARK_ORDER_DESIGN_TABLE:'tblDesign',LARK_ORDER_MEDIA_BASE:'baseMedia',LARK_ORDER_MEDIA_TABLE:'tblMedia',LARK_ORDER_SHOOTS_TABLE:'tblShoots'};
+  const client=makeClient({env,fetcher:async(u,o)=>({ok:true,json:async()=>String(u).includes('/auth/')?{code:0,tenant_access_token:'FAKE'}:{code:0,data:{record:{record_id:'recTest',fields:{'Buổi quay':linked}}}}})});
+  await client.save('media',{shoot:['recShoot1']},x.tables.media.fields,{id:'recTest'});
+});
