@@ -1,14 +1,10 @@
-# Order Design & Media — QA bản phát triển 09/09/2026
+# Order Design & Media — QA ngày 09/09/2026
 
-## Phạm vi và bằng chứng
+## Phạm vi
 
-Đây là báo cáo cho module Order trên nhánh codex/order-design-media, chưa phải xác nhận production.
-Đã đối chiếu ảnh phương án kết hợp được chọn với ảnh desktop thực tế trong cùng một lượt xem ảnh.
-Tham chiếu: exec-ea8dd40a-4851-4bee-8f0a-df641c928877.png trong thư mục generated_images của phiên thiết kế.
-Viewport kiểm tra: desktop 1546 × 1017, laptop 1265 × 712, điện thoại 390 × 844. Đã reset viewport sau kiểm tra.
+Module Order đã phát hành trên production, mã ứng dụng e46eb57. Dữ liệu Design, Media và Buổi quay đọc/ghi trực tiếp vào ba bảng Lark đã cấu hình. Các bài kiểm thử không chứa hồ sơ thật hoặc khóa bí mật.
 
-Ảnh tại tests/order-ui-evidence/: desktop.png, mobile.png, design.png, script-link.png, detail-table.png.
-Ảnh chỉ chứa dữ liệu giả. API của preview dùng service thật với adapter bộ nhớ; không gọi Lark.
+Ảnh bố cục dữ liệu giả nằm tại tests/order-ui-evidence/: desktop.png, mobile.png, design.png, script-link.png, detail-table.png. Đã kiểm tra viewport desktop 1546 × 1017, laptop 1265 × 712 và điện thoại 390 × 844 trong giai đoạn duyệt giao diện.
 
 ## Kết quả thị giác
 
@@ -20,43 +16,42 @@ Viewport kiểm tra: desktop 1546 × 1017, laptop 1265 × 712, điện thoại 3
 - Desktop không tràn ngang toàn trang. Trên điện thoại, bảng báo cáo, lịch và kanban cuộn bên trong; menu chính đã hiện đủ với tài khoản mẫu.
 - Header cột có flex-shrink bằng 0, danh sách thẻ có vùng cuộn riêng, giữ màu/tiêu đề khi nhiều task.
 - P3 còn khác với ảnh ý tưởng: icon trang trí và avatar trong thẻ giản lược, mật độ thẻ nhỏ hơn; đây chưa phải bản sao pixel tuyệt đối của ảnh.
-- Không còn lỗi P0/P1/P2 được quan sát trong các màn đã kiểm tra. Chưa kiểm tra thiết bị di động thật hay các bộ dữ liệu Lark lớn.
+- Không còn lỗi P0/P1/P2 được quan sát trong các màn đã kiểm tra. Chưa kiểm tra thiết bị di động thật. API production đã đọc đầy đủ hơn 2.600 order; chưa thử tải cao nhiều người đồng thời.
 
-## Kiểm tra tương tác
+## Kiểm thử tự động
 
-- Chọn buổi lọc đồng thời bảng tiến độ và bảng chi tiết.
-- Chọn nhiều kịch bản và chuyển buổi, đọc lại thấy liên kết mới.
-- Tạo order bằng dữ liệu giả; kiểm tra ngày bắt buộc.
-- Tạo buổi quay trên viewport điện thoại, nhập giờ bắt đầu/kết thúc, Host và người quay; buổi mới xuất hiện trong danh sách.
-- Theo quyết định mới, bỏ editor 7 phần. Đã thử lưu link kịch bản rồi mở lại đúng giá trị; không còn form viết nội dung. Kiểm tra báo cáo lấy người viết từ NGƯỜI ORDER, không phát sinh lỗi console.
-- Đổi qua Design và Media; kiểm tra bảng chi tiết và form đọc/sửa.
-- Không có warning/error trong log trình duyệt khi kiểm tra.
-- 62 kiểm thử Node đạt: 32 phân quyền cũ và 30 kiểm thử Order, gồm kiểm tra quyền riêng, stale revision, ghi lặp, phân trang, đọc lại sau ghi, cổng duyệt, lịch quay tự xếp và dùng lại ứng dụng Lark theo cấu hình tường minh.
-- Đã kiểm tra trên trình duyệt: mở / với tài khoản giả chỉ có quyền Order tự chuyển đến /order.html. Menu không hiện các trang doanh số, tài chính hoặc quỹ lương. Điều hướng này cũng được kiểm thử tự động trước các lệnh tải báo cáo.
+73/73 đạt: 32 phân quyền hiện có và 41 Order. Lệnh:
 
-## Điều kiện trước khi phát hành
+```sh
+node --test --test-reporter=dot tests/order.test.cjs tests/access-control.test.js
+node --check assets/order/order.js
+git diff --check
+```
 
-Cần đối chiếu các trường quy trình mới và nhân sự; chạy diagnostic chỉ đọc rồi kiểm thử ghi/đọc lại bằng bản ghi KIỂM THỬ. Đã nối menu và điều hướng cho tài khoản chỉ có quyền Order trên nhánh phát triển. Đã xác nhận ứng dụng dùng chung có quyền sửa tại cả hai Base qua giao diện Lark; chưa xác minh API thật. Chưa push GitHub, chưa deploy, chưa ghi dữ liệu Base thật. Xem ORDER-SETUP.md.
+Phạm vi: quyền xem/ghi/duyệt riêng, stale revision, chống tạo trùng, phân trang, đọc lại sau ghi, lịch quay tự xếp, cổng duyệt việc quan trọng, từ chối lịch sử lỗi, mốc hoàn thành và thay đổi đầu ra, giữ Progress cũ, Media chỉ dùng cột hiện có + Lịch sử. Hồi quy định dạng Lark thực tế gồm rich relation chứa record_ids và trường số trả dạng chuỗi.
 
-Cập nhật Media: Duyệt kịch bản là một cột lựa chọn đơn; bằng chứng duyệt gắn phiên bản được lưu trong Nhật ký. Kiểm thử xác nhận không thể tự gửi trạng thái đã duyệt qua API, và sửa tài liệu sẽ hủy kết quả cũ. Các ảnh desktop/Design trước đó ghi nhận bố cục; ảnh script-link.png ghi nhận form hiện tại.
+## Kiểm tra trình duyệt bằng dữ liệu giả
 
-## Điều chỉnh Design ngày 09/09/2026
+- Chọn buổi lọc bảng tiến độ và chi tiết; chọn nhiều kịch bản để chuyển buổi.
+- Tạo order và buổi quay; lưu link kịch bản, mở lại đúng giá trị; không có trình viết kịch bản trên web.
+- Design không có giờ dự kiến hoặc duyệt thành phẩm. Lưu thành phẩm, chuyển Hoàn thành và xem người/thời gian/nội dung thay đổi trong Lịch sử.
+- Media tạo có mã video, lưu bước Sẵn sàng quay và tải lại giữ đúng bước.
+- Tài khoản chỉ có quyền Order mở trang gốc tự chuyển tới Order trước khi gọi API báo cáo; menu không hiện tài chính/nhân sự ngoài quyền.
 
-- Dùng MÃ DESIGN, Người Order, Trạng thái; chỉ thêm Lịch sử. Không dùng các cột duyệt, giờ dự kiến, ngày hoàn thành riêng của Design. Media giữ nguyên quy trình.
-- Kiểm thử: tạo lặp không trùng và không ghi đè MÃ DESIGN; lưu nối tiếp lịch sử; giữ mốc hoàn thành khi lưu lặp; bỏ mốc khi mở lại/sửa đầu ra; không tự gán ngày cho order cũ; không ghi đè lịch sử hỏng; trạng thái thiếu dừng trước khi ghi; kiểm tra transport và đọc lại.
-- Trình duyệt với dữ liệu giả: tab Design không có trường giờ hoặc duyệt thành phẩm; lưu link ảnh, chuyển Hoàn thành và mở Lịch sử thấy tên người lưu, thời gian, trạng thái và link thay đổi. Chưa kiểm thử ghi vào Lark thật.
+## Kiểm tra production
 
-## Đối chiếu API production ngày 09/09/2026
+- Vercel deployment dpl_GsMETpaEasPcLQ7tG555hr2XTqMs Ready, tên miền chính trỏ đúng bản ứng dụng e46eb57.
+- Đã thêm quyền Tenant wiki:node:read đúng phạm vi được đồng ý. Không xuất khóa production về máy. ORDER_WRITES_ENABLED=true.
+- Chưa đăng nhập: /api/orders, /api/doanh-so, /api/tai-chinh, /api/quy-luong, /api/nhan-su, /api/tuyen-dung đều trả 401.
+- Sau đăng nhập: API đọc đủ Design, Media, Buổi quay; cấu trúc không còn trường bắt buộc thiếu.
+- Dùng đúng ba bản ghi KIỂM THỬ riêng: tạo/lưu Design, chuyển Đã nhận order; tạo Media, chuyển Sẵn sàng quay; tạo buổi và xếp Media vào buổi. Server đọc lại xác nhận lưu thành công, Lịch sử hiện thao tác.
+- Design gặp lỗi đối chiếu số dạng chuỗi trong lần thử đầu; retry cùng mã chống trùng không tạo thêm bản ghi. Đã sửa và kiểm tra lưu lại thành công.
+- Liên kết Media đã ghi vào Lark nhưng rich relation làm đối chiếu báo sai ở lần thử đầu; đã sửa parser, kiểm tra xếp buổi lại thành công.
+- Đã xóa cả ba bản ghi thử qua Lark (thao tác có thể khôi phục), tải lại production xác nhận 1.695 Design / 987 Media / 6 dòng Buổi quay và không còn dữ liệu thử.
+- Không có lỗi console được quan sát trong các màn kiểm tra. Không thử chỉnh sửa hay duyệt các order thật đang vận hành.
 
-- Đã push nhánh và deploy Order lên tên miền chính ở chế độ chỉ đọc. Đã đăng nhập và đọc API thật: Design 1.695, Media 987, Buổi quay 6 bản ghi (bao gồm dòng trống). Các đoạn chưa deploy/chưa đọc API phía trên là lịch sử kiểm thử bản nháp.
-- Đã thêm quyền wiki:node:read đúng phạm vi người dùng duyệt. API chưa đăng nhập trả 401.
-- Điều chỉnh Định dạng Design theo trường lựa chọn đơn thật; giữ nhãn Progress cũ của Media thay vì suy đoán trạng thái viết kịch bản. Bộ kiểm thử sau điều chỉnh: 66/66 đạt.
-- Chưa bật ghi, chưa tạo bản ghi thử thật. Còn cấu trúc Media đang chốt lại và trạng thái Design người dùng bổ sung.
+## Giới hạn kiểm chứng
 
-## Media dùng lại cột hiện có + Lịch sử
+Duyệt quan trọng, hoàn thành, mở lại và các tình huống tranh chấp được kiểm tra bằng bộ kiểm thử dữ liệu giả, chưa chạy hết trên production. Chưa kiểm tra tải cao nhiều người cùng thao tác. Thay đổi trực tiếp trong Lark có thể xung đột với ghi web; Lịch sử cần tránh chỉnh tay. Web không phát hiện tự động sửa nội dung Drive khi giữ nguyên URL. Order cũ thiếu mốc hoàn thành không được tự tính vào sản lượng tháng.
 
-Người dùng chốt mỗi bảng chỉ thêm Lịch sử. Đã bỏ các cột quy trình Media riêng; tiến độ chi tiết, kết quả duyệt, công sức và mốc hoàn thành lưu trong từng sự kiện lịch sử. Giữ Progress và các cột nghiệp vụ cũ.
-
-- 70 kiểm thử tự động đạt: lưu đúng trường, đọc lại lịch sử qua adapter, chống tạo trùng, duyệt quan trọng, từ chối lịch sử lỗi, không gán ngày hoàn thành giả, hủy mốc hoàn thành khi đổi thành phẩm/người dựng.
-- UI localhost dữ liệu giả: tạo Media có mã video, mở Lịch sử, chuyển Sẵn sàng quay, tải lại vẫn giữ tiến độ.
-- Production đang chỉ đọc, chờ người dùng thêm hai cột Lịch sử và lựa chọn Design trước kiểm thử ghi thật.
+Cấu trúc và hướng dẫn vận hành: ORDER-SETUP.md.

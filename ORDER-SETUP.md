@@ -1,10 +1,10 @@
-# Thiết lập Order Design & Media — bản phát triển ngày 09/09/2026
+# Thiết lập Order Design & Media — production ngày 09/09/2026
 
 ## Trạng thái và phạm vi
 
-- Mã nguồn phát triển ở nhánh `codex/order-design-media`; bản Order đã lên production ở chế độ chỉ đọc.
+- Mã nguồn đã có trên `main` và `codex/order-design-media`; Order đã lên production, bật đọc/ghi Lark.
 - Đã xác minh API đọc cả hai Base Order và bảng Buổi quay bằng phiên đăng nhập Sakawin trên production.
-- Bản localhost dùng dữ liệu giả; production đọc dữ liệu thật. Chưa kiểm thử ghi Lark thật.
+- Bản localhost dùng dữ liệu giả. Production đã kiểm tra tạo/lưu Design, tạo Media, đổi tiến độ, tạo/xếp buổi quay và đọc lại Lịch sử bằng bản ghi thử riêng; đã dọn đủ ba bản ghi thử.
 - Đã chốt: nhân sự tự tạo/xếp buổi quay; chỉ kịch bản/thành phẩm được đánh dấu quan trọng mới cần Lead duyệt.
 - Kịch bản được viết trong tài liệu riêng (Drive hoặc nguồn đang dùng), gắn link vào cột KỊCH BẢN hiện có. Web chỉ quản lý quy trình; không có form viết kịch bản.
 
@@ -22,7 +22,7 @@ Trong Base ORDER MEDIA, tạo một bảng **Buổi quay**. Giữ nguyên bảng
 | Người quay | Người | Cho chọn nhiều |
 | Ghi chú | Văn bản | |
 
-Tạo xong gửi đường dẫn bảng để đối chiếu table ID. Bảng này chưa cần nhập lịch thật khi kết nối chưa được kiểm thử.
+Bảng đã tồn tại và được đối chiếu đúng table ID. Danh sách trên là cấu trúc tham chiếu, không cần tạo lại.
 
 ## Bước 2 — liên kết order với buổi quay
 
@@ -51,7 +51,7 @@ Các bước Design cần có trong **Trạng thái**:
 | Bước trên web | Lựa chọn Lark dùng lại |
 |---|---|
 | Chờ kiểm tra brief | Chờ kiểm tra brief hoặc Chưa làm |
-| Cần bổ sung brief | Cần bổ sung brief |
+| Cần bổ sung brief | Cần bổ sung brief hoặc Cần bổ sung Brief |
 | Đã nhận order | Đã nhận order |
 | Đang thiết kế | Đang thiết kế hoặc Đang làm |
 | Cần sửa | Cần sửa |
@@ -77,15 +77,15 @@ Chỉ việc được đánh dấu quan trọng mới cần Lead duyệt kịch 
 
 **Bảng Buổi quay giữ cấu trúc đã tạo:** 7 cột công việc và 3 cột hệ thống Mã yêu cầu, Người tạo, Nhật ký (Văn bản). Không đổi bảng Buổi quay sang tên Lịch sử.
 
-Tổng bổ sung còn lại: Lịch sử ở mỗi bảng Design và Media; 3 lựa chọn Trạng thái Design còn thiếu. Không tự chuyển hàng loạt trạng thái hay gán ngày hoàn thành cho order cũ.
+Đã xác nhận Lịch sử ở mỗi bảng Design và Media cùng các lựa chọn Trạng thái Design cần thiết. Không tự chuyển hàng loạt trạng thái hay gán ngày hoàn thành cho order cũ.
 
-## Bước 4 — kết nối ứng dụng Lark (đã xác minh đọc)
+## Bước 4 — kết nối ứng dụng Lark (đã xác minh đọc/ghi)
 
 Dùng lại ứng dụng **WEBAPP BC Doanh số**, giữ nguyên khóa xác thực trên Vercel. Ngày 09/09/2026 đã thêm đúng quyền Tenant **View wiki space node information** (`wiki:node:read`) sau khi người dùng đồng ý. `wiki:node:retrieve` là quyền liệt kê node, không phải quyền đã thêm.
 
 Cả hai Base đã chia sẻ quyền sửa cho ứng dụng. Vercel sử dụng `ORDER_USE_EXISTING_LARK_APP=true`, hai Wiki ID cấu hình sẵn và ba table ID đã đối chiếu. Máy chủ tự tra Wiki ra Base; không lấy khóa production về máy.
 
-Production đã đọc được 1.695 bản ghi Design, 987 Media và 6 Buổi quay (bao gồm dòng trống). Cột Buổi quay liên kết đúng `tblGOY43BeI3yZPx`. `ORDER_WRITES_ENABLED=false` cho tới khi khớp xong cấu trúc và kiểm thử ghi.
+Production đã đọc được 1.695 bản ghi Design, 987 Media và 6 Buổi quay (bao gồm dòng trống). Cột Buổi quay liên kết đúng `tblGOY43BeI3yZPx`. `ORDER_WRITES_ENABLED=true`; cấu trúc đã khớp, thao tác ghi và đọc lại được kiểm tra bằng bản ghi thử riêng.
 
 Cột Lịch sử ở Design và Media cần được bảo vệ khỏi chỉnh sửa trực tiếp tùy tiện trong Base. Quyền Lead trên web không thể ngăn một người có quyền sửa trực tiếp các cột này ở Lark. Cần rà soát quyền trường/bảng của Base trước khi dùng duyệt làm căn cứ vận hành.
 
@@ -112,7 +112,7 @@ Công cụ chỉ đọc, báo số bản ghi và trường thiếu/sai kiểu, k
 4. Kiểm tra thêm xếp/chuyển buổi, phản hồi/duyệt việc quan trọng, ghi link thành phẩm và ngày hoàn thành. Media không quan trọng và thành phẩm Design không cần duyệt.
 5. Chỉ bật trên production sau khi đối chiếu bản ghi thật và kiểm tra không ảnh hưởng các trang cũ.
 
-Chưa tạo bất kỳ bản ghi KIỂM THỬ nào trong Lark trong đợt xây dựng giao diện ban đầu.
+Ngày 09/09/2026 đã thực hiện kiểm thử production bằng một Design, một Media và một Buổi quay có nhãn KIỂM THỬ. Đã xóa cả ba bằng thao tác xóa bản ghi thông thường của Lark; tải lại production xác nhận số lượng trở về 1.695 / 987 / 6 và không còn bản ghi thử. Không chuyển trạng thái hay sửa nội dung các order thật đang chạy. Duyệt quan trọng và hoàn thành được kiểm tra tự động với dữ liệu giả; chưa thực hiện các bước đó trên production.
 
 ## Các giới hạn cần biết của bản đầu
 
@@ -132,10 +132,11 @@ Bảng BUỔI QUAY: tblGOY43BeI3yZPx; Media: tbl9dYmn7jk8K0VK; Design: tbloTVabC
 
 ## Kiểm chứng production ngày 09/09/2026
 
-- Vercel deployment `dpl_4zSf76qZZw34Y47kcZrkkgYDMWPy` READY, alias tên miền chính; commit 531ada9. Ghi đang tắt.
-- API Order chưa đăng nhập trả 401. Đăng nhập Sakawin đọc được ba bảng.
-- Design thực tế có Định dạng là lựa chọn đơn, không phải văn bản. Adapter và form cần dùng các lựa chọn sẵn có; không đổi kiểu trường thật.
-- Design thiếu Lịch sử và ba lựa chọn trạng thái Cần bổ sung brief / Đã nhận order / Cần sửa. Người dùng sẽ bổ sung lựa chọn.
-- Đã chốt và triển khai Media dùng cột hiện có + Lịch sử. Người dùng tự thêm Lịch sử ở cả hai bảng. Không tạo 9 cột quy trình cũ.
-- Buổi quay đã đủ 10 cột và cột liên kết trên Media trỏ đúng bảng.
-- Không tự sửa dữ liệu cũ, ngày quay hay lựa chọn không đúng nội dung trong Base.
+- Mã ứng dụng `e46eb57`: deployment `dpl_GsMETpaEasPcLQ7tG555hr2XTqMs` Ready, alias `https://bao-cao-sakawin.vercel.app`.
+- 73/73 kiểm thử đạt (32 phân quyền cũ, 41 Order); JavaScript syntax và git diff --check đạt.
+- Chưa đăng nhập: Order, doanh số, tài chính, quỹ lương, nhân sự, tuyển dụng đều trả 401. Quyền Order tách riêng; không mở quyền báo cáo cũ.
+- Tạo/lưu Design và chuyển Đã nhận order; tạo Media và chuyển Sẵn sàng quay; tạo buổi, xếp Media vào buổi; mở Lịch sử: đã xác nhận trên production và đọc lại từ Lark.
+- Design dùng Định dạng lựa chọn đơn, chuẩn hóa số ảnh dạng chuỗi do API trả về. Liên kết buổi quay đọc được dạng record_ids lồng trong rich relation. Có kiểm thử hồi quy cho cả hai định dạng thực tế này.
+- Cả hai cột Lịch sử đã có. Media dùng lại cột nghiệp vụ; không tạo 9 cột quy trình riêng. Buổi quay đủ 10 cột, liên kết đúng bảng.
+- Thử tạo lại cùng yêu cầu Design không sinh bản ghi trùng. Đã dọn đủ ba bản ghi kiểm thử, đối chiếu lại dữ liệu production.
+- Order cũ không có mốc hoàn thành đáng tin cậy không được tự gán vào sản lượng tháng hiện tại.
