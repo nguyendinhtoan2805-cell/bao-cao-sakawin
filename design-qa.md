@@ -45,3 +45,10 @@ Cập nhật Media: Duyệt kịch bản là một cột lựa chọn đơn; b�
 - Dùng MÃ DESIGN, Người Order, Trạng thái; chỉ thêm Lịch sử. Không dùng các cột duyệt, giờ dự kiến, ngày hoàn thành riêng của Design. Media giữ nguyên quy trình.
 - Kiểm thử: tạo lặp không trùng và không ghi đè MÃ DESIGN; lưu nối tiếp lịch sử; giữ mốc hoàn thành khi lưu lặp; bỏ mốc khi mở lại/sửa đầu ra; không tự gán ngày cho order cũ; không ghi đè lịch sử hỏng; trạng thái thiếu dừng trước khi ghi; kiểm tra transport và đọc lại.
 - Trình duyệt với dữ liệu giả: tab Design không có trường giờ hoặc duyệt thành phẩm; lưu link ảnh, chuyển Hoàn thành và mở Lịch sử thấy tên người lưu, thời gian, trạng thái và link thay đổi. Chưa kiểm thử ghi vào Lark thật.
+
+## Đối chiếu API production ngày 09/09/2026
+
+- Đã push nhánh và deploy Order lên tên miền chính ở chế độ chỉ đọc. Đã đăng nhập và đọc API thật: Design 1.695, Media 987, Buổi quay 6 bản ghi (bao gồm dòng trống). Các đoạn chưa deploy/chưa đọc API phía trên là lịch sử kiểm thử bản nháp.
+- Đã thêm quyền wiki:node:read đúng phạm vi người dùng duyệt. API chưa đăng nhập trả 401.
+- Điều chỉnh Định dạng Design theo trường lựa chọn đơn thật; giữ nhãn Progress cũ của Media thay vì suy đoán trạng thái viết kịch bản. Bộ kiểm thử sau điều chỉnh: 66/66 đạt.
+- Chưa bật ghi, chưa tạo bản ghi thử thật. Còn cấu trúc Media đang chốt lại và trạng thái Design người dùng bổ sung.

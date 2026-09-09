@@ -243,3 +243,20 @@ test('Live schema diagnostic is opt-in, admin-only and omits private field prope
   x.user.quyen.quan_tri=true;assert.equal((await call(x.handler)).body.schema,undefined);
   const r=await call(x.handler,{query:{kiemtra:'1'}});assert.equal(r.body.schema.design.count,6);assert.equal(r.body.schema.design.fields[0].name,'Nội dung ảnh');assert.ok(!JSON.stringify(r.body.schema).includes('PRIVATE_FORMULA'));assert.ok(!JSON.stringify(r.body.schema).includes('@'));
 });
+
+
+test('Real Design format uses existing select options and rejects new labels',async()=>{
+  const x=setup(),r=x.tables.design.records[0];
+  assert.equal(schemas.design.format[1],3);
+  assert.equal((await post(x.handler,{team:'design',action:'edit',id:r.record_id,revision:revision(r),values:{format:'TIFF'}})).code,400);
+  const ok=await post(x.handler,{team:'design',action:'edit',id:r.record_id,revision:revision(r),values:{format:'PNG'}});
+  assert.equal(ok.code,200);assert.equal(ok.body.record.format,'PNG');
+  assert.equal((await post(x.handler,{team:'design',action:'edit',id:r.record_id,revision:ok.body.record.revision,values:{format:null}})).code,200);
+});
+test('Legacy Media Progress stays faithful without inventing script status',()=>{
+  for(const stage of ['Chưa thực hiện','Đang thực hiện','Đã quay','Đang dựng','Hoàn thành','Delay']) {
+    const t=decode('media',{fields:{Progress:stage,'KỊCH BẢN':{link:'https://example.com/already-written'}}});
+    assert.equal(t.stage,stage);assert.equal(t.legacy,true);
+  }
+  assert.equal(decode('media',{fields:{}}).stage,'Chưa xác định tiến độ');
+});

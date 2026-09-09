@@ -2,9 +2,9 @@
 
 ## Trạng thái và phạm vi
 
-- Bản phát triển ở nhánh `codex/order-design-media`, tách khỏi website đang chạy.
-- Chưa xác minh kết nối API thật tới hai Base Order. Đọc được Base bằng trình duyệt không đồng nghĩa ứng dụng đã được cấp quyền API.
-- Bản xem thử dùng dữ liệu giả, không ghi Lark thật. Chưa deploy module Order.
+- Mã nguồn phát triển ở nhánh `codex/order-design-media`; bản Order đã lên production ở chế độ chỉ đọc.
+- Đã xác minh API đọc cả hai Base Order và bảng Buổi quay bằng phiên đăng nhập Sakawin trên production.
+- Bản localhost dùng dữ liệu giả; production đọc dữ liệu thật. Chưa kiểm thử ghi Lark thật.
 - Đã chốt: nhân sự tự tạo/xếp buổi quay; chỉ kịch bản/thành phẩm được đánh dấu quan trọng mới cần Lead duyệt.
 - Kịch bản được viết trong tài liệu riêng (Drive hoặc nguồn đang dùng), gắn link vào cột KỊCH BẢN hiện có. Web chỉ quản lý quy trình; không có form viết kịch bản.
 
@@ -63,7 +63,9 @@ Design giữ bước kiểm tra brief trước khi nhận order; không duyệt 
 
 Mốc hoàn thành Design nằm trong Lịch sử: lưu lặp giữ nguyên mốc; đổi thành phẩm/số ảnh/Designer hoặc mở lại order thì ngừng tính là hoàn thành. Khi hoàn thành lại, ghi mốc mới, báo cáo đếm mỗi order một lần theo trạng thái hiện tại. Order cũ thiếu mốc hoàn thành không tự được gán ngày hôm nay, kể cả khi lưu lại trạng thái Hoàn thành.
 
-**Media giữ 8 cột quy trình như đã chốt:**
+**Thiết kế Media tạm thời trong mã (đang chờ chốt lại, KHÔNG tạo các cột dưới đây):**
+
+Ngày 09/09/2026 người dùng yêu cầu ưu tiên dùng cột Media hiện có. Đang chờ xác nhận phương án chỉ thêm Lịch sử để chứa dữ liệu quy trình; mã 8+2 cột dưới đây chưa được bật ghi.
 
 | Tên cột | Kiểu | Mục đích |
 |---|---|---|
@@ -90,16 +92,13 @@ Tổng cộng: Design thêm 1 cột; Media thêm 10 cột; bảng Buổi quay c�
 
 Không tự chuyển hàng loạt trạng thái hay gán ngày hoàn thành cho dữ liệu cũ. Thiếu ngày hoàn thành thì hiển thị rõ, không đoán tháng sản lượng.
 
-## Bước 4 — cấp kết nối ứng dụng Lark
+## Bước 4 — kết nối ứng dụng Lark (đã xác minh đọc)
 
-Người dùng đã chọn dùng lại ứng dụng **WEBAPP BC Doanh số**. Đối chiếu App ID để chắc chắn đúng ứng dụng đang cấu hình trên Vercel; khi khớp, bật ORDER_USE_EXISTING_LARK_APP=true để dùng LARK_APP_ID/LARK_APP_SECRET hiện có. Không thay các giá trị cũ. Module Order vẫn chỉ gọi ba bảng đã cấu hình. Quyền API của ứng dụng dùng chung áp dụng cho mọi bên đang sử dụng ứng dụng đó, nên không mở rộng quyền API ngoài nhu cầu đã kiểm tra.
+Dùng lại ứng dụng **WEBAPP BC Doanh số**, giữ nguyên khóa xác thực trên Vercel. Ngày 09/09/2026 đã thêm đúng quyền Tenant **View wiki space node information** (`wiki:node:read`) sau khi người dùng đồng ý. `wiki:node:retrieve` là quyền liệt kê node, không phải quyền đã thêm.
 
-1. Trong Lark Developer, chọn WEBAPP BC Doanh số. Không cần tạo ứng dụng mới.
-2. Đã kiểm tra ngày 09/09/2026: ứng dụng đã phát hành và có scope bitable:app cùng bitable:app:readonly (Tenant token). API tra mã Base từ Wiki yêu cầu thêm wiki:node:retrieve; API Explorer báo quyền này chưa được cấp. Đang chờ người dùng xác nhận riêng, chưa thay đổi scope.
-3. Đã kiểm tra qua giao diện Lark: **cả hai Base Design và Media** đều có WEBAPP BC Doanh số với quyền Có thể chỉnh sửa. Không cần thêm lại. Giữ nguyên cấu hình và quyền của các Base cũ đang dùng chung ứng dụng.
-4. Lấy **Base App Token thực**, không dùng wiki node token thay thế. Hai URL hiện tại là wiki URL nên phải đối chiếu token trước.
-5. Cấu hình các biến trong `.env.order.example` vào môi trường riêng/Vercel. Giữ `ORDER_WRITES_ENABLED=false`.
-6. Không gửi App Secret, SESSION_SECRET, Redis token qua chat hoặc commit vào Git. `.env.order.local` đã được bỏ qua bởi Git.
+Cả hai Base đã chia sẻ quyền sửa cho ứng dụng. Vercel sử dụng `ORDER_USE_EXISTING_LARK_APP=true`, hai Wiki ID cấu hình sẵn và ba table ID đã đối chiếu. Máy chủ tự tra Wiki ra Base; không lấy khóa production về máy.
+
+Production đã đọc được 1.695 bản ghi Design, 987 Media và 6 Buổi quay (bao gồm dòng trống). Cột Buổi quay liên kết đúng `tblGOY43BeI3yZPx`. `ORDER_WRITES_ENABLED=false` cho tới khi khớp xong cấu trúc và kiểm thử ghi.
 
 Lịch sử Design và các trường duyệt, ngày hoàn thành, nhật ký Media phải được bảo vệ khỏi chỉnh sửa trực tiếp tùy tiện trong Base. Quyền Lead trên web không thể ngăn một người có quyền sửa trực tiếp các cột này ở Lark. Cần rà soát quyền trường/bảng của Base trước khi dùng duyệt làm căn cứ vận hành.
 
@@ -134,7 +133,7 @@ Chưa tạo bất kỳ bản ghi KIỂM THỬ nào trong Lark trong đợt xây 
 - Nếu sửa nội dung Drive nhưng giữ nguyên URL, bấm **Đã sửa nội dung kịch bản**. Web không đọc/chỉnh Google Drive và không tự phát hiện phiên bản Drive.
 - Bảng báo cáo cá nhân là **đóng góp trên sản phẩm đã hoàn thành**. Giờ dự kiến chỉ áp dụng cho order Media, chưa phải giờ thực tế hay định mức lương/KPI. Design phân bổ theo số order và số ảnh.
 - Chưa có thông báo Lark/nhắc việc tự động, chưa upload file gốc lên Drive. Thành phẩm được gắn bằng link.
-- Nhánh phát triển đã thêm Order vào sidebar bảy trang hiện có và chuyển tài khoản chỉ có quyền Order đến /order.html. Production chưa có thay đổi này.
+- Nhánh phát triển đã thêm Order vào sidebar bảy trang hiện có và chuyển tài khoản chỉ có quyền Order đến /order.html. Thay đổi này đã có trên production.
 
 ## Tham chiếu kỹ thuật
 
@@ -142,13 +141,14 @@ Chưa tạo bất kỳ bản ghi KIỂM THỬ nào trong Lark trong đợt xây 
 - [SDK chính thức: create record, client_token, user_id_type](https://github.com/larksuite/oapi-sdk-python/blob/v2_main/lark_oapi/api/bitable/v1/model/create_app_table_record_request.py).
 - [Lark cấu trúc trường Base](https://open.larksuite.com/document/server-docs/docs/bitable-v1/app-table-field/guide).
 
-Bảng BUỔI QUAY đã được người dùng tạo: tblGOY43BeI3yZPx; bảng Media tbl9dYmn7jk8K0VK; bảng Design tbloTVabCdgzgiU6. Hai Base App Token vẫn cần đối chiếu qua API trước khi triển khai.
+Bảng BUỔI QUAY: tblGOY43BeI3yZPx; Media: tbl9dYmn7jk8K0VK; Design: tbloTVabCdgzgiU6. App ID dùng chung đã đối chiếu: cli_aa1e551b0078def5. Preview thiếu cấu hình xác thực, chỉ production được dùng kiểm chứng dữ liệu thật.
 
-App ID đã đối chiếu với đường đăng nhập production: cli_aa1e551b0078def5. Các biến LARK_APP_ID/LARK_APP_SECRET hiện có trên Vercel ở môi trường Production; chưa thấy cấu hình Order. Preview chưa có đủ biến xác thực, nên không dùng preview để kết luận kết nối đã hoạt động.
+## Kiểm chứng production ngày 09/09/2026
 
-## Chuẩn bị phát hành
-
-- Đã push nhánh codex/order-design-media lên GitHub; main vẫn ở b09c39c.
-- Đã thêm năm biến Order không chứa bí mật trên Vercel Production: ORDER_USE_EXISTING_LARK_APP=true, ba table ID như trên, ORDER_WRITES_ENABLED=false. Hai Base App Token còn chờ đối chiếu.
-- Không trích xuất các khóa production. Kiểm tra kết nối sẽ thực hiện trên máy chủ Vercel, giữ khóa trong môi trường hiện có.
-- Deployment kiểm tra đầu tiên dùng --prod --skip-domain, bị Vercel chặn do email Git tự sinh không hợp lệ. Bản phát hành tiếp theo dùng cùng danh tính Git đã có trên main. Không thay tên miền chính khi chưa kiểm tra xong.
+- Vercel deployment `dpl_4zSf76qZZw34Y47kcZrkkgYDMWPy` READY, alias tên miền chính; commit 531ada9. Ghi đang tắt.
+- API Order chưa đăng nhập trả 401. Đăng nhập Sakawin đọc được ba bảng.
+- Design thực tế có Định dạng là lựa chọn đơn, không phải văn bản. Adapter và form cần dùng các lựa chọn sẵn có; không đổi kiểu trường thật.
+- Design thiếu Lịch sử và ba lựa chọn trạng thái Cần bổ sung brief / Đã nhận order / Cần sửa. Người dùng sẽ bổ sung lựa chọn.
+- Media đang chờ chốt cách dùng lại cột hiện có; không tự tạo 9 cột quy trình cũ.
+- Buổi quay đã đủ 10 cột và cột liên kết trên Media trỏ đúng bảng.
+- Không tự sửa dữ liệu cũ, ngày quay hay lựa chọn không đúng nội dung trong Base.
