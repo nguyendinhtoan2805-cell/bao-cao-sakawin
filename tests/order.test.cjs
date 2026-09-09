@@ -317,3 +317,12 @@ test('Lark rich linked-record cells decode IDs and preserve empty relation seman
   const client=makeClient({env,fetcher:async(u,o)=>({ok:true,json:async()=>String(u).includes('/auth/')?{code:0,tenant_access_token:'FAKE'}:{code:0,data:{record:{record_id:'recTest',fields:{'Buổi quay':linked}}}}})});
   await client.save('media',{shoot:['recShoot1']},x.tables.media.fields,{id:'recTest'});
 });
+
+
+test('Lark numeric strings preserve Design quantities and pass real transport readback',async()=>{
+  assert.equal(decode('design',{fields:{'Số trang/ ảnh':'3'}}).quantity,3);
+  for(const v of ['',false,'abc','1,000',Infinity])assert.equal(decode('design',{fields:{'Số trang/ ảnh':v}}).quantity,null);
+  const x=fixture(),env={LARK_ORDER_APP_ID:'fake',LARK_ORDER_APP_SECRET:'fake',LARK_ORDER_DESIGN_BASE:'baseDesign',LARK_ORDER_DESIGN_TABLE:'tblDesign',LARK_ORDER_MEDIA_BASE:'baseMedia',LARK_ORDER_MEDIA_TABLE:'tblMedia',LARK_ORDER_SHOOTS_TABLE:'tblShoots'};
+  const client=makeClient({env,fetcher:async(u,o)=>({ok:true,json:async()=>String(u).includes('/auth/')?{code:0,tenant_access_token:'FAKE'}:{code:0,data:{record:{record_id:'recTest',fields:{'Số trang/ ảnh':'1'}}}}})});
+  await client.save('design',{quantity:1},x.tables.design.fields,{id:'recTest'});
+});
