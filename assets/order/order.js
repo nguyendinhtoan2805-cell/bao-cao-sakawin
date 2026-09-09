@@ -32,9 +32,10 @@ function notice(message,error=false){$('status').textContent=message;$('status')
 async function api(path,body){let r;try{r=await fetch(path,{cache:'no-store',...(body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})});}catch{throw Error('Mất kết nối. Chưa xác nhận được kết quả; tải lại trước khi gửi lại.');}let j;try{j=await r.json();}catch{throw Error('Máy chủ chưa trả kết quả hợp lệ.');}if(!r.ok||j.ok===false)throw Error(j.error||'Chưa hoàn tất thao tác.');return j;}
 async function load(){
   $('reload').disabled=true;
-  try{const data=await api('/api/orders');snapshot=data;$('content').hidden=false;$('demoBadge').hidden=!data.demo;$('personFilter').innerHTML='<option value="">Tất cả nhân sự</option>'+data.people.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');$('personFilter').value=person;
-    const missing=Object.values(data.connection.missing).flat();$('setupDetails').hidden=!missing.length;
+  try{const data=await api('/api/orders'+(me.quyen?.quan_tri===true&&new URLSearchParams(location.search).has('kiemtra')?'?kiemtra=1':''));snapshot=data;$('content').hidden=false;$('demoBadge').hidden=!data.demo;$('personFilter').innerHTML='<option value="">Tất cả nhân sự</option>'+data.people.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');$('personFilter').value=person;
+    const missing=Object.values(data.connection.missing).flat();$('setupDetails').hidden=!missing.length&&!data.schema;
     $('setupFields').innerHTML=Object.entries(data.connection.missing).filter(([,v])=>v.length).map(([k,v])=>`<h3>${esc(k==='shoots'?'Buổi quay':k)}</h3><ul>${v.map(f=>`<li>${esc(f.name)}${f.reason==='type'?' — cần kiểm tra lại kiểu trường':''}</li>`).join('')}</ul>`).join('');
+    if(data.schema)$('setupFields').innerHTML+=`<details><summary>Đối chiếu cấu trúc Lark (quản trị)</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify(data.schema,null,2))}</pre></details>`;
     notice(data.demo?'Bản thử nghiệm · dữ liệu giả · thao tác không ghi vào Lark thật':`Đã đọc từ Lark lúc ${new Date(data.connection.checkedAt).toLocaleTimeString('vi-VN')}${data.connection.writeEnabled&&!missing.length?'':' · Đang chỉ đọc; cần hoàn tất cấu hình trước khi ghi'}`);render();
   }catch(e){notice(e.message,true);}finally{$('reload').disabled=false;}
 }

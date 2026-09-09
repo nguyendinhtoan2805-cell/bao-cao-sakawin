@@ -4,7 +4,7 @@ const {makeHandler}=require('../api/orders.js');
 const {fixture,auth,env}=require('./order-fixture.cjs');
 const {makeClient,revision,withLease}=require('../lib/order-lark.js');
 const {schemas,decode}=require('../lib/order-schema.js');
-async function call(handler,{method='GET',body={},headers={origin:env.SITE_URL,host:'127.0.0.1:4323'}}={}){const res={code:200,headers:{},setHeader(k,v){this.headers[k]=v;},status(n){this.code=n;return this;},json(j){this.body=j;return this;}};await handler({method,body,headers,query:{}},res);return res;}
+async function call(handler,{method='GET',body={},query={},headers={origin:env.SITE_URL,host:'127.0.0.1:4323'}}={}){const res={code:200,headers:{},setHeader(k,v){this.headers[k]=v;},status(n){this.code=n;return this;},json(j){this.body=j;return this;}};await handler({method,body,headers,query},res);return res;}
 function setup(patch={}){const f=fixture();return {...f,handler:makeHandler({env,auth:auth(f.user),clientFactory:()=>f.client,lease:async(k,work)=>work(),...patch})};}
 const post=(h,body)=>call(h,{method:'POST',body});
 function vals(){return {title:'Order mới minh hoạ',month:'T9.2026',deadline:Date.parse('2026-09-20T23:59:00+07:00'),assignees:['ou_demoC'],importantScript:true,importantFinal:true,scriptLink:'https://example.com/script/new'};}
@@ -226,4 +226,20 @@ test('Design transport writes existing status and Lịch sử with a verified re
   }});
   await c.save('design',{stage:'Đã nhận order',history:'[]'},fx.tables.design.fields,{id:'recTest'});
   assert.deepEqual(Object.keys(saved).sort(),['Lịch sử','Trạng thái']);assert.equal(calls.at(-1).o.method,'GET');
+});
+
+test('Wiki lookup resolves only configured nodes to Base tokens and reuses the Media lookup for shoots',async()=>{
+  const env={LARK_ORDER_APP_ID:'fake',LARK_ORDER_APP_SECRET:'fake',LARK_ORDER_DESIGN_WIKI:'wikiDesign',LARK_ORDER_DESIGN_TABLE:'tblDesign',LARK_ORDER_MEDIA_WIKI:'wikiMedia',LARK_ORDER_MEDIA_TABLE:'tblMedia',LARK_ORDER_SHOOTS_TABLE:'tblShoots'},urls=[];
+  const c=makeClient({env,fetcher:async(u)=>{u=String(u);urls.push(u);return {ok:true,json:async()=>u.includes('/auth/')?{code:0,tenant_access_token:'FAKE'}:u.includes('/wiki/')?{code:0,data:{node:{obj_type:'bitable',obj_token:u.includes('wikiDesign')?'resolvedDesign':'resolvedMedia'}}}:{code:0,data:{items:[],has_more:false}}};}});
+  await c.list('design','fields');await Promise.all([c.list('media','fields'),c.list('shoots','fields')]);
+  assert.equal(urls.filter(u=>u.includes('/wiki/')).length,2);assert.ok(urls.some(u=>u.includes('/apps/resolvedMedia/tables/tblShoots/fields')));assert.ok(urls.some(u=>u.includes('/apps/resolvedDesign/tables/tblDesign/fields')));
+  for(const response of [{code:99991672},{code:0,data:{node:{obj_type:'docx',obj_token:'unrelated'}}}]){
+    const x=makeClient({env,fetcher:async u=>({ok:true,json:async()=>String(u).includes('/auth/')?{code:0,tenant_access_token:'FAKE'}:response})});await assert.rejects(x.list('design','fields'),e=>[502,503].includes(e.statusCode));
+  }
+});
+test('Live schema diagnostic is opt-in, admin-only and omits private field properties',async()=>{
+  const x=setup();x.tables.design.fields[0].property.formula='PRIVATE_FORMULA';
+  assert.equal((await call(x.handler,{query:{kiemtra:'1'}})).body.schema,undefined);
+  x.user.quyen.quan_tri=true;assert.equal((await call(x.handler)).body.schema,undefined);
+  const r=await call(x.handler,{query:{kiemtra:'1'}});assert.equal(r.body.schema.design.count,6);assert.equal(r.body.schema.design.fields[0].name,'Nội dung ảnh');assert.ok(!JSON.stringify(r.body.schema).includes('PRIVATE_FORMULA'));assert.ok(!JSON.stringify(r.body.schema).includes('@'));
 });
