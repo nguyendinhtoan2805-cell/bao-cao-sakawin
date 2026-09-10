@@ -256,6 +256,34 @@ module.exports = async (req, res) => {
     const bJD = timBang(bangs, 'JD VỊ TRÍ NHÂN SỰ', 'jd vi tri');
     if (!bUV) throw new Error('Chưa có bảng "ỨNG VIÊN" trong Base — tạo bảng theo spec rồi thử lại.');
 
+    /* ===== Soát cột: /api/tuyen-dung?soatcot=1 (chỉ quản trị) =====
+       Sinh ra vì lỗi FieldNameNotFound chỉ nói "thiếu cột" mà không nói cột nào,
+       còn tên cột trong Lark thì hay lệch một dấu cách hoặc một dấu tiếng Việt.
+       Chỉ đọc tên và kiểu cột — không đụng tới nội dung hồ sơ ứng viên. */
+    if (req.query && req.query.soatcot) {
+      if (toi.quyen.quan_tri !== true)
+        return res.status(403).json({ ok: false, error: 'Chỉ quản trị được soát cột.' });
+      const KIEU = { 1: 'Văn bản', 2: 'Số', 3: 'Lựa chọn', 4: 'Nhiều lựa chọn', 5: 'Ngày',
+        7: 'Đúng/Sai', 11: 'Người', 13: 'Điện thoại', 15: 'Liên kết', 17: 'Tệp đính kèm', 18: 'Liên kết bản ghi' };
+      const cot = await dsCot(tk, BASE, bUV.table_id);
+      const dsTen = cot.map(c => c.field_name);
+      const goc = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[Đđ]/g, 'd').toLowerCase().replace(/\s+/g, ' ').trim();
+      const soat = COT_DUOC_GHI.map(can => {
+        if (dsTen.includes(can)) return { can, tinhTrang: 'ok' };
+        const gan = dsTen.find(t => goc(t) === goc(can));
+        return gan
+          ? { can, tinhTrang: 'lech-ten', dangCo: gan, sua: `Đổi tên cột "${gan}" thành "${can}"` }
+          : { can, tinhTrang: 'thieu', sua: `Thêm cột "${can}"` };
+      });
+      return res.status(200).json({ ok: true, bang: bUV.name,
+        cotDangCo: cot.map(c => `${c.field_name}  [${KIEU[c.type] || 'kiểu ' + c.type}]`),
+        soatCotCanGhi: soat,
+        ketLuan: soat.every(x => x.tinhTrang === 'ok')
+          ? 'Đủ cột. Nếu vẫn lỗi thì là sai KIỂU cột — xem cotDangCo.'
+          : soat.filter(x => x.tinhTrang !== 'ok').map(x => x.sua).join(' · ') });
+    }
+
     /* ===== Tệp CV / ảnh: /api/tuyen-dung?cv=<file_token> =====
        Phải có endpoint riêng gác bằng xem_tuyen_dung. Trước đây trang trỏ nhầm
        sang /api/nhan-su?anh= — endpoint đó đòi quyền xem_nhan_su, nên HR chỉ có
