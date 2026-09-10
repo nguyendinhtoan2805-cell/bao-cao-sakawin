@@ -326,3 +326,114 @@ test('Lark numeric strings preserve Design quantities and pass real transport re
   const client=makeClient({env,fetcher:async(u,o)=>({ok:true,json:async()=>String(u).includes('/auth/')?{code:0,tenant_access_token:'FAKE'}:{code:0,data:{record:{record_id:'recTest',fields:{'Số trang/ ảnh':'1'}}}}})});
   await client.save('design',{quantity:1},x.tables.design.fields,{id:'recTest'});
 });
+
+test('Directory search is separately write-permission gated, validates query and projects identities only',async()=>{
+  for(const user of [null,{quyen:{xem_order:true}},{quyen:{ghi_order:true}}]) {
+    const x=setup({env:{...env,ORDER_DIRECTORY_ENABLED:'true'},auth:auth(user)});
+    assert.ok([401,403].includes((await call(x.handler,{query:{people:'1',q:'Mai'}})).code));assert.equal(x.calls.length,0);
+  }
+  const x=setup({env:{...env,ORDER_DIRECTORY_ENABLED:'true'}});let searched=0;
+  x.client.directory={search:async q=>{searched++;assert.equal(q,'Mai');return {people:[{id:'ou_new',name:'Mai',email:'PRIVATE_EMAIL'}],hasMore:true};}};
+  const r=await call(x.handler,{query:{people:'1',q:'Mai'}});assert.equal(r.code,200);assert.deepEqual(r.body,{ok:true,people:[{id:'ou_new',name:'Mai'}],hasMore:true});assert.equal(x.calls.length,0);
+  for(const q of ['', 'a',[], 'x'.repeat(101)])assert.equal((await call(x.handler,{query:{people:'1',q}})).code,400);
+  assert.equal(searched,1);
+});
+test('Disabled directory never fetches contacts and ordinary snapshot remains independent',async()=>{
+  const x=setup();let searched=0;x.client.directory={search:async()=>{searched++;throw Error('must not run');}};
+  assert.equal((await call(x.handler,{query:{people:'1',q:'Mai'}})).code,503);assert.equal(searched,0);assert.equal(x.calls.length,0);
+  assert.equal((await call(x.handler)).body.connection.directoryEnabled,false);assert.equal(searched,0);
+});
+test('Directory traverses root and all child pages, searches accents, keeps distinct IDs and caches for five minutes',async()=>{
+  const {makeDirectory}=require('../lib/order-directory.js');const calls=[];let time=1000;
+  const d=makeDirectory({enabled:true,cacheKey:'test',cache:new Map(),now:()=>time,request:async(path,q)=>{
+    calls.push({path,q});assert.equal(q.page_size,'50');
+    if(path==='departments/0/children')return q.page_token?{items:[{open_department_id:'od-teamB'}],has_more:false}:{items:[{open_department_id:'od-teamA'}],has_more:true,page_token:'child2'};
+    assert.equal(q.user_id_type,'open_id');
+    return {items:q.department_id==='0'?[{open_id:'ou_root',name:'Nguyễn Đình Tân',email:'root@example.test'}]:q.department_id==='od-teamA'?[{open_id:'ou_a',name:'Nguyễn Đình Tân'},{open_id:'ou_left',name:'Nguyễn Đình Tân',status:{is_resigned:true}}]:[{open_id:'ou_b',name:'Nguyễn Đình Tân',enterprise_email:'company@example.test'}],has_more:false};
+  }});
+  const result=await d.search('nguyen dinh');assert.equal(result.people.length,3);assert.ok(!JSON.stringify(result).includes('@'));assert.equal(calls.length,5);
+  assert.equal((await d.byEmail('COMPANY@example.test')).id,'ou_b');assert.equal((await d.resolve(['ou_a']))[0].id,'ou_a');await assert.rejects(d.resolve(['ou_left']),e=>e.statusCode===400);assert.equal(calls.length,5);
+  time+=299999;await d.search('Tân');assert.equal(calls.length,5);time+=2;await d.search('Tân');assert.equal(calls.length,10);
+});
+test('Directory caps displayed results without silently truncating validation roster',async()=>{
+  const {makeDirectory}=require('../lib/order-directory.js');
+  const d=makeDirectory({enabled:true,cacheKey:'limit',cache:new Map(),request:async path=>({items:path.startsWith('departments')?[]:Array.from({length:61},(_,i)=>({open_id:'ou_person'+i,name:'Nhân sự '+i})),has_more:false})});
+  assert.equal((await d.search('nhan')).people.length,50);assert.equal((await d.search('nhan')).hasMore,true);assert.equal((await d.resolve(['ou_person60']))[0].id,'ou_person60');
+});
+test('Directory fails closed on incomplete pages, retries failures and rejects missing profile scope',async()=>{
+  const {makeDirectory}=require('../lib/order-directory.js');let broken=true,calls=0;
+  const d=makeDirectory({enabled:true,cacheKey:'partial',cache:new Map(),request:async(path)=>{calls++;if(path.startsWith('departments'))return {items:[],has_more:false};return broken?{items:[{open_id:'ou_partial',name:'Partial User'}],has_more:true}:{items:[{open_id:'ou_good',name:'Good User'}],has_more:false};}});
+  await assert.rejects(d.search('User'),/Phân trang/);broken=false;assert.equal((await d.search('User')).people[0].id,'ou_good');assert.equal(calls,4);
+  const noNames=makeDirectory({enabled:true,cacheKey:'scope',cache:new Map(),request:async path=>({items:path.startsWith('departments')?[]:[{open_id:'ou_missing'}],has_more:false})});await assert.rejects(noNames.search('Mai'),/thông tin cơ bản/);
+  const disabled=makeDirectory({enabled:false,cacheKey:'off',cache:new Map(),request:()=>{throw Error('must not run');}});await assert.rejects(disabled.search('Mai'),e=>e.statusCode===503);
+});
+test('Directory overall deadline aborts parallel requests, stops traversal and does not cache a partial roster',async()=>{
+  const {makeDirectory}=require('../lib/order-directory.js');const signals=[],visited=[];let slow=true;
+  const directory=makeDirectory({enabled:true,cacheKey:'deadline',cache:new Map(),timeoutMs:30,request:async(path,q,{signal})=>{
+    if(path.startsWith('departments'))return {items:Array.from({length:5},(_,i)=>({open_department_id:'od-team'+i})),has_more:false};
+    visited.push(q.department_id);signals.push(signal);
+    if(slow)return new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(signal.reason),{once:true}));
+    return {items:[{open_id:'ou_member',name:'Recovered Member'}],has_more:false};
+  }});
+  await assert.rejects(directory.search('Member'),e=>e.statusCode===503&&/quá lâu/.test(e.message));
+  assert.equal(visited.length,4);assert.ok(signals.every(signal=>signal===signals[0]&&signal.aborted));
+  slow=false;const recovered=await directory.search('Member');assert.deepEqual(recovered.people,[{id:'ou_member',name:'Recovered Member'}]);assert.equal(visited.length,10);
+});
+test('One failed directory worker cancels the remaining requests before another department starts',async()=>{
+  const {makeDirectory}=require('../lib/order-directory.js');const signals=[],visited=[];
+  const directory=makeDirectory({enabled:true,cacheKey:'cancel',cache:new Map(),request:async(path,q,{signal})=>{
+    if(path.startsWith('departments'))return {items:Array.from({length:5},(_,i)=>({open_department_id:'od-team'+i})),has_more:false};
+    signals.push(signal);visited.push(q.department_id);
+    if(q.department_id==='0')throw Object.assign(Error('Directory denied'),{statusCode:503});
+    return new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(signal.reason),{once:true}));
+  }});
+  await assert.rejects(directory.search('Member'),/Directory denied/);assert.equal(visited.length,4);assert.ok(signals.every(signal=>signal.aborted));
+});
+test('Directory transport only reads company contacts with the same app identity and sanitizes upstream failures',async()=>{
+  const calls=[],settings={LARK_ORDER_APP_ID:'directory-test',LARK_ORDER_APP_SECRET:'fake-directory-secret',ORDER_DIRECTORY_ENABLED:'true',LARK_ORDER_DESIGN_BASE:'baseDesign',LARK_ORDER_DESIGN_TABLE:'tblDesign',LARK_ORDER_MEDIA_BASE:'baseMedia',LARK_ORDER_MEDIA_TABLE:'tblMedia'};
+  const client=makeClient({env:settings,fetcher:async(u,o)=>{calls.push({u:String(u),o});return {ok:true,json:async()=>String(u).includes('/auth/')?{code:0,tenant_access_token:'FAKE'}:{code:0,data:{items:String(u).includes('/departments/')?[]:[{open_id:'ou_contact',name:'Member Test'}],has_more:false}}};}});
+  assert.equal((await client.directory.search('member')).people[0].id,'ou_contact');assert.equal(calls.length,3);
+  assert.ok(calls.slice(1).every(c=>c.u.startsWith('https://open.larksuite.com/open-apis/contact/v3/')&&!c.o.body));assert.match(calls[2].u,/user_id_type=open_id/);assert.equal(JSON.parse(calls[0].o.body).app_id,'directory-test');
+  const denied=makeClient({env:{...settings,LARK_ORDER_APP_ID:'denied-directory'},fetcher:async u=>({ok:true,json:async()=>String(u).includes('/auth/')?{code:0,tenant_access_token:'FAKE'}:{code:99991672,msg:'PRIVATE_UPSTREAM_SECRET'}})});
+  await assert.rejects(denied.directory.search('member'),e=>e.statusCode===503&&!e.message.includes('PRIVATE_UPSTREAM_SECRET'));
+});
+test('Fresh company members are server-validated for assignment and current requester is resolved by exact login email',async()=>{
+  const x=setup({env:{...env,ORDER_DIRECTORY_ENABLED:'true'}});const queries=[];
+  x.client.directory={resolve:async ids=>{queries.push(ids);assert.deepEqual(ids,['ou_newEditor']);return [{id:'ou_newEditor',name:'New editor'}];},byEmail:async email=>{assert.equal(email,'new@example.test');return {id:'ou_newRequester',name:'New writer',email};}};
+  x.user.email='new@example.test';x.user.ten='New writer';
+  const result=await post(x.handler,{team:'media',action:'create',key:crypto.randomUUID(),values:{...vals(),assignees:['ou_newEditor']}});
+  assert.equal(result.code,200,JSON.stringify(result.body));assert.deepEqual(queries,[['ou_newEditor']]);assert.equal(result.body.record.assignees[0].id,'ou_newEditor');assert.equal(result.body.record.requester[0].id,'ou_newRequester');assert.equal(result.body.record.history[0].by,'new@example.test');
+  assert.equal((await post(x.handler,{team:'media',action:'create',key:crypto.randomUUID(),values:{...vals(),requester:['ou_newRequester']}})).code,400);
+});
+test('Directory outage blocks new identities while existing assignees remain writable',async()=>{
+  const x=setup({env:{...env,ORDER_DIRECTORY_ENABLED:'true'}});x.client.directory={resolve:async()=>{throw Object.assign(Error('Directory unavailable'),{statusCode:503});}};
+  const row=x.tables.media.records[0],edit=values=>post(x.handler,{team:'media',action:'edit',id:row.record_id,revision:revision(row),values});
+  assert.equal((await edit({assignees:['ou_unknown']})).code,503);assert.ok(!x.calls.some(c=>c.method==='PUT'));
+  assert.equal((await edit({assignees:['ou_demoC']})).code,200);
+});
+test('External hosts persist exclusively in shoot history, preserve on omitted edits and clear explicitly',async()=>{
+  const x=setup(),body={team:'shoots',action:'create',key:crypto.randomUUID(),values:{title:'External host shoot',start:Date.now()+86400000,end:Date.now()+90000000,hosts:['ou_demoH'],crew:['ou_demoC'],notes:'Keep independent note',externalHosts:['  Guest A  ','Guest B','guest a']}};
+  const made=await post(x.handler,body);assert.equal(made.code,200,JSON.stringify(made.body));assert.deepEqual(made.body.record.externalHosts,['Guest A','Guest B']);
+  const row=x.tables.shoots.records.find(r=>r.record_id===made.body.record.id);assert.equal(row.fields['Ghi chú'],'Keep independent note');assert.deepEqual(row.fields.Host.map(p=>p.id),['ou_demoH']);assert.equal(row.fields.externalHosts,undefined);assert.equal(row.fields['Host thuê ngoài'],undefined);
+  assert.deepEqual(JSON.parse(row.fields['Nhật ký'])[0].detail.shootState.externalHosts,['Guest A','Guest B']);assert.equal((await post(x.handler,body)).body.record.id,made.body.record.id);
+  const edit=values=>post(x.handler,{team:'shoots',action:'edit',id:row.record_id,revision:revision(row),values});
+  assert.deepEqual((await edit({location:'Another studio'})).body.record.externalHosts,['Guest A','Guest B']);
+  assert.deepEqual((await edit({externalHosts:[]})).body.record.externalHosts,[]);assert.equal(row.fields['Ghi chú'],'Keep independent note');assert.deepEqual(row.fields.Host.map(p=>p.id),['ou_demoH']);
+  const history=JSON.parse(row.fields['Nhật ký']);assert.equal(history.at(-1).by,x.user.email);assert.deepEqual(history.at(-1).detail.changes.externalHosts.before,['Guest A','Guest B']);
+});
+test('Invalid external hosts and malformed shoot journals cannot overwrite existing records',async()=>{
+  for(const externalHosts of ['Guest', [null],[''],['x'.repeat(101)],Array(21).fill('Guest'),['Line\nbreak']]) {
+    const x=setup(),row=x.tables.shoots.records[0];const result=await post(x.handler,{team:'shoots',action:'edit',id:row.record_id,revision:revision(row),values:{externalHosts}});assert.equal(result.code,400);assert.ok(!x.calls.some(c=>c.method==='PUT'));
+  }
+  for(const raw of ['Handwritten journal','{}','[null]',JSON.stringify([{detail:{shootState:{externalHosts:'bad'}}}])]) {
+    const x=setup(),row=x.tables.shoots.records[0];row.fields['Nhật ký']=raw;
+    const result=await post(x.handler,{team:'shoots',action:'edit',id:row.record_id,revision:revision(row),values:{notes:'Must not save'}});assert.equal(result.code,409);assert.equal(row.fields['Nhật ký'],raw);assert.ok(!x.calls.some(c=>c.method==='PUT'));
+  }
+});
+test('Real shoot transport verifies external hosts through journal readback without new Base columns',async()=>{
+  const fx=fixture(),settings={LARK_ORDER_APP_ID:'fake',LARK_ORDER_APP_SECRET:'fake',LARK_ORDER_DESIGN_BASE:'baseDesign',LARK_ORDER_DESIGN_TABLE:'tblDesign',LARK_ORDER_MEDIA_BASE:'baseMedia',LARK_ORDER_MEDIA_TABLE:'tblMedia',LARK_ORDER_SHOOTS_TABLE:'tblShoots'};let saved;
+  const transport=makeClient({env:settings,fetcher:async(u,o)=>{if(o.method==='POST'&&!String(u).includes('/auth/'))saved=JSON.parse(o.body).fields;return {ok:true,json:async()=>String(u).includes('/auth/')?{code:0,tenant_access_token:'FAKE'}:{code:0,data:{record:{record_id:'recExternal',fields:saved}}}};}});
+  const service=require('../lib/order-service.js'),client={...fx.client,save:transport.save},ctx=await service.context(client);
+  const result=await service.create(client,ctx,fx.user,{team:'shoots',key:crypto.randomUUID(),values:{title:'Shoot',start:Date.now()+86400000,end:Date.now()+90000000,hosts:[],crew:[],externalHosts:['Guest A']}});
+  assert.deepEqual(result.externalHosts,['Guest A']);assert.equal(saved['Host thuê ngoài'],undefined);assert.ok(saved['Nhật ký']);
+});
