@@ -1,0 +1,284 @@
+/* Order dialogs: larger work area, clear sections and touch-friendly choices. */
+#dialog {
+  width: min(1120px, calc(100vw - 32px));
+  max-width: none;
+  max-height: 94vh;
+  max-height: 94dvh;
+  border: 1px solid #e6dfe4;
+  border-radius: 20px;
+  background: #f7f7f9;
+  box-shadow: 0 28px 100px #281b2b40;
+  scroll-padding-top: 120px;
+  scroll-padding-bottom: 110px;
+}
+
+#dialog::backdrop { background: #24212c70; backdrop-filter: blur(3px); }
+#dialog .dialog-header {
+  align-items: center;
+  gap: 24px;
+  padding: 25px 28px;
+  border-bottom: 1px solid #e8e3e9;
+  background: #fff;
+  z-index: 10;
+}
+#dialog .dialog-header > div { min-width: 0; }
+#dialog .dialog-header h2 {
+  font-size: clamp(21px, 2.1vw, 28px);
+  line-height: 1.4;
+  letter-spacing: -.7px;
+  overflow-wrap: anywhere;
+}
+#dialog .eyebrow {
+  color: #9b5363;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  margin-bottom: 6px;
+}
+#dialog #closeDialog {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 10px 15px;
+  border-radius: 10px;
+  background: #f8f7f9;
+  color: #655d69;
+  font-size: 13px;
+}
+#dialog #closeDialog:hover { background: #f0ecf1; color: #29232e; }
+#dialogBody { padding: 24px 28px; }
+#dialog :is(input, textarea, select, button, summary, a):focus-visible {
+  outline: 3px solid #b6102e;
+  outline-offset: 3px;
+}
+#dialog :is(input, textarea, select) {
+  min-height: 46px;
+  padding: 11px 13px;
+  border-color: #dcd9e2;
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  scroll-margin-top: 120px;
+  scroll-margin-bottom: 120px;
+}
+#dialog :is(input, textarea)::placeholder { color: #948d9a; }
+#dialog textarea { min-height: 110px; }
+#dialog .field { gap: 8px; min-width: 0; font-size: 14px; }
+#dialog .field > span, #dialog .field > label { font-weight: 600; color: #433b4c; }
+#dialog .field > small, #dialog .field > .small {
+  color: #79717f;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.65;
+}
+#dialog .form-grid { gap: 20px 24px; }
+#dialog .form-grid > * { min-width: 0; }
+#dialog .order-form { margin: 0; }
+#dialog .form-fields { min-width: 0; margin: 0; padding: 0; border: 0; }
+#dialog .form-block {
+  margin: 0 0 18px;
+  padding: 23px 24px 25px;
+  background: #fff;
+  border: 1px solid #e7e3ea;
+  border-radius: 14px;
+  box-shadow: 0 2px 3px #38254003;
+}
+#dialog .form-block-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-bottom: 21px;
+}
+#dialog .form-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 29px;
+  width: 29px;
+  height: 29px;
+  border-radius: 9px;
+  background: #fbeaf0;
+  color: #bd1436;
+  font-size: 12px;
+  font-weight: 700;
+}
+#dialog .form-block-heading h3 { font-size: 16px; line-height: 1.7; letter-spacing: -.25px; }
+#dialog .form-block-heading p { margin-top: 3px; color: #817687; font-size: 12px; line-height: 1.6; }
+#dialog .form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  gap: 12px;
+  margin: 24px -28px -24px;
+  padding: 17px 28px;
+  border-top: 1px solid #e3dde5;
+  background: #fffffff5;
+  box-shadow: 0 -6px 20px #33223b05;
+  backdrop-filter: blur(10px);
+}
+#dialog .form-actions .button { min-height: 46px; padding: 11px 22px; border-radius: 10px; font-size: 14px; font-weight: 600; }
+#dialog .form-actions .button.primary { box-shadow: 0 4px 10px #c8102e1c; }
+#dialog .form-actions small { max-width: 520px; font-size: 12px; line-height: 1.65; }
+#dialog .form-error:not(:empty) { padding: 20px 28px; background: #fff4f5; border-top: 1px solid #f4d4dc; font-size: 13px; }
+#dialog .checkbox-label { align-items: flex-start; padding: 13px 15px; border: 1px solid #e8e2eb; border-radius: 10px; background: #faf9fc; font-size: 13px; line-height: 1.7; }
+#dialog .checkbox-label input { width: 18px; height: 18px; min-height: 18px; flex: 0 0 18px; margin: 2px 0 0; padding: 0; }
+
+/* Searchable people lists expand within the section, so they remain reachable. */
+#dialog .people-picker { position: relative; min-width: 0; border: 1px solid #dcd9e2; border-radius: 10px; background: #fff; }
+#dialog .people-picker > summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 9px;
+  font-size: 14px;
+  color: #554b60;
+}
+#dialog .people-picker > summary::-webkit-details-marker { display: none; }
+#dialog .people-picker > summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-right: 1.5px solid #776980;
+  border-bottom: 1.5px solid #776980;
+  transform: rotate(45deg);
+  margin: -4px 2px 0 auto;
+}
+#dialog .people-picker[open] { border-color: #ba95a5; box-shadow: 0 0 0 3px #c8102e06; }
+#dialog .people-picker[open] > summary { background: #fbf7fa; border-bottom: 1px solid #ece2e8; border-radius: 9px 9px 0 0; }
+#dialog .people-picker[open] > summary::after { transform: rotate(225deg); margin-top: 4px; }
+#dialog .picker-placeholder { min-width: 0; overflow-wrap: anywhere; }
+#dialog .picker-count { padding: 2px 7px; border-radius: 6px; background: #fbe7ed; color: #b21134; font-size: 11px; font-weight: 600; white-space: nowrap; }
+#dialog .picker-count:empty { display: none; }
+#dialog .picker-panel { padding: 10px; }
+#dialog .picker-search { display: block; width: 100%; min-height: 42px; padding: 9px 11px; font-size: 14px; background: #faf9fc; }
+#dialog .picker-options { max-height: 252px; overflow-y: auto; overscroll-behavior: contain; margin-top: 8px; scrollbar-width: thin; scrollbar-color: #cfc4d2 transparent; }
+#dialog .person-option { display: flex; align-items: center; gap: 10px; min-height: 49px; padding: 8px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+#dialog .person-option:hover { background: #f6f3f8; }
+#dialog .person-option:has(input:checked) { background: #fff0f3; border-color: #f2d4dd; }
+#dialog .person-option:has(input:focus-visible) { outline: 2px solid #c8102e; outline-offset: -2px; }
+#dialog .person-option input[type=checkbox] { width: 18px; height: 18px; min-height: 18px; margin: 0; padding: 0; flex: 0 0 18px; accent-color: #c8102e; }
+#dialog .person-avatar { display: inline-flex; align-items: center; justify-content: center; width: 31px; height: 31px; flex: 0 0 31px; border-radius: 50%; background: hsl(var(--avatar-hue, 335) 50% 94%); color: hsl(var(--avatar-hue, 335) 45% 35%); font-size: 10px; font-weight: 700; letter-spacing: -.2px; }
+#dialog .person-name { min-width: 0; color: #473c50; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+#dialog .person-option:has(input:checked) .person-name { color: #a71030; font-weight: 600; }
+#dialog .picker-empty { padding: 16px 8px 8px; color: #827488; font-size: 12px; text-align: center; }
+#dialog .picker-status { padding: 8px 2px 0; font-size: 11px; line-height: 1.6; }
+#dialog .picker-status:empty { display: none; }
+#dialog .selected-people { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+#dialog .selected-people:empty { display: none; }
+#dialog .selected-person { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 0 3px 0 10px; max-width: 100%; border: 1px solid #e7dde9; border-radius: 8px; background: #f6f2f8; color: #58405f; font-size: 12px; overflow-wrap: anywhere; }
+#dialog .selected-person button { align-self: stretch; flex: 0 0 30px; width: 30px; min-height: 30px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #7b637f; font-size: 19px; line-height: 1; }
+#dialog .selected-person button:hover { background: #eadeef; color: #b30e30; }
+#dialog .requester-card { display: flex; align-items: center; gap: 11px; min-height: 66px; padding: 12px 14px; border: 1px solid #e9e3ed; border-radius: 10px; background: #f8f6fa; }
+#dialog .requester-card .person-avatar { width: 36px; height: 36px; flex-basis: 36px; font-size: 12px; }
+#dialog .requester-card strong { display: block; color: #4e4258; font-size: 14px; font-weight: 600; }
+#dialog .requester-card small { display: block; margin-top: 3px; color: #8a7c93; font-size: 11px; }
+#dialog .external-hosts { padding: 15px; border: 1px dashed #d7cfe1; border-radius: 10px; background: #faf8fc; }
+#dialog .external-hosts > label { display: flex; flex-direction: column; gap: 9px; }
+#dialog .external-hosts textarea { min-height: 83px; }
+
+/* Lark channel values are preserved; the colour simply supports the label. */
+#dialog .channel-options { display: flex; flex-wrap: wrap; gap: 9px; min-width: 0; margin: 0; padding: 0; border: 0; }
+#dialog .channel-options legend { margin-bottom: 10px; padding: 0; color: #433b4c; font-size: 14px; font-weight: 600; }
+#dialog .channel-choices { display: flex; flex-wrap: wrap; gap: 9px; }
+#dialog .channel-chip, #dialog .channel-badge { --channel-ink: #6a537a; --channel-bg: #f7f3fb; --channel-edge: #dfd3e8; }
+#dialog [data-tone=facebook] { --channel-ink: #235dbc; --channel-bg: #eef5ff; --channel-edge: #c8daf6; }
+#dialog [data-tone=tiktok] { --channel-ink: #343241; --channel-bg: #f0f0f5; --channel-edge: #d7d6e1; }
+#dialog [data-tone=youtube] { --channel-ink: #b52632; --channel-bg: #fff0f1; --channel-edge: #f5cbd1; }
+#dialog [data-tone=shopee] { --channel-ink: #b24f17; --channel-bg: #fff3e9; --channel-edge: #f1d2bb; }
+#dialog [data-tone=mixed] { --channel-ink: #7950ae; --channel-bg: #f7f0ff; --channel-edge: #e1cdf5; }
+#dialog .channel-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 13px; border: 1px solid var(--channel-edge); border-radius: 9px; background: var(--channel-bg); color: var(--channel-ink); cursor: pointer; font-size: 13px; font-weight: 500; }
+#dialog .channel-chip input[type=checkbox] { width: 16px; height: 16px; min-height: 16px; flex: 0 0 16px; margin: 0; padding: 0; accent-color: var(--channel-ink); }
+#dialog .channel-chip:has(input:checked) { border-color: var(--channel-ink); box-shadow: inset 0 0 0 1px var(--channel-ink); font-weight: 700; }
+#dialog .channel-chip:has(input:focus-visible) { outline: 3px solid var(--channel-ink); outline-offset: 3px; }
+#dialog fieldset:disabled :is(.person-option, .channel-chip), #dialog .person-option:has(input:disabled) { cursor: default; }
+
+/* Reading a task should start with the material needed to do the work. */
+#dialog .dialog-tabs { gap: 6px; overflow-x: auto; margin: -2px 0 22px; scrollbar-width: thin; }
+#dialog .dialog-tabs button { flex: 0 0 auto; min-height: 44px; padding: 11px 15px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 500; }
+#dialog .dialog-tabs button.active { background: #fceef2; border-bottom-width: 3px; font-weight: 600; }
+#dialog .task-overview { min-width: 0; }
+#dialog .overview-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 19px; }
+#dialog .overview-status { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 11px; border: 1px solid #e3d9f3; border-radius: 8px; color: #7247a1; background: #f3edfc; font-size: 13px; font-weight: 600; }
+#dialog .channel-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+#dialog .channel-badge { padding: 5px 9px; border: 1px solid var(--channel-edge); border-radius: 7px; color: var(--channel-ink); background: var(--channel-bg); font-size: 11px; font-weight: 600; }
+#dialog .work-brief-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(260px, 1fr); align-items: start; gap: 18px; }
+#dialog .work-brief-grid > * { min-width: 0; }
+#dialog .brief-card { padding: 21px 23px; margin-bottom: 16px; border: 1px solid #e5dfeb; border-radius: 13px; background: #fff; }
+#dialog .brief-card h3 { margin-bottom: 12px; color: #3f334a; font-size: 15px; font-weight: 700; }
+#dialog .brief-card p { font-size: 14px; line-height: 1.85; color: #65576d; overflow-wrap: anywhere; }
+#dialog .multiline { white-space: pre-wrap; overflow-wrap: anywhere; }
+#dialog .script-card { padding: 23px; margin-bottom: 16px; border: 1px solid #efcbd5; border-radius: 13px; background: linear-gradient(110deg, #fff4f6, #fffafc); }
+#dialog .script-card h3 { color: #a91232; }
+#dialog .script-card p { margin-top: 8px; color: #92707d; font-size: 13px; line-height: 1.75; }
+#dialog .script-card .button { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; margin-top: 10px; padding: 12px 20px; border-radius: 9px; font-size: 14px; font-weight: 600; }
+#dialog .script-link-note { display: block; margin-top: 10px; color: #92707d; font-size: 11px; line-height: 1.65; overflow-wrap: anywhere; }
+#dialog .work-meta { border-color: #e1dce8; background: transparent; }
+#dialog .work-meta dl { display: grid; gap: 5px; margin: 0; }
+#dialog .work-meta dt { margin-top: 13px; font-size: 11px; font-weight: 600; color: #93829e; text-transform: uppercase; letter-spacing: .4px; }
+#dialog .work-meta dt:first-child { margin-top: 0; }
+#dialog .work-meta dd { margin: 0; font-size: 13px; line-height: 1.7; color: #54445e; overflow-wrap: anywhere; }
+#dialog .shoot-brief { padding: 18px 21px; margin-bottom: 18px; border: 1px solid #d9e4f2; border-radius: 12px; background: #f0f6ff; }
+#dialog .shoot-brief h3 { margin-bottom: 9px; color: #2c5785; font-size: 15px; }
+#dialog .shoot-brief p { color: #55728f; font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
+#dialog .shoot-brief p + p { margin-top: 6px; }
+#dialog .overview-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+#dialog .overview-actions .button { min-height: 44px; padding: 11px 16px; }
+#dialog .history { padding: 0 20px; border: 1px solid #e6e0eb; border-radius: 12px; background: #fff; }
+#dialog .history li { padding: 17px 0; font-size: 13px; }
+#dialog .history li:last-child { border-bottom: 0; }
+#dialog .history p { line-height: 1.8; overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  #dialog { border-radius: 15px; }
+  #dialog .dialog-header { gap: 15px; padding: 18px 20px; }
+  #dialog .dialog-header h2 { font-size: 21px; }
+  #dialogBody { padding: 20px; }
+  #dialog .form-block { padding: 19px; }
+  #dialog .form-grid { gap: 17px; }
+  #dialog .work-brief-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  #dialog .form-actions { margin: 20px -20px -20px; padding: 15px 20px; }
+  #dialog .work-meta dl { grid-template-columns: minmax(85px, .7fr) minmax(0, 1.5fr); column-gap: 12px; row-gap: 12px; }
+  #dialog .work-meta dt { margin-top: 3px; }
+}
+
+@media (max-width: 560px) {
+  #dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: 13px; }
+  #dialog .dialog-header { align-items: flex-start; gap: 10px; padding: 17px 16px; }
+  #dialog .dialog-header h2 { font-size: 19px; letter-spacing: -.4px; }
+  #dialog .eyebrow { font-size: 9px; letter-spacing: .65px; }
+  #dialog #closeDialog { min-height: 40px; padding: 9px 11px; font-size: 12px; }
+  #dialogBody { padding: 16px; }
+  #dialog .form-block { padding: 16px 14px 18px; margin-bottom: 14px; border-radius: 11px; }
+  #dialog .form-block-heading { gap: 9px; margin-bottom: 18px; }
+  #dialog .form-block-heading h3 { font-size: 15px; }
+  #dialog .form-grid { grid-template-columns: minmax(0, 1fr); gap: 17px; }
+  #dialog :is(input, textarea, select) { font-size: 16px; }
+  #dialog .picker-search { font-size: 16px; }
+  #dialog .person-option { min-height: 50px; padding: 8px 6px; }
+  #dialog .person-name { font-size: 13px; }
+  #dialog .picker-options { max-height: 225px; }
+  #dialog .selected-person { min-height: 36px; }
+  #dialog .selected-person button { min-height: 34px; width: 34px; flex-basis: 34px; }
+  #dialog .channel-options { gap: 8px; }
+  #dialog .channel-chip { padding: 10px; font-size: 12px; }
+  #dialog .form-actions { gap: 9px; margin: 20px -16px -16px; padding: 14px 16px; }
+  #dialog .form-actions > .button { width: 100%; }
+  #dialog .form-actions small { font-size: 11px; }
+  #dialog .form-error:not(:empty) { padding: 16px; }
+  #dialog .dialog-tabs { gap: 0; margin-bottom: 17px; }
+  #dialog .dialog-tabs button { padding: 10px 11px; font-size: 12px; }
+  #dialog .brief-card { padding: 18px 16px; border-radius: 11px; }
+  #dialog .script-card .button { width: 100%; }
+  #dialog .shoot-brief { padding: 16px; }
+  #dialog .history { padding: 0 15px; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  #dialog::backdrop { backdrop-filter: none; }
+  #dialog .form-actions { background: #fff; backdrop-filter: none; }
+}
