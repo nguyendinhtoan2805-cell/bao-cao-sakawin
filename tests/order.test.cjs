@@ -264,8 +264,8 @@ test('Media persists workflow exclusively in Lịch sử and reuses existing bus
   const x=setup(),body={team:'media',action:'create',key:crypto.randomUUID(),values:{...vals(),code:'M-DEMO-01'}};
   const a=await post(x.handler,body);assert.equal(a.code,200,JSON.stringify(a.body));
   const row=x.tables.media.records.find(r=>r.record_id===a.body.record.id);
-  assert.equal(row.fields['MÃ VIDEO'],'M-DEMO-01');assert.equal(row.fields.Progress,'Chưa thực hiện');
-  for(const name of ['Mã yêu cầu','Người tạo','Tiến độ chi tiết','Nhật ký','Hoàn thành lúc','Cần duyệt thành phẩm','Duyệt thành phẩm','Giờ dự kiến','Duyệt kịch bản'])assert.equal(Object.hasOwn(row.fields,name),false,name);
+  assert.equal(row.fields['MÃ VIDEO'],'M-DEMO-01');assert.equal(row.fields.Progress,'Chưa thực hiện');assert.equal(row.fields['Tiến độ chi tiết'],'Chưa viết kịch bản','order Media mới phải ghi bước chi tiết ra Lark, không chỉ nằm trong Lịch sử');
+  for(const name of ['Mã yêu cầu','Người tạo','Nhật ký','Hoàn thành lúc','Cần duyệt thành phẩm','Duyệt thành phẩm','Giờ dự kiến','Duyệt kịch bản'])assert.equal(Object.hasOwn(row.fields,name),false,name);
   const history=JSON.parse(row.fields['Lịch sử']);assert.equal(history.length,1);assert.equal(history[0].detail.mediaState.importantFinal,true);assert.equal(history[0].detail.mediaState.scriptApproval,'Cần duyệt');
   assert.equal((await post(x.handler,body)).body.record.id,a.body.record.id);
 });
@@ -281,7 +281,8 @@ test('Media completion history is invalidated by changed output or editor, with 
   const x=setup(),row=x.tables.media.records[4];
   const act=async b=>post(x.handler,{team:'media',id:row.record_id,revision:revision(row),...b});
   const done=await act({action:'stage',stage:'Hoàn thành'});assert.ok(done.body.record.completedAt);
-  const changed=await act({action:'edit',values:{assignees:['ou_demoD']}});assert.equal(changed.code,200);assert.equal(changed.body.record.stage,'Đang dựng');assert.equal(changed.body.record.completedAt,null);
+    assert.equal(row.fields['Tiến độ chi tiết'],'Hoàn thành','đổi bước trên web phải hiện ra cột Lark, không chỉ nằm trong Lịch sử');
+  const changed=await act({action:'edit',values:{assignees:['ou_demoD']}});assert.equal(changed.code,200);assert.equal(changed.body.record.stage,'Đang dựng');assert.equal(changed.body.record.completedAt,null);assert.equal(row.fields['Tiến độ chi tiết'],'Đang dựng','đổi thành phẩm làm lùi bước thì cột chi tiết phải lùi theo');
   const redone=await act({action:'stage',stage:'Hoàn thành'});assert.ok(redone.body.record.completedAt);
   row.fields['Link video tiktok']={link:'https://example.com/direct-change'};
   assert.equal(decode('media',row).completedAt,null);
@@ -297,7 +298,7 @@ test('Media real transport receives no virtual columns and verifies the saved hi
   }});
   const client={...x.client,save:transport.save},ctx=await require('../lib/order-service.js').context(client);
   const task=await require('../lib/order-service.js').create(client,ctx,x.user,{team:'media',action:'create',key:crypto.randomUUID(),values:vals()});
-  assert.equal(task.id,'recTransport');assert.ok(task.requestKey);assert.ok(saved['Lịch sử']);assert.equal(saved['Tiến độ chi tiết'],undefined);
+  assert.equal(task.id,'recTransport');assert.ok(task.requestKey);assert.ok(saved['Lịch sử']);assert.equal(saved['Tiến độ chi tiết'],'Chưa viết kịch bản');
 });
 
 
