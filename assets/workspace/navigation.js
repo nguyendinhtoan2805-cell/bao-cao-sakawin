@@ -11,7 +11,7 @@
   for (const [key, label, icon, paths] of [
     ['pnl', 'PnL', 'pie-chart', ['/doanh-so.html', '/tai-chinh.html', '/quy-luong.html']],
     ['people', 'Nhân sự', 'users', ['/nhan-su.html', '/tuyen-dung.html']],
-    ['marketing', 'Marketing', 'trello', ['/order.html']]
+    ['marketing', 'Marketing', 'trello', ['/order.html', '/san-pham.html']]
   ]) {
     const children = paths.map(find).filter(Boolean);
     if (!children.length) continue;

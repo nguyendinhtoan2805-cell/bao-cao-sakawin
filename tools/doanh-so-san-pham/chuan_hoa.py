@@ -80,6 +80,17 @@ def gop_ma(sku):
     return x
 
 
+# Hậu tố cuối mã là màu. Suy sẵn để đỡ phải gõ 99 dòng; chữ nào chưa biết thì
+# để nguyên cho dễ thấy mà sửa tay trong danh mục.
+MAU = {'X': 'Xanh', 'H': 'Hồng', 'G': 'Ghi', 'N': 'Nâu', 'K': 'Kem', 'C': 'Cam',
+       'T': 'Trắng', 'D': 'Đen', 'V': 'Vàng'}
+
+
+def doan_mau(ma_gop):
+    duoi = ma_gop.rsplit('-', 1)[-1] if '-' in ma_gop else ''
+    return MAU.get(duoi.upper(), duoi.upper())
+
+
 def doc_thang(gia_tri, dang):
     s = str(gia_tri).strip()
     if dang == 'dd/mm/yyyy':
@@ -179,10 +190,10 @@ def sinh_danh_muc(dong, ra):
         g['doanh_thu'] += d['doanh_thu']
     with open(ra, 'w', encoding='utf-8-sig', newline='') as f:
         w = csv.writer(f)
-        w.writerow(['Mã sàn', 'Sản phẩm chuẩn', 'Dòng SP', 'Phân khúc giá', 'Loại',
+        w.writerow(['Mã sàn', 'Sản phẩm chuẩn', 'Dòng SP', 'Phân khúc giá', 'Loại', 'Màu',
                     '— tên trên sàn', '— gồm các listing', '— đã bán', '— doanh thu'])
         for ma, g in sorted(nhom.items(), key=lambda x: -x[1]['doanh_thu']):
-            w.writerow([ma, '', '', '', '', ' / '.join(sorted(g['ten'])[:3]),
+            w.writerow([ma, '', '', '', '', doan_mau(ma), ' / '.join(sorted(g['ten'])[:3]),
                         ' | '.join(sorted(g['ma_goc'])),
                         int(g['so_luong']), int(g['doanh_thu'])])
     print(f'✓ Đã sinh {ra} — {len(nhom)} mã cần khai, xếp theo doanh thu giảm dần.')
@@ -237,13 +248,14 @@ def main():
     for d in tat_ca:
         m = tra(bang, d['sku'])
         k = (d['thang'], m['Sản phẩm chuẩn'], m.get('Dòng SP', ''),
-             m.get('Phân khúc giá', ''), m.get('Loại', ''), d['kenh'])
+             m.get('Phân khúc giá', ''), m.get('Loại', ''),
+             m.get('Màu') or doan_mau(gop_ma(d['sku'])), d['kenh'])
         gop[k][0] += d['so_luong']
         gop[k][1] += d['doanh_thu']
 
     with open(a.ra, 'w', encoding='utf-8-sig', newline='') as f:
         w = csv.writer(f)
-        w.writerow(['Tháng', 'Sản phẩm', 'Dòng SP', 'Phân khúc giá', 'Loại', 'Kênh',
+        w.writerow(['Tháng', 'Sản phẩm', 'Dòng SP', 'Phân khúc giá', 'Loại', 'Màu', 'Kênh',
                     'Sản lượng', 'Doanh thu'])
         for k in sorted(gop, key=lambda x: (x[0], -gop[x][1])):
             w.writerow(list(k) + [int(gop[k][0]), int(gop[k][1])])

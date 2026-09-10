@@ -1,0 +1,66 @@
+*{box-sizing:border-box}
+body{margin:0;font-family:'Be Vietnam Pro',sans-serif;font-size:14px;color:#232323;line-height:1.5}
+button,input,select{font:inherit}button{cursor:pointer}[hidden]{display:none!important}
+a{color:#b7102b;text-decoration:none}h1,h2,h3,p{margin:0}
+.appnav,.navtab,.navuser{display:flex}.navtab{align-items:center;text-decoration:none}.applogo{text-decoration:none}
+.page-sanpham .workspace-main{padding:28px 26px;min-height:100vh}
+.masthead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.page-sanpham .brand h1{font-size:clamp(24px,2.35vw,36px);font-weight:800}
+.brand p{margin-top:4px;color:#77717a}
+.header-actions{display:flex;gap:10px;align-items:center}
+.button{border-radius:7px;min-height:40px;padding:9px 14px;background:#fff;color:#b7102b;border:1px solid #eed5da;font-weight:500}
+.button:hover{background:#fff2f4}
+input,select{min-height:38px;padding:8px 10px;border:1px solid #e0dce2;border-radius:7px;background:#fff;color:#303038;max-width:100%}
+.notice{background:#f8f5fa;color:#62596a;border:1px solid #ebe5ef;border-radius:7px;padding:9px 13px;font-size:12px;margin:16px 0 10px}
+.notice.error{background:#fff2f3;border-color:#f3c5cf;color:#a01026}
+.canh-bao{background:#fff8eb;border:1px solid #f5dfb9;border-radius:8px;padding:11px 14px;font-size:12px;color:#7d5f2b;line-height:1.7;margin-bottom:18px}
+.nho{font-size:12px}.mo{color:#7a7480}.phai{text-align:right}.giua{text-align:center}
+.trong{color:#9c94a4;font-size:12px;text-align:center;padding:26px 10px}
+
+.thanh-loc{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px;
+  background:#ffffffd9;border:1px solid #e8e5e8;border-radius:10px;padding:14px 16px}
+.o-loc{display:flex;flex-direction:column;gap:5px;font-size:11px;color:#77717a;font-weight:500}
+.o-loc.lon input{width:230px}
+.nhom-nut{display:flex;border:1px solid #eed5da;border-radius:7px;overflow:hidden}
+.nhom-nut button{border:0;background:#fff;color:#6e6774;padding:9px 15px;font-weight:600;font-size:12px}
+.nhom-nut button[aria-pressed=true]{background:#c8102e;color:#fff}
+.thanh-loc .nho{margin-left:auto}
+
+.khoi{margin-bottom:30px}
+.dau-khoi{margin-bottom:14px;border-left:4px solid #c8102e;padding-left:12px}
+.dau-khoi h2{font-size:19px;letter-spacing:-.3px}
+
+.luoi-the{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:14px}
+.the{background:#fff;border:1px solid #e9e4e9;border-radius:10px;padding:15px 16px}
+.the h3{font-size:14px;color:#c8102e;margin-bottom:12px}
+.thanh-hang{display:grid;grid-template-columns:88px 1fr 78px;gap:9px;align-items:center;margin-bottom:8px;font-size:11px}
+.thanh-ten{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#53505d;font-weight:500}
+.thanh-nen{background:#f3f0f5;border-radius:20px;height:9px;overflow:hidden}
+.thanh-nen span{display:block;height:100%;background:linear-gradient(90deg,#c8102e,#e8586f);border-radius:20px}
+.thanh-so{text-align:right;font-weight:600;color:#3a3540}
+.thanh-so small{display:block;font-weight:400;color:#9a92a0;font-size:10px}
+
+.cuon-bang{overflow:auto;border:1px solid #ebe7ec;border-radius:8px;max-height:70vh;background:#fff}
+.bang-hang{border-collapse:separate;border-spacing:0;width:100%;font-size:12px;min-width:900px}
+.bang-hang th{text-align:left;font-weight:500;background:#f6f5f7;white-space:nowrap;color:#625c67;position:sticky;top:0;z-index:2}
+.bang-hang th,.bang-hang td{padding:9px 12px;border-bottom:1px solid #eeebef}
+.bang-hang tr:last-child td{border-bottom:0}
+.bang-hang .hang-so{color:#a49aa8;font-variant-numeric:tabular-nums}
+.bang-hang .phu{display:block;color:#968b9c;font-size:10px;margin-top:2px}
+.duoi-dai{background:#fcfbfc;color:#8d8593}
+.trong-80{color:#09803c;font-weight:600}
+.len{color:#09803c;font-weight:600}.xuong{color:#c8102e;font-weight:600}
+
+.bieu-do{width:100%;height:auto;background:#fff;border:1px solid #e9e4e9;border-radius:10px;padding:10px}
+.bieu-do .luoi{stroke:#eeeaef;stroke-width:1}
+.bieu-do .duong{fill:none;stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
+.bieu-do .nhan-truc{font-size:10px;fill:#948b99}
+.bieu-do .giua-text{text-anchor:middle}
+.chu-thich{display:flex;gap:16px;flex-wrap:wrap;margin-top:11px;font-size:11px;color:#5f5866}
+.chu-thich i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+@media(max-width:900px){
+  .page-sanpham .workspace-main{padding:20px 14px}
+  .thanh-loc{gap:9px}.o-loc.lon input{width:100%}
+  .thanh-loc .nho{margin-left:0;width:100%}
+}

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><title>Sản phẩm · Sakawin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/workspace/workspace.css">
+  <link rel="stylesheet" href="/assets/workspace/navigation.css">
+  <link rel="stylesheet" href="/assets/san-pham/san-pham.css">
+  <script src="/assets/san-pham/san-pham.js" defer></script>
+  <script src="/assets/workspace/navigation.js" defer></script>
+</head>
+<body class="workspace-page page-sanpham">
+  <nav class="appnav" aria-label="Điều hướng chính">
+    <a class="applogo" href="/"><span class="logo-crop"><img src="/assets/recruitment/sakawin-logo.png" alt="Sakawin" width="3508" height="2481"></span><span class="workspace-label">WORKSPACE</span></a>
+    <a class="navtab" href="/"><i class="ui-icon icon-grid" aria-hidden="true"></i><span class="nav-label">Tổng quan</span></a>
+    <a class="navtab" href="/doanh-so.html" data-right="xem_doanh_so" hidden><i class="ui-icon icon-trending-up" aria-hidden="true"></i><span class="nav-label">Doanh số &amp; Target</span></a>
+    <a class="navtab" href="/tai-chinh.html" data-right="xem_tai_chinh" hidden><i class="ui-icon icon-pie-chart" aria-hidden="true"></i><span class="nav-label">Tài chính &amp; Lãi lỗ</span></a>
+    <a class="navtab" href="/quy-luong.html" data-right="xem_luong" hidden><i class="ui-icon icon-credit-card" aria-hidden="true"></i><span class="nav-label">Quỹ lương</span></a>
+    <a class="navtab" href="/nhan-su.html" data-right="xem_nhan_su" hidden><i class="ui-icon icon-users" aria-hidden="true"></i><span class="nav-label">Nhân sự</span></a>
+    <a class="navtab" href="/tuyen-dung.html" data-right="xem_tuyen_dung" hidden><i class="ui-icon icon-user-plus" aria-hidden="true"></i><span class="nav-label">Tuyển dụng</span></a>
+    <a class="navtab" href="/order.html" data-right="xem_order" hidden><i class="ui-icon icon-order" aria-hidden="true"></i><span class="nav-label">Order Design &amp; Media</span></a>
+    <a class="navtab active" href="/san-pham.html" aria-current="page"><i class="ui-icon icon-report" aria-hidden="true"></i><span class="nav-label">Sản phẩm</span></a>
+    <a class="navtab" href="/admin.html" data-right="quan_tri" hidden><i class="ui-icon icon-shield" aria-hidden="true"></i><span class="nav-label">Quản trị</span></a>
+    <button class="sidebar-toggle" id="collapseNav" aria-expanded="true" aria-label="Thu gọn menu"><i class="ui-icon icon-chevrons-left" aria-hidden="true"></i><span class="nav-label">Thu gọn menu</span></button>
+    <div class="navuser"><span class="who">Xin chào <b id="who">Đang kiểm tra phiên…</b></span><a href="/api/auth/logout"><i class="ui-icon icon-log-out" aria-hidden="true"></i><span class="nav-label">Đăng xuất</span></a></div>
+  </nav>
+
+  <main class="workspace-main">
+    <span class="workspace-watermark logo-crop" aria-hidden="true"><img src="/assets/recruitment/sakawin-logo.png" alt="" width="3508" height="2481"></span>
+
+    <header class="masthead">
+      <div class="brand"><h1>Sản phẩm</h1><p>Cơ cấu dải hàng · mã chạy và mã ế · xu hướng cho năm sau</p></div>
+      <div class="header-actions">
+        <button class="button" id="taiLai">Tải lại từ Lark</button>
+      </div>
+    </header>
+
+    <div id="status" role="status" aria-live="polite" class="notice">Đang kiểm tra quyền và tải dữ liệu…</div>
+
+    <p class="canh-bao">Đây là bảng phân tích <b>sản phẩm</b>, không phải báo cáo tài chính.
+      Doanh thu tính theo giá của chính sản phẩm và <b>đã loại đơn huỷ</b>; không trừ voucher toàn đơn,
+      không gồm phí ship. Vì vậy số ở đây <b>không khớp</b> báo cáo doanh số và lãi lỗ — đó là chủ ý,
+      để so sánh được giữa các mã.</p>
+
+    <section id="noiDung" hidden>
+      <div class="thanh-loc">
+        <label class="o-loc"><span>Từ tháng</span><select id="tu"></select></label>
+        <label class="o-loc"><span>Đến tháng</span><select id="den"></select></label>
+        <label class="o-loc"><span>Kênh</span><select id="kenh"></select></label>
+        <label class="o-loc lon"><span>Tìm</span><input id="tim" type="search" placeholder="tên sản phẩm, dòng, màu…"></label>
+        <div class="nhom-nut" role="group" aria-label="Đo theo">
+          <button data-do="doanhThu" aria-pressed="true">Doanh thu</button>
+          <button data-do="sanLuong" aria-pressed="false">Sản lượng</button>
+        </div>
+        <span class="nho mo" id="demDong"></span>
+      </div>
+
+      <section class="khoi">
+        <div class="dau-khoi"><h2>1 · Cơ cấu dải sản phẩm</h2>
+          <p class="nho mo">Cùng một doanh số bổ theo năm trục. Doanh thu đang nằm ở dải nào?</p></div>
+        <div class="luoi-the" id="coCau"></div>
+      </section>
+
+      <section class="khoi">
+        <div class="dau-khoi"><h2>2 · Xếp hạng mã sản phẩm</h2>
+          <p class="nho mo" id="tomTat"></p></div>
+        <div class="cuon-bang">
+          <table class="bang-hang">
+            <thead><tr>
+              <th>#</th><th>Sản phẩm</th><th>Phân khúc</th>
+              <th class="phai">Sản lượng</th><th class="phai">Doanh thu</th>
+              <th class="phai" title="Cộng dồn từ trên xuống — kéo mắt tới 80% là thấy ranh giới đuôi dài">% tích luỹ</th>
+              <th>Kênh mạnh nhất</th>
+              <th class="giua" title="So nửa kỳ sau với nửa kỳ trước trong khoảng đang lọc">Xu hướng</th>
+              <th>Có từ</th>
+            </tr></thead>
+            <tbody id="bangHang"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="khoi">
+        <div class="dau-khoi"><h2>3 · Xu hướng theo tháng</h2>
+          <p class="nho mo">Sáu dòng sản phẩm lớn nhất trong khoảng đang lọc.</p></div>
+        <div id="xuHuong"></div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

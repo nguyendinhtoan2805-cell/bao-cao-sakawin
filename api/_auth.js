@@ -20,7 +20,7 @@ const COOKIE = 'sakawin_session';
 const HAN = 12 * 3600; // giây — hết 12 tiếng phải đăng nhập lại
 
 /* ---------- Quyền ---------- */
-const QUYEN = ['xem_doanh_so', 'xem_tai_chinh', 'xem_luong', 'xem_nhan_su', 'xem_ca_nhan', 'xem_tuyen_dung', 'ghi_tuyen_dung', 'duyet_tuyen_dung', 'xem_target', 'xem_ads', 'duoc_sua', 'quan_tri', 'xem_order', 'ghi_order', 'duyet_order'];
+const QUYEN = ['xem_doanh_so', 'xem_tai_chinh', 'xem_luong', 'xem_nhan_su', 'xem_ca_nhan', 'xem_tuyen_dung', 'ghi_tuyen_dung', 'duyet_tuyen_dung', 'xem_target', 'xem_ads', 'duoc_sua', 'quan_tri', 'xem_order', 'ghi_order', 'duyet_order', 'xem_san_pham'];
 const NHAN_QUYEN = {
   xem_doanh_so: 'Xem trang Doanh số & Target',
   xem_tai_chinh: 'Xem trang Tài chính & Lãi lỗ',
@@ -32,6 +32,7 @@ const NHAN_QUYEN = {
   duyet_tuyen_dung: 'Duyệt hoặc loại ứng viên',
   xem_target: 'Xem Target và % hoàn thành',
   xem_ads: 'Xem ngân sách ADS, %Ads và CPO',
+  xem_san_pham: 'Xem trang Sản phẩm — cơ cấu dải hàng, xếp hạng mã, xu hướng',
   duoc_sua: 'Được sửa số trực tiếp trên web',
   quan_tri: 'Quản trị tài khoản',
   xem_order: 'Xem toàn bộ Order Design & Media',
