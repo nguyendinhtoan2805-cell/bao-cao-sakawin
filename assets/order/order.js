@@ -93,7 +93,7 @@ async function load(){
     const missing=Object.values(data.connection.missing).flat();$('setupDetails').hidden=!missing.length&&!data.schema;
     $('setupFields').innerHTML=Object.entries(data.connection.missing).filter(([,v])=>v.length).map(([k,v])=>`<h3>${esc(k==='shoots'?'Buổi quay':k)}</h3><ul>${v.map(f=>`<li>${esc(f.name)}${f.reason==='type'?' — cần kiểm tra lại kiểu trường':''}</li>`).join('')}</ul>`).join('');
     if(data.schema)$('setupFields').innerHTML+=`<details><summary>Đối chiếu cấu trúc Lark (quản trị)</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify(data.schema,null,2))}</pre></details>`;
-    notice(data.demo?'Bản thử nghiệm · dữ liệu giả · thao tác không ghi vào Lark thật':`Đã đọc từ Lark lúc ${new Date(data.connection.checkedAt).toLocaleTimeString('vi-VN')}${data.connection.writeEnabled&&!missing.length?'':' · Đang chỉ đọc; cần hoàn tất cấu hình trước khi ghi'}`);render();
+    notice(data.demo?'Bản thử nghiệm · dữ liệu giả · thao tác không ghi vào Lark thật':`Đã đọc từ Lark lúc ${new Date(data.connection.checkedAt).toLocaleTimeString('vi-VN')}${data.connection.writeEnabled&&!missing.length?'':' · Đang chỉ đọc; cần hoàn tất cấu hình trước khi ghi'}${data.connection.stageMirror==='missing'?' · Base Media chưa có cột "Tiến độ chi tiết" nên tiến độ 10 bước chỉ nằm trong Lịch sử':data.connection.stageMirror==='type'?' · Cột "Tiến độ chi tiết" đang sai kiểu, cần đổi sang Văn bản':''}`);render();
   }catch(e){notice(e.message,true);}finally{$('reload').disabled=false;}
 }
 function renderReport(){let legacyUnknown=0;
