@@ -397,10 +397,31 @@ module.exports = async (req, res) => {
       const j = await r.json();
       if (j.code !== 0) {
         /* Lark báo lỗi tên cột bằng mã khó đoán — dịch sang câu người đọc hiểu */
-        if (/field|column/i.test(j.msg || '') || j.code === 1254045)
+        if (/field|column/i.test(j.msg || '') || j.code === 1254045) {
+          /* Đừng đoán cột nào thiếu — hỏi thẳng Lark rồi đối chiếu.
+             Lần trước câu báo lỗi chỉ nêu 2 cột đoán mò, trong khi nút này
+             ghi 4 cột, nên người dùng đi sửa nhầm chỗ. */
+          let dsTen = null;
+          try { dsTen = (await dsCot(tk, BASE, bUV.table_id)).map(c => c.field_name); } catch { /* chịu */ }
+          if (dsTen) {
+            const goc = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+              .replace(/[Đđ]/g, 'd').toLowerCase().replace(/\s+/g, ' ').trim();
+            const thieu = Object.keys(va).filter(k => !dsTen.includes(k));
+            if (thieu.length) {
+              const noi = thieu.map(k => {
+                const gan = dsTen.find(c => goc(c) === goc(k));
+                return `"${k}"` + (gan ? ` → bảng đang có "${gan}" (lệch dấu cách hoặc dấu tiếng Việt)` : ' (chưa có)');
+              }).join(' · ');
+              throw new Error(`Bảng ỨNG VIÊN thiếu cột để ghi: ${noi}. `
+                + `Các cột hiện có: ${dsTen.join(' · ')}`);
+            }
+            throw new Error(`Lark báo lỗi cột (${j.msg}) nhưng cả ${Object.keys(va).length} cột cần ghi `
+              + `(${Object.keys(va).join(', ')}) đều có trong bảng — nhiều khả năng sai KIỂU cột. `
+              + `"Ngày ..." phải là Ngày, "Biên bản phỏng vấn" phải là Văn bản nhiều dòng.`);
+          }
           throw new Error(`Lark không tìm thấy cột cần ghi (${j.msg}). `
-            + `Kiểm tra bảng ỨNG VIÊN đã có đúng cột "Lịch phỏng vấn" và "Biên bản phỏng vấn" chưa — `
-            + `tên phải khớp, kể cả dấu.`);
+            + `Cần ghi: ${Object.keys(va).join(', ')} — kiểm tra tên trong bảng ỨNG VIÊN, khớp cả dấu.`);
+        }
         if (j.code === 91403 || j.code === 99991672)
           throw new Error(`Lark từ chối ghi (${j.code}). Kiểm tra: app đã có scope "bitable:app" chưa, `
             + `và đã thêm app vào Base với quyền "Can edit" chưa.`);
