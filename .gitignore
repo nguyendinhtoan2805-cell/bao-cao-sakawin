@@ -4,3 +4,6 @@
 .vercel
 node_modules
 .env*
+
+# Số liệu bán hàng sinh ra từ công cụ — không đưa lên repo công khai
+tools/doanh-so-san-pham/*.csv

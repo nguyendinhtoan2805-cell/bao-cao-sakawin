@@ -11,7 +11,7 @@ const path = require('node:path');
 
 const goc = path.join(__dirname, '..');
 const THU_MUC = ['api', 'lib', 'assets', 'tests', 'tools'];
-const DUOI = /\.(js|cjs|mjs|css|html)$/;
+const DUOI = /\.(js|cjs|mjs|css|html|py)$/;
 
 function quet(d, ra = []) {
   if (!fs.existsSync(d)) return ra;
