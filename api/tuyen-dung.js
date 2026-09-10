@@ -67,28 +67,11 @@ const LUONG = {
 };
 const KET_THUC = ['Nhận việc', 'Loại', 'Từ chối offer'];
 
-/* Scorecard — trọng số theo mẫu chấm điểm trong vault (mục 05. Mẫu chấm điểm) */
-/* Nguồn: "2. Xử lý/1. Tuyển dụng/00. Mẫu biểu/05. Mẫu chấm điểm.md" trong vault.
-   'prop' là tên property của Obsidian — Lark dùng tên tiếng Việt cho HR dễ đọc,
-   còn khi xuất Markdown thì ghi theo prop để Ranking.base đọc được. */
-const TIEU_CHI = [
-  { ten: 'Kỹ năng lõi 1', prop: 'score_core_1',      ts: 0.20, loi: 1 },
-  { ten: 'Kỹ năng lõi 2', prop: 'score_core_2',      ts: 0.20, loi: 2 },
-  { ten: 'Kỹ năng lõi 3', prop: 'score_core_3',      ts: 0.20, loi: 3 },
-  { ten: 'Thực thi',      prop: 'score_execution',   ts: 0.20 },
-  { ten: 'Giao tiếp',     prop: 'score_communication', ts: 0.10 },
-  { ten: 'Phù hợp JD',    prop: 'score_role_fit',    ts: 0.10 },
-];
-/* Thang 1–5, KHÔNG phải 1–10. Vault định nghĩa từng mức:
-   1 mơ hồ không bằng chứng · 2 từng làm nhưng cần hướng dẫn · 3 đáp ứng chuẩn,
-   làm độc lập · 4 vượt chuẩn, xây hệ thống được · 5 hiểu nguyên lý sâu. */
-const THANG = 5;
-/* Điểm cuối = tổng có trọng số × 20 → thang /100, và ba ngưỡng đề xuất.
-   Lấy nguyên công thức trong "3. Đầu ra/1. Tuyển dụng/06. Bảng xếp hạng ứng viên.base"
-   để web và vault không bao giờ ra hai kết luận khác nhau cho cùng một người. */
-const NGUONG_OFFER = 80, NGUONG_CAN_NHAC = 65;
-const deXuat = d => d == null ? null
-  : (d >= NGUONG_OFFER ? '🟢 Mời offer' : (d >= NGUONG_CAN_NHAC ? '🟡 Cân nhắc' : '🔴 Từ chối'));
+/* Không còn chấm điểm 6 tiêu chí trên web. Buổi phỏng vấn ghi thành MỘT biên bản
+   văn bản (khung KHUNG_BB trong tuyen-dung.html); việc chấm điểm và xếp hạng làm
+   ở Obsidian từ chính biên bản đó — "05. Mẫu chấm điểm" và "06. Bảng xếp hạng
+   ứng viên.base" vẫn là nơi giữ khung điểm. Sáu cột điểm trong Lark đã bỏ
+   10/09/2026: web không đọc nữa, và trang cũng chưa bao giờ hiển thị chúng. */
 
 /* SLA lấy thẳng từ SOP "Quy trình Chiêu mộ & Giữ chân Nhân tài" */
 const SLA = { sangLoc: 48, phanHoiPV: 48, guiOffer: 24, itNguon: 5, sauNgay: 3 };
@@ -229,14 +212,6 @@ const timBang = (bangs, ...tens) => {
   return null;
 };
 
-/* Điểm scorecard có trọng số — thiếu tiêu chí nào thì trả null, vì chấm nửa
-   vời mà vẫn ra điểm thì con số đó đánh lừa người đọc. */
-function diemPV(f) {
-  const v = TIEU_CHI.map(t => num(pick(f, t.ten)));
-  if (v.some(x => x == null)) return null;
-  /* × 20 để ra thang /100 — đúng công thức final_score trong Ranking.base */
-  return Math.round(v.reduce((a, x, i) => a + x * TIEU_CHI[i].ts, 0) * 20 * 10) / 10;
-}
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'private, no-store');
@@ -588,9 +563,7 @@ module.exports = async (req, res) => {
         /* Bản phát hành của Interview Prep — vault giữ bản đầy đủ có phân tích gap
            và wikilink, Lark chỉ giữ danh sách câu hỏi để Lead đọc được trên web. */
         cauHoi: txt(pick(f, 'Câu hỏi phỏng vấn')),
-        diem: TIEU_CHI.map(t => num(pick(f, t.ten))),
         tenLoi: loiTheoViTri.get(norm(viTri)) || null,
-        diemTong: diemPV(f), deXuat: deXuat(diemPV(f)),
         bienBan: txt(pick(f, 'Biên bản phỏng vấn')),
         ghiChu: txt(pick(f, 'Ghi chú')),
         lichSu: txt(pick(f, 'Lịch sử')),
@@ -722,8 +695,7 @@ module.exports = async (req, res) => {
       capNhat: new Date().toISOString(),
       data: {
         uv, pheu, viTri, nguon, lyDo, canhBao,
-        buoc: BUOC, tieuChi: TIEU_CHI.map(t => ({ ten: t.ten, prop: t.prop, ts: t.ts })),
-        thang: THANG, nguong: { offer: NGUONG_OFFER, canNhac: NGUONG_CAN_NHAC },
+        buoc: BUOC,
         gioiHan: gioiHan ? toi.boPhan : '',
         tong: {
           dangMo: uv.filter(x => x.dangMo).length,
