@@ -30,6 +30,17 @@ python3 chuan_hoa.py \
 
 File Shopee **không cho biết nó là shop nào**, nên phải khai kênh ở dòng lệnh.
 
+Một lần chạy sinh **ba** file cạnh nhau:
+
+| File | Nội dung | Bảng Lark |
+|---|---|---|
+| `thang-08.csv` | Tháng × Sản phẩm × Kênh | `DOANH SỐ SẢN PHẨM` |
+| `thang-08-tinh.csv` | Tháng × Tỉnh × Vùng × Kênh | `KHÁCH THEO TỈNH` |
+| `thang-08-thanh-toan.csv` | Tháng × Phương thức × Nhóm × Kênh | `THANH TOÁN` |
+
+Hai bảng sau đếm theo **đơn hàng**, không theo dòng sản phẩm — một đơn chỉ có một
+địa chỉ và một cách trả tiền, đếm theo dòng sẽ thổi phồng đơn nhiều món.
+
 ## Ba luật đã chốt
 
 | | |
@@ -50,6 +61,16 @@ mã nguồn hiện lên giống hệt nhau nhưng khác byte. Mọi so sánh chu
 **Một sản phẩm có nhiều listing.** `C021-H` đến `C021-H-7` là cùng một bộ bàn ghế đăng 8 lần;
 để nguyên thì doanh số bị chia nhỏ và mã bán chạy tụt hạng oan. `gop_ma()` gom lại, nhưng
 bảng danh mục mới là nơi chốt cuối — tra mã gốc trước, không có mới dùng mã gộp.
+
+**Tên tỉnh khác nhau giữa hai sàn.** TikTok ghi `Hà Nội`, Shopee ghi `Thành phố Hà Nội`,
+`Tỉnh Đồng Nai`. `vung_tinh.py` bỏ tiền tố rồi tra về tên gọn và xếp vào 6 vùng. TikTok
+còn có bản ghi hỏng `Phố Hà Nội` (mất chữ "Thành") — đã nhận diện riêng.
+
+**Phương thức thanh toán tên khác hẳn.** TikTok 20 cách gọi, Shopee 10; `Thanh toán khi
+giao hàng` và `Thanh toán khi nhận hàng` đều là COD. TikTok còn ghi ghép kiểu
+`VNPAY + TikTok Shop Balance` khi khách trả một phần bằng số dư ví — lấy vế đầu vì đó
+mới là cách khách chọn. `thanh_toan.py` quy về một danh sách chung kèm nhóm COD /
+Trả trước / Trả sau.
 
 ## Nguyên tắc
 

@@ -12,16 +12,22 @@
    Biến môi trường: LARK_APP_TOKEN_SP — mã Base, lấy trong URL sau /wiki/ hoặc /base/
 */
 const A = require('./_auth.js');
-const { duLieuMinhHoa } = require('../lib/san-pham-demo.js');
+const { duLieuMinhHoa, phuMinhHoa } = require('../lib/san-pham-demo.js');
 
 const HOST = (process.env.LARK_HOST || 'https://open.larksuite.com').replace(/\/$/, '');
-const TEN_BANG = 'DOANH SỐ SẢN PHẨM';
-
-/* Chỉ đọc đúng 8 cột này. Base có thêm cột gì cũng không lọt ra ngoài. */
-const COT = {
-  thang: 'Tháng', sanPham: 'Sản phẩm', dongSP: 'Dòng SP',
-  phanKhuc: 'Phân khúc giá', loai: 'Loại', mau: 'Màu', kenh: 'Kênh',
-  sanLuong: 'Sản lượng', doanhThu: 'Doanh thu',
+/* Ba bảng, mỗi bảng chỉ đọc đúng các cột khai ở đây — Base có thêm cột gì
+   cũng không lọt ra ngoài. Bảng sản phẩm bắt buộc; hai bảng kia thiếu thì
+   trang vẫn chạy, chỉ ẩn khối tương ứng, để Toàn dựng Base dần dần được. */
+const BANG = {
+  dong: { ten: 'DOANH SỐ SẢN PHẨM', batBuoc: true, so: ['sanLuong', 'doanhThu'], cot: {
+    thang: 'Tháng', sanPham: 'Sản phẩm', dongSP: 'Dòng SP', phanKhuc: 'Phân khúc giá',
+    loai: 'Loại', mau: 'Màu', kenh: 'Kênh', sanLuong: 'Sản lượng', doanhThu: 'Doanh thu' } },
+  tinh: { ten: 'KHÁCH THEO TỈNH', batBuoc: false, so: ['soDon', 'doanhThu'], cot: {
+    thang: 'Tháng', tinh: 'Tỉnh', vung: 'Vùng', kenh: 'Kênh',
+    soDon: 'Số đơn', doanhThu: 'Doanh thu' } },
+  thanhToan: { ten: 'THANH TOÁN', batBuoc: false, so: ['soDon', 'doanhThu'], cot: {
+    thang: 'Tháng', phuongThuc: 'Phương thức', nhom: 'Nhóm', kenh: 'Kênh',
+    soDon: 'Số đơn', doanhThu: 'Doanh thu' } },
 };
 
 let khoCache = { tk: '', han: 0 };
@@ -41,17 +47,12 @@ const khongDau = s => String(s ?? '').normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '').replace(/[Đđ]/g, 'd')
   .toLowerCase().replace(/\s+/g, ' ').trim();
 
-async function timBang(tk, base) {
+async function dsBang(tk, base) {
   const r = await fetch(`${HOST}/open-apis/bitable/v1/apps/${base}/tables?page_size=100`,
     { headers: { Authorization: `Bearer ${tk}` } });
   const j = await r.json();
   if (j.code !== 0) throw new Error(`Đọc danh sách bảng thất bại (${j.code}): ${j.msg}`);
-  const bangs = j.data?.items || [];
-  const b = bangs.find(x => khongDau(x.name) === khongDau(TEN_BANG));
-  if (!b) throw new Error(
-    `Chưa có bảng "${TEN_BANG}" trong Base. Các bảng đang có: `
-    + (bangs.map(x => x.name).join(' · ') || '(trống)'));
-  return b.table_id;
+  return j.data?.items || [];
 }
 
 /* Lark trả tối đa 500 bản ghi mỗi lần. Đọc thiếu trang mà vẫn dựng báo cáo thì
@@ -97,47 +98,49 @@ module.exports = async (req, res) => {
     const base = process.env.LARK_APP_TOKEN_SP;
     if (!base) {
       const dong = duLieuMinhHoa();
+      const phu = phuMinhHoa();
       return res.status(200).json({
         ok: true, demo: true, capNhat: Date.now(), dong,
+        tinh: phu.tinh, thanhToan: phu.thanhToan,
         thang: [...new Set(dong.map(d => d.thang))].sort(),
         kenh: [...new Set(dong.map(d => d.kenh))].sort(),
-        thieuCot: [], tong: { dong: dong.length, banGhi: dong.length },
+        thieuCot: [], thieuBang: [],
+        tong: { dong: dong.length, tinh: phu.tinh.length, thanhToan: phu.thanhToan.length },
       });
     }
 
     const tk = await larkToken();
-    const bang = await timBang(tk, base);
-    const ban_ghi = await docHet(tk, base, bang);
+    const bangs = await dsBang(tk, base);
+    const ket = {}, thieuBang = [], thieuCot = [];
 
-    const dong = [];
-    for (const r of ban_ghi) {
-      const f = r.fields || {};
-      const d = {
-        thang: chu(f[COT.thang]).trim(),
-        sanPham: chu(f[COT.sanPham]).trim(),
-        dongSP: chu(f[COT.dongSP]).trim(),
-        phanKhuc: chu(f[COT.phanKhuc]).trim(),
-        loai: chu(f[COT.loai]).trim(),
-        mau: chu(f[COT.mau]).trim(),
-        kenh: chu(f[COT.kenh]).trim(),
-        sanLuong: so(f[COT.sanLuong]),
-        doanhThu: so(f[COT.doanhThu]),
-      };
-      if (d.thang && d.sanPham) dong.push(d);
+    for (const [khoa, cfg] of Object.entries(BANG)) {
+      const b = bangs.find(x => khongDau(x.name) === khongDau(cfg.ten));
+      if (!b) {
+        if (cfg.batBuoc) throw new Error(
+          `Chưa có bảng "${cfg.ten}" trong Base. Các bảng đang có: `
+          + (bangs.map(x => x.name).join(' · ') || '(trống)'));
+        ket[khoa] = []; thieuBang.push(cfg.ten); continue;
+      }
+      const ghi = await docHet(tk, base, b.table_id);
+      ket[khoa] = ghi.map(r => {
+        const f = r.fields || {}, d = {};
+        for (const [k, ten] of Object.entries(cfg.cot))
+          d[k] = cfg.so.includes(k) ? so(f[ten]) : chu(f[ten]).trim();
+        return d;
+      }).filter(d => d.thang);
+      for (const ten of Object.values(cfg.cot))
+        if (ghi.length && !ghi.some(r => Object.hasOwn(r.fields || {}, ten)))
+          thieuCot.push(`${cfg.ten} → ${ten}`);
     }
 
-    const thieu = Object.values(COT).filter(
-      ten => !ban_ghi.some(r => Object.hasOwn(r.fields || {}, ten)));
-
+    const dong = ket.dong;
     return res.status(200).json({
-      ok: true,
-      demo: false,
-      capNhat: Date.now(),
-      dong,
+      ok: true, demo: false, capNhat: Date.now(),
+      dong, tinh: ket.tinh, thanhToan: ket.thanhToan,
       thang: [...new Set(dong.map(d => d.thang))].sort(),
       kenh: [...new Set(dong.map(d => d.kenh).filter(Boolean))].sort(),
-      thieuCot: thieu,
-      tong: { dong: dong.length, banGhi: ban_ghi.length },
+      thieuCot, thieuBang,
+      tong: { dong: dong.length, tinh: ket.tinh.length, thanhToan: ket.thanhToan.length },
     });
   } catch (e) {
     return res.status(500).json({ ok: false, error: e.message });

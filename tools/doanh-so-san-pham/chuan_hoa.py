@@ -17,6 +17,8 @@ import unicodedata
 from collections import defaultdict
 
 from doc_xlsx import doc
+from thanh_toan import quy_doi
+from vung_tinh import chuan_ten_tinh, vung_cua
 
 # ── Cấu hình từng sàn ────────────────────────────────────────────────────────
 # 'tinh'  : trạng thái được tính là đã bán
@@ -31,7 +33,8 @@ SAN = {
         'cot': {'trang_thai': 'Order Status', 'sku': 'Seller SKU',
                 'so_luong': 'Quantity', 'ngay': 'Created Time',
                 'thanh_tien': 'SKU Subtotal After Discount',
-                'bien_the': 'Variation'},
+                'bien_the': 'Variation', 'don': 'Order ID',
+                'tinh': 'Province', 'thanh_toan': 'Payment Method'},
         'ngay_dang': 'dd/mm/yyyy',
         'tinh': {'Đã hoàn tất', 'Đã vận chuyển'},
         'bo': {'Đã hủy'},
@@ -42,7 +45,8 @@ SAN = {
         'cot': {'trang_thai': 'Trạng Thái Đơn Hàng', 'sku': 'SKU phân loại hàng',
                 'so_luong': 'Số lượng', 'ngay': 'Ngày đặt hàng',
                 'don_gia': 'Giá ưu đãi',   # Shopee không có thành tiền từng dòng
-                'bien_the': 'Tên phân loại hàng'},
+                'bien_the': 'Tên phân loại hàng', 'don': 'Mã đơn hàng',
+                'tinh': 'Tỉnh/Thành phố', 'thanh_toan': 'Phương thức thanh toán'},
         'ngay_dang': 'yyyy-mm-dd',
         'tinh': {'Hoàn thành', 'Đang giao', 'Đang vận chuyển', 'Chờ giao hàng'},
         'bo': {'Đã hủy'},
@@ -127,9 +131,10 @@ def doc_nguon(duong_dan, kenh):
             + ' · '.join(tieu_de))
     vt = {k: tieu_de.index(chuan(v)) for k, v in c['cot'].items()}
 
-    ket, la, bo_qua = [], defaultdict(int), 0
+    ket, la, bo_qua, cut = [], defaultdict(int), 0, 0
     for dong in bang[c['bo_dong_dau']:]:
         if len(dong) <= max(vt.values()):
+            cut += 1          # dòng thiếu ô — đếm lại để nói ra, không bỏ lặng lẽ
             continue
         tt = chuan(dong[vt['trang_thai']])
         if not tt:
@@ -149,7 +154,10 @@ def doc_nguon(duong_dan, kenh):
                 else so(dong[vt['don_gia']]) * sl)
         ket.append({'thang': thang, 'sku': sku, 'kenh': kenh,
                     'so_luong': sl, 'doanh_thu': tien,
-                    'bien_the': chuan(dong[vt['bien_the']])})
+                    'bien_the': chuan(dong[vt['bien_the']]),
+                    'don': chuan(dong[vt['don']]),
+                    'tinh': chuan(dong[vt['tinh']]),
+                    'thanh_toan': chuan(dong[vt['thanh_toan']])})
 
     if la:
         chi_tiet = '\n'.join(f'    "{k}"  ({v} dòng)' for k, v in sorted(la.items(), key=lambda x: -x[1]))
@@ -159,7 +167,7 @@ def doc_nguon(duong_dan, kenh):
             f'  mà không ai phát hiện. Mở chuan_hoa.py, thêm trạng thái trên vào\n'
             f'  SAN["{ten_sheet}"]["tinh"] nếu tính là đã bán, hoặc ["bo"] nếu không.')
 
-    return ket, {'san': c['ten'], 'nhan': len(ket), 'huy': bo_qua}
+    return ket, {'san': c['ten'], 'nhan': len(ket), 'huy': bo_qua, 'cut': cut}
 
 
 def doc_danh_muc(duong_dan):
@@ -201,6 +209,59 @@ def sinh_danh_muc(dong, ra):
     print('  Ba cột bắt đầu bằng "—" chỉ để anh nhận ra sản phẩm, công cụ không đọc.')
 
 
+def theo_don(dong):
+    """Gộp dòng sản phẩm về mức ĐƠN.
+
+    Một đơn chỉ có một địa chỉ và một cách trả tiền, nên đếm theo dòng sản phẩm
+    sẽ thổi phồng đơn nhiều món. Doanh thu của đơn là tổng các dòng trong đơn.
+    Khoá gồm cả kênh phòng khi hai sàn trùng mã đơn.
+    """
+    don = {}
+    for d in dong:
+        k = (d['kenh'], d['don'])
+        o = don.get(k)
+        if o is None:
+            don[k] = {'thang': d['thang'], 'kenh': d['kenh'], 'tinh': d['tinh'],
+                      'thanh_toan': d['thanh_toan'], 'doanh_thu': d['doanh_thu']}
+        else:
+            o['doanh_thu'] += d['doanh_thu']
+    return list(don.values())
+
+
+def xuat_phu(dong, ra_san_pham):
+    """Sinh hai bảng phụ cạnh bảng sản phẩm: khách theo tỉnh, và thanh toán."""
+    goc = re.sub(r'\.csv$', '', ra_san_pham)
+    dons = theo_don(dong)
+
+    tinh = defaultdict(lambda: [0, 0.0])
+    tt = defaultdict(lambda: [0, 0.0])
+    for o in dons:
+        ten = chuan_ten_tinh(o['tinh']) or '(không ghi)'
+        k1 = (o['thang'], ten, vung_cua(o['tinh']), o['kenh'])
+        tinh[k1][0] += 1; tinh[k1][1] += o['doanh_thu']
+        pt, nhom = quy_doi(o['thanh_toan'])
+        k2 = (o['thang'], pt, nhom, o['kenh'])
+        tt[k2][0] += 1; tt[k2][1] += o['doanh_thu']
+
+    for ten_file, tieu_de, bang in [
+        (goc + '-tinh.csv', ['Tháng', 'Tỉnh', 'Vùng', 'Kênh', 'Số đơn', 'Doanh thu'], tinh),
+        (goc + '-thanh-toan.csv', ['Tháng', 'Phương thức', 'Nhóm', 'Kênh', 'Số đơn', 'Doanh thu'], tt),
+    ]:
+        with open(ten_file, 'w', encoding='utf-8-sig', newline='') as f:
+            w = csv.writer(f); w.writerow(tieu_de)
+            for k in sorted(bang, key=lambda x: (x[0], -bang[x][1])):
+                w.writerow(list(k) + [bang[k][0], int(bang[k][1])])
+        print(f'✓ {ten_file} — {len(bang)} dòng')
+
+    la = sorted({p for p in (quy_doi(o['thanh_toan'])[0] for o in dons) if p.startswith('❓')})
+    chua = sorted({chuan_ten_tinh(o['tinh']) for o in dons if vung_cua(o['tinh']) == '(chưa xếp vùng)' and o['tinh']})
+    if la:
+        print('  ⚠ phương thức chưa biết: ' + ' · '.join(la))
+    if chua:
+        print('  ⚠ tỉnh chưa xếp vùng: ' + ' · '.join(chua))
+    print(f'  {len(dons)} đơn (đã gộp từ {len(dong)} dòng sản phẩm)')
+
+
 def main():
     p = argparse.ArgumentParser(description='Gộp export các sàn thành bảng Tháng × Sản phẩm × Kênh')
     p.add_argument('nguon', nargs='+', metavar='KÊNH=file.xlsx')
@@ -220,7 +281,8 @@ def main():
 
     print('Đã đọc:')
     for kenh, tk in tom_tat:
-        print(f'  {kenh:14s} {tk["san"]:7s} nhận {tk["nhan"]:5d} dòng · loại {tk["huy"]:5d} dòng đơn huỷ')
+        print(f'  {kenh:14s} {tk["san"]:7s} nhận {tk["nhan"]:5d} dòng · loại {tk["huy"]:5d} dòng đơn huỷ'
+              + (f'  ⚠ {tk["cut"]} dòng thiếu ô, đã bỏ' if tk.get('cut') else ''))
 
     if a.sinh_danh_muc:
         return sinh_danh_muc(tat_ca, a.sinh_danh_muc)
@@ -264,6 +326,7 @@ def main():
     tong_dt = sum(v[1] for v in gop.values())
     print(f'\n✓ {a.ra} — {len(gop)} dòng · {int(tong_sl):,} cái · {int(tong_dt):,} đ')
     print('  Dán thẳng vào bảng DOANH SỐ SẢN PHẨM trong Lark Base.')
+    xuat_phu(tat_ca, a.ra)
 
 
 if __name__ == '__main__':

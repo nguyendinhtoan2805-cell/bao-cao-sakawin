@@ -19,11 +19,16 @@ def nfd(s):
 
 BANG_SHOPEE = [
     ['Mã đơn hàng', nfd('Trạng Thái Đơn Hàng'), 'Ngày đặt hàng',
-     'SKU phân loại hàng', nfd('Tên phân loại hàng'), nfd('Giá ưu đãi'), 'Số lượng'],
-    ['A1', 'Hoàn thành',  '2026-07-01 10:00:00', 'C021-H-3', 'Bộ A66 Hồng', '3000000', '1'],
-    ['A1', 'Hoàn thành',  '2026-07-01 10:00:00', 'VP03-N',   'Quà tặng',    '0',       '1'],
-    ['A2', 'Đã hủy',      '2026-07-02 10:00:00', 'C021-H',   'Bộ A66 Hồng', '3000000', '2'],
-    ['A3', 'Hoàn thành',  '2026-07-03 10:00:00', 'C021-H',   'Bộ A66 Hồng', '2500000', '2'],
+     'SKU phân loại hàng', nfd('Tên phân loại hàng'), nfd('Giá ưu đãi'), 'Số lượng',
+     nfd('Tỉnh/Thành phố'), 'Phương thức thanh toán'],
+    ['A1', 'Hoàn thành',  '2026-07-01 10:00:00', 'C021-H-3', 'Bộ A66 Hồng', '3000000', '1',
+     'Thành phố Hà Nội', 'Thanh toán khi nhận hàng'],
+    ['A1', 'Hoàn thành',  '2026-07-01 10:00:00', 'VP03-N',   'Quà tặng',    '0',       '1',
+     'Thành phố Hà Nội', 'Thanh toán khi nhận hàng'],
+    ['A2', 'Đã hủy',      '2026-07-02 10:00:00', 'C021-H',   'Bộ A66 Hồng', '3000000', '2',
+     'Tỉnh Đồng Nai', 'SPayLater'],
+    ['A3', 'Hoàn thành',  '2026-07-03 10:00:00', 'C021-H',   'Bộ A66 Hồng', '2500000', '2',
+     'Tỉnh Đồng Nai', 'SPayLater'],
 ]
 
 
@@ -65,6 +70,11 @@ class DocNguon(unittest.TestCase):
         self.assertEqual(qua['so_luong'], 1)
         self.assertEqual(qua['doanh_thu'], 0)
 
+    def test_don_nhieu_mon_chi_dem_mot_lan(self):
+        dong, _ = C.doc_nguon('gia-lap.xlsx', 'SP-HÀ NỘI')
+        self.assertEqual(len(dong), 3)          # 3 dòng sản phẩm
+        self.assertEqual(len(C.theo_don(dong)), 2)   # nhưng chỉ 2 đơn
+
     def test_doanh_thu_nhan_don_gia_voi_so_luong(self):
         dong, _ = C.doc_nguon('gia-lap.xlsx', 'SP-HÀ NỘI')
         d = [x for x in dong if x['sku'] == 'C021-H'][0]
@@ -74,7 +84,8 @@ class DocNguon(unittest.TestCase):
         """Không bao giờ bỏ dòng trong im lặng: gặp trạng thái chưa khai thì
         dừng và nói tên nó ra, kèm chỗ cần sửa."""
         C.doc = lambda _: ('orders', BANG_SHOPEE + [
-            ['A9', 'Đang đóng gói', '2026-07-04 10:00:00', 'C021-H', 'x', '100', '1']])
+            ['A9', 'Đang đóng gói', '2026-07-04 10:00:00', 'C021-H', 'x', '100', '1',
+             'Thành phố Hà Nội', 'Thanh toán khi nhận hàng']])
         with self.assertRaises(SystemExit) as e:
             C.doc_nguon('gia-lap.xlsx', 'SP-HÀ NỘI')
         self.assertIn('Đang đóng gói', str(e.exception))
@@ -94,3 +105,64 @@ class DocThang(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+import thanh_toan as TT
+import vung_tinh as V
+
+
+class TenTinh(unittest.TestCase):
+    """Hai sàn gọi cùng một tỉnh bằng hai tên khác nhau."""
+
+    def test_bo_tien_to_tinh_thanh_pho(self):
+        for vao in ['Hà Nội', 'Thành phố Hà Nội', 'TP Hà Nội']:
+            self.assertEqual(V.chuan_ten_tinh(vao), 'Hà Nội', vao)
+        self.assertEqual(V.chuan_ten_tinh('Tỉnh Đồng Nai'), 'Đồng Nai')
+
+    def test_ban_ghi_hong_cua_tiktok(self):
+        """TikTok có bản ghi ghi thiếu chữ: 'Phố Hà Nội'. Dữ liệu nguồn sai,
+        không phải lỗi tính toán — nhận diện rõ thay vì để rơi ra ngoài vùng."""
+        self.assertEqual(V.vung_cua('Phố Hà Nội'), 'Đồng bằng sông Hồng')
+
+    def test_tinh_la_thi_khong_doan_bua(self):
+        self.assertEqual(V.vung_cua('Xứ sở thần tiên'), V.CHUA_XEP)
+
+    def test_du_63_tinh(self):
+        tat = {V.chuan_ten_tinh(t) for ds in V.VUNG.values() for t in ds}
+        self.assertGreaterEqual(len(tat), 60)
+
+
+class ThanhToan(unittest.TestCase):
+    def test_hai_san_goi_khac_nhau_ve_cung_mot_moi(self):
+        self.assertEqual(TT.quy_doi('Thanh toán khi giao hàng')[0],
+                         TT.quy_doi('Thanh toán khi nhận hàng')[0])
+        self.assertEqual(TT.quy_doi('Thanh toán khi giao hàng')[1], 'COD')
+
+    def test_lay_ve_dau_cua_kieu_ghep(self):
+        """TikTok ghi 'VNPAY + TikTok Shop Balance' khi khách trả một phần bằng
+        số dư ví. Cách trả tiền khách chọn là VNPAY."""
+        self.assertEqual(TT.quy_doi('VNPAY + TikTok Shop Balance')[0], 'VNPAY')
+        self.assertEqual(TT.quy_doi('Zalopay + TikTok Shop Balance')[0], 'ZaloPay')
+
+    def test_khong_biet_thi_danh_dau_chu_khong_dồn_vao_khac(self):
+        ten, nhom = TT.quy_doi('Tiền ảo Doge')
+        self.assertTrue(ten.startswith('❓'))
+        self.assertEqual(nhom, 'Chưa xếp nhóm')
+
+
+class TheoDon(unittest.TestCase):
+    """Một đơn chỉ có một địa chỉ và một cách trả tiền, nên phải gộp về mức đơn
+    trước khi đếm — nếu không, đơn nhiều món bị đếm nhiều lần."""
+
+    def test_gop_nhieu_dong_ve_mot_don(self):
+        dong = [
+            {'kenh': 'SP', 'don': 'A1', 'thang': '2026-07', 'tinh': 'Hà Nội',
+             'thanh_toan': 'COD', 'doanh_thu': 300},
+            {'kenh': 'SP', 'don': 'A1', 'thang': '2026-07', 'tinh': 'Hà Nội',
+             'thanh_toan': 'COD', 'doanh_thu': 200},
+            {'kenh': 'SP', 'don': 'A2', 'thang': '2026-07', 'tinh': 'Hà Nội',
+             'thanh_toan': 'COD', 'doanh_thu': 100},
+        ]
+        ra = C.theo_don(dong)
+        self.assertEqual(len(ra), 2)
+        self.assertEqual(sorted(x['doanh_thu'] for x in ra), [100, 500])

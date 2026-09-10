@@ -31,6 +31,29 @@ function loc() {
     (!locTim || khongDau([d.sanPham, d.dongSP, d.mau].join(' ')).includes(locTim)));
 }
 
+/* Hai bảng phụ đếm theo ĐƠN, không theo dòng sản phẩm — một đơn chỉ có một
+   địa chỉ và một cách trả tiền. Nút "Sản lượng" ở đây nghĩa là số đơn. */
+const truong2 = () => doTheo === 'doanhThu' ? 'doanhThu' : 'soDon';
+const ve2 = v => doTheo === 'doanhThu' ? tien(v) : dem(v);
+function locPhu(rows) {
+  return (rows || []).filter(d =>
+    (!locKenh || d.kenh === locKenh) && (!tu || d.thang >= tu) && (!den || d.thang <= den));
+}
+/* Ma trận: hàng × kênh, kèm cột tổng và % — đúng cách sheet của Toàn đang bày. */
+function maTran(rows, khoaHang) {
+  const f = truong2();
+  const kenh = [...new Set(rows.map(d => d.kenh))].sort();
+  const m = new Map();
+  for (const d of rows) {
+    const k = d[khoaHang] || '(không ghi)';
+    const o = m.get(k) || { theoKenh: new Map(), tong: 0, meta: d };
+    o.theoKenh.set(d.kenh, (o.theoKenh.get(d.kenh) || 0) + d[f]);
+    o.tong += d[f]; m.set(k, o);
+  }
+  return { kenh, hang: [...m.entries()].sort((a, b) => b[1].tong - a[1].tong),
+           tongAll: [...m.values()].reduce((s, o) => s + o.tong, 0) || 1 };
+}
+
 function gop(rows, khoa) {
   const m = new Map();
   for (const d of rows) {
@@ -173,11 +196,60 @@ function xuatCsv() {
   bao('Đã tải ' + ten + ' — ' + rows.length + ' dòng đang lọc.');
 }
 
+function veTinh() {
+  const rows = locPhu(du.tinh);
+  if (!rows.length) {
+    $('khoiTinh').hidden = true; return;
+  }
+  $('khoiTinh').hidden = false;
+  const { kenh, hang, tongAll } = maTran(rows, 'tinh');
+  /* Gom tỉnh vào vùng rồi xếp vùng theo tổng — nhìn ra ngay miền nào đang gánh. */
+  const vung = new Map();
+  for (const [ten, o] of hang) {
+    const v = o.meta.vung || '(chưa xếp vùng)';
+    const g = vung.get(v) || { tong: 0, tinh: [] };
+    g.tong += o.tong; g.tinh.push([ten, o]); vung.set(v, g);
+  }
+  const o2 = (o) => kenh.map(k => `<td class="phai">${o.theoKenh.get(k) ? ve2(o.theoKenh.get(k)) : '<span class="mo">—</span>'}</td>`).join('');
+  $('bangTinh').innerHTML = [...vung.entries()].sort((a, b) => b[1].tong - a[1].tong)
+    .map(([v, g]) => {
+      const tongVung = { theoKenh: new Map(), tong: g.tong };
+      for (const [, o] of g.tinh) for (const [k, n] of o.theoKenh)
+        tongVung.theoKenh.set(k, (tongVung.theoKenh.get(k) || 0) + n);
+      return `<tr class="hang-vung"><td>${esc(v)}</td>${o2(tongVung)}<td class="phai">${ve2(g.tong)}</td><td class="phai">${(g.tong / tongAll * 100).toFixed(1)}%</td></tr>`
+        + g.tinh.sort((a, b) => b[1].tong - a[1].tong).map(([ten, o]) =>
+          `<tr><td class="o-tinh">${esc(ten)}</td>${o2(o)}<td class="phai">${ve2(o.tong)}</td><td class="phai mo">${(o.tong / tongAll * 100).toFixed(1)}%</td></tr>`).join('');
+    }).join('');
+  $('dauTinh').innerHTML = '<tr><th>Vùng / Tỉnh</th>'
+    + kenh.map(k => `<th class="phai">${esc(k)}</th>`).join('')
+    + '<th class="phai">Tổng</th><th class="phai">%</th></tr>';
+  $('ghiChuTinh').textContent = `${hang.length} tỉnh · ${vung.size} vùng · đếm theo đơn hàng`;
+}
+
+function veThanhToan() {
+  const rows = locPhu(du.thanhToan);
+  if (!rows.length) { $('khoiTra').hidden = true; return; }
+  $('khoiTra').hidden = false;
+  const { kenh, hang, tongAll } = maTran(rows, 'phuongThuc');
+  const o2 = (o) => kenh.map(k => `<td class="phai">${o.theoKenh.get(k) ? ve2(o.theoKenh.get(k)) : '<span class="mo">—</span>'}</td>`).join('');
+  $('bangTra').innerHTML = hang.map(([ten, o]) =>
+    `<tr><td>${esc(ten)}<span class="phu">${esc(o.meta.nhom || '')}</span></td>${o2(o)}<td class="phai">${ve2(o.tong)}</td><td class="phai">${(o.tong / tongAll * 100).toFixed(1)}%</td></tr>`).join('');
+  $('dauTra').innerHTML = '<tr><th>Phương thức</th>'
+    + kenh.map(k => `<th class="phai">${esc(k)}</th>`).join('')
+    + '<th class="phai">Tổng</th><th class="phai">%</th></tr>';
+  /* COD hay trả trước là con số vận hành đáng nhìn nhất của khối này. */
+  const nhom = new Map();
+  for (const d of rows) nhom.set(d.nhom || '?', (nhom.get(d.nhom || '?') || 0) + d[truong2()]);
+  const t = [...nhom.values()].reduce((a, b) => a + b, 0) || 1;
+  $('tomTatTra').innerHTML = [...nhom.entries()].sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `<span class="vien">${esc(k)} <b>${(v / t * 100).toFixed(0)}%</b></span>`).join('');
+}
+
 function ve() {
   if (!du) return;
   const rows = loc();
   $('demDong').textContent = `${rows.length} dòng dữ liệu · ${new Set(rows.map(d => d.sanPham)).size} mã sản phẩm`;
-  veCoCau(rows); veXepHang(rows); veXuHuong(rows);
+  veCoCau(rows); veXepHang(rows); veXuHuong(rows); veTinh(); veThanhToan();
 }
 
 function dungBoLoc() {

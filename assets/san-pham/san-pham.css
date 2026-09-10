@@ -56,6 +56,12 @@ input,select{min-height:38px;padding:8px 10px;border:1px solid #e0dce2;border-ra
 .trong-80{color:#09803c;font-weight:600}
 .len{color:#09803c;font-weight:600}.xuong{color:#c8102e;font-weight:600}
 
+.bang-matran{min-width:760px}
+.hang-vung td{background:#f2f9f4;font-weight:700;color:#136c3b;border-top:1px solid #d9ecdf}
+.o-tinh{padding-left:26px!important;color:#5c5664}
+.dai-nhom{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.vien{border:1px solid #eed5da;border-radius:20px;padding:4px 12px;font-size:11px;color:#7a5560;background:#fff}
+.vien b{color:#c8102e;font-size:12px}
 .bieu-do{width:100%;height:auto;background:#fff;border:1px solid #e9e4e9;border-radius:10px;padding:10px}
 .bieu-do .luoi{stroke:#eeeaef;stroke-width:1}
 .bieu-do .duong{fill:none;stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
