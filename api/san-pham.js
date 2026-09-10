@@ -12,6 +12,7 @@
    Biến môi trường: LARK_APP_TOKEN_SP — mã Base, lấy trong URL sau /wiki/ hoặc /base/
 */
 const A = require('./_auth.js');
+const { duLieuMinhHoa } = require('../lib/san-pham-demo.js');
 
 const HOST = (process.env.LARK_HOST || 'https://open.larksuite.com').replace(/\/$/, '');
 const TEN_BANG = 'DOANH SỐ SẢN PHẨM';
@@ -89,8 +90,20 @@ module.exports = async (req, res) => {
     const toi = await A.canhCong(req, res, 'xem_san_pham');
     if (!toi) return;
 
+    /* Chưa cắm Base thì vẫn cho xem giao diện bằng số minh hoạ, để duyệt bố cục
+       trước khi có dữ liệu thật. Trang hiện nhãn cảnh báo rất rõ, và chế độ này
+       tự tắt ngay khi LARK_APP_TOKEN_SP có mặt — không có công tắc thủ công nào
+       để quên bật lại. */
     const base = process.env.LARK_APP_TOKEN_SP;
-    if (!base) throw new Error('Thiếu biến môi trường LARK_APP_TOKEN_SP trên Vercel.');
+    if (!base) {
+      const dong = duLieuMinhHoa();
+      return res.status(200).json({
+        ok: true, demo: true, capNhat: Date.now(), dong,
+        thang: [...new Set(dong.map(d => d.thang))].sort(),
+        kenh: [...new Set(dong.map(d => d.kenh))].sort(),
+        thieuCot: [], tong: { dong: dong.length, banGhi: dong.length },
+      });
+    }
 
     const tk = await larkToken();
     const bang = await timBang(tk, base);
@@ -118,6 +131,7 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({
       ok: true,
+      demo: false,
       capNhat: Date.now(),
       dong,
       thang: [...new Set(dong.map(d => d.thang))].sort(),

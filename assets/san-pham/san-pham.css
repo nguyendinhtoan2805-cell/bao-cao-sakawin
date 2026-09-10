@@ -13,6 +13,9 @@ a{color:#b7102b;text-decoration:none}h1,h2,h3,p{margin:0}
 input,select{min-height:38px;padding:8px 10px;border:1px solid #e0dce2;border-radius:7px;background:#fff;color:#303038;max-width:100%}
 .notice{background:#f8f5fa;color:#62596a;border:1px solid #ebe5ef;border-radius:7px;padding:9px 13px;font-size:12px;margin:16px 0 10px}
 .notice.error{background:#fff2f3;border-color:#f3c5cf;color:#a01026}
+.bang-demo{background:#3a2b32;color:#ffd9e0;border-radius:8px;padding:11px 15px;font-size:12px;margin:16px 0 0;line-height:1.7}
+.bang-demo b{color:#fff}
+.che-do-demo .brand h1::after{content:"minh hoạ";font-size:11px;font-weight:600;color:#fff;background:#c8102e;border-radius:20px;padding:4px 11px;vertical-align:middle;margin-left:12px;letter-spacing:.3px}
 .canh-bao{background:#fff8eb;border:1px solid #f5dfb9;border-radius:8px;padding:11px 14px;font-size:12px;color:#7d5f2b;line-height:1.7;margin-bottom:18px}
 .nho{font-size:12px}.mo{color:#7a7480}.phai{text-align:right}.giua{text-align:center}
 .trong{color:#9c94a4;font-size:12px;text-align:center;padding:26px 10px}
@@ -33,12 +36,13 @@ input,select{min-height:38px;padding:8px 10px;border:1px solid #e0dce2;border-ra
 .luoi-the{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:14px}
 .the{background:#fff;border:1px solid #e9e4e9;border-radius:10px;padding:15px 16px}
 .the h3{font-size:14px;color:#c8102e;margin-bottom:12px}
-.thanh-hang{display:grid;grid-template-columns:88px 1fr 78px;gap:9px;align-items:center;margin-bottom:8px;font-size:11px}
+.thanh-hang{margin-bottom:11px;font-size:11px}
+.thanh-dau{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:4px}
 .thanh-ten{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#53505d;font-weight:500}
-.thanh-nen{background:#f3f0f5;border-radius:20px;height:9px;overflow:hidden}
-.thanh-nen span{display:block;height:100%;background:linear-gradient(90deg,#c8102e,#e8586f);border-radius:20px}
-.thanh-so{text-align:right;font-weight:600;color:#3a3540}
-.thanh-so small{display:block;font-weight:400;color:#9a92a0;font-size:10px}
+.thanh-nen{background:#f3f0f5;border-radius:20px;height:8px;overflow:hidden}
+.thanh-nen span{display:block;height:100%;background:linear-gradient(90deg,#c8102e,#e8586f);border-radius:20px;min-width:2px}
+.thanh-so{font-weight:600;color:#3a3540;white-space:nowrap}
+.thanh-so small{color:#9a92a0;font-size:10px;margin-left:6px;font-weight:400}
 
 .cuon-bang{overflow:auto;border:1px solid #ebe7ec;border-radius:8px;max-height:70vh;background:#fff}
 .bang-hang{border-collapse:separate;border-spacing:0;width:100%;font-size:12px;min-width:900px}
@@ -47,6 +51,7 @@ input,select{min-height:38px;padding:8px 10px;border:1px solid #e0dce2;border-ra
 .bang-hang tr:last-child td{border-bottom:0}
 .bang-hang .hang-so{color:#a49aa8;font-variant-numeric:tabular-nums}
 .bang-hang .phu{display:block;color:#968b9c;font-size:10px;margin-top:2px}
+.vach-cat td{background:#fff4e4;color:#a9640a;font-weight:600;font-size:11px;text-align:center;padding:7px 12px;border-top:2px dashed #e8b877;border-bottom:2px dashed #e8b877}
 .duoi-dai{background:#fcfbfc;color:#8d8593}
 .trong-80{color:#09803c;font-weight:600}
 .len{color:#09803c;font-weight:600}.xuong{color:#c8102e;font-weight:600}
@@ -56,6 +61,7 @@ input,select{min-height:38px;padding:8px 10px;border:1px solid #e0dce2;border-ra
 .bieu-do .duong{fill:none;stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
 .bieu-do .nhan-truc{font-size:10px;fill:#948b99}
 .bieu-do .giua-text{text-anchor:middle}
+.bieu-do .nhan-cuoi{font-size:10px;font-weight:700;text-anchor:end}
 .chu-thich{display:flex;gap:16px;flex-wrap:wrap;margin-top:11px;font-size:11px;color:#5f5866}
 .chu-thich i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 

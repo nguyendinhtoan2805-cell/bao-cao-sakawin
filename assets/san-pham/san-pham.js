@@ -52,9 +52,11 @@ function veCoCau(rows) {
       ${hang.length ? hang.slice(0, 8).map(([k, v]) => {
         const pt = v[doTheo] / tong * 100;
         return `<div class="thanh-hang">
-          <div class="thanh-ten" title="${esc(k)}">${esc(k)}</div>
+          <div class="thanh-dau">
+            <span class="thanh-ten" title="${esc(k)}">${esc(k)}</span>
+            <span class="thanh-so">${ve(v[doTheo])}<small>${pt.toFixed(0)}%</small></span>
+          </div>
           <div class="thanh-nen"><span style="width:${pt.toFixed(1)}%"></span></div>
-          <div class="thanh-so">${ve(v[doTheo])}<small>${pt.toFixed(0)}%</small></div>
         </div>`;
       }).join('') : '<p class="trong">Chưa có dữ liệu</p>'}
       ${hang.length > 8 ? `<p class="nho mo">… và ${hang.length - 8} mục khác</p>` : ''}
@@ -88,10 +90,21 @@ function veXepHang(rows) {
     o.kenh.set(d.kenh, (o.kenh.get(d.kenh) || 0) + d[doTheo]);
     o.thang.add(d.thang); theoSP.set(d.sanPham, o);
   }
+  /* "Top 80%" định nghĩa MỘT lần ở đây rồi dùng chung cho cả vạch cắt, màu
+     hàng và câu tóm tắt — trước đó ba chỗ tự tính nên lệch nhau một dòng.
+     soTop = số mã ít nhất mà cộng dồn lại CHẠM 80%, tính cả mã vượt qua mốc. */
+  let cong = 0, soTop = hang.length;
+  for (let i = 0; i < hang.length; i++) {
+    cong += hang[i][1][doTheo];
+    if (cong / tong >= 0.8) { soTop = i + 1; break; }
+  }
   let luy = 0;
   $('bangHang').innerHTML = hang.map(([ten, v], i) => {
     luy += v[doTheo];
     const pt = luy / tong * 100;
+    const vach = i === soTop
+      ? `<tr class="vach-cat"><td colspan="9">${soTop} mã bên trên tạo ra 80% ${DON_VI[doTheo].nhan.toLowerCase()} · ${hang.length - soTop} mã bên dưới là đuôi dài</td></tr>`
+      : '';
     const o = theoSP.get(ten);
     const manh = [...o.kenh.entries()].sort((x, y) => y[1] - x[1])[0];
     const xh = xuHuong3T(rows, ten);
@@ -99,22 +112,21 @@ function veXepHang(rows) {
       : xh > 0.15 ? `<span class="len">▲ ${(xh * 100).toFixed(0)}%</span>`
       : xh < -0.15 ? `<span class="xuong">▼ ${(Math.abs(xh) * 100).toFixed(0)}%</span>`
       : '<span class="mo">≈</span>';
-    return `<tr class="${pt <= 80 ? '' : 'duoi-dai'}">
+    return vach + `<tr class="${i < soTop ? '' : 'duoi-dai'}">
       <td class="hang-so">${i + 1}</td>
       <td><b>${esc(ten)}</b><span class="phu">${esc([o.meta.dongSP, o.meta.mau].filter(Boolean).join(' · '))}</span></td>
       <td>${esc(o.meta.phanKhuc || '—')}</td>
       <td class="phai">${dem(v.sanLuong)}</td>
       <td class="phai">${tien(v.doanhThu)}</td>
-      <td class="phai ${pt <= 80 ? 'trong-80' : 'mo'}">${pt.toFixed(1)}%</td>
+      <td class="phai ${i < soTop ? 'trong-80' : 'mo'}">${pt.toFixed(1)}%</td>
       <td>${esc(manh ? manh[0] : '—')}</td>
       <td class="giua">${mui}</td>
       <td class="mo">${esc([...o.thang].sort()[0] || '')}</td>
     </tr>`;
   }).join('') || '<tr><td colspan="9" class="trong">Không có mã nào khớp bộ lọc.</td></tr>';
 
-  const trong80 = hang.filter((_, i) => hang.slice(0, i + 1).reduce((s, [, v]) => s + v[doTheo], 0) / tong <= 0.8).length;
   $('tomTat').textContent = hang.length
-    ? `${trong80}/${hang.length} mã tạo ra 80% ${DON_VI[doTheo].nhan.toLowerCase()}. Phần tô nhạt bên dưới là đuôi dài.`
+    ? `${soTop}/${hang.length} mã tạo ra 80% ${DON_VI[doTheo].nhan.toLowerCase()} — ${hang.length - soTop} mã còn lại là đuôi dài.`
     : '';
 }
 
@@ -140,10 +152,25 @@ function veXuHuong(rows) {
         <text x="4" y="${y(dinh * f) + 4}" class="nhan-truc">${DON_VI[doTheo].ve(dinh * f)}</text>`).join('')}
       ${chuoi.map((c, i) => `<polyline class="duong" stroke="${MAU_LINE[i % 6]}"
          points="${c.map((v, j) => x(j) + ',' + y(v)).join(' ')}"/>`).join('')}
+      ${chuoi.map((c, i) => { const v = c[c.length - 1]; return v ? `<text x="${x(thang.length - 1) - 4}" y="${y(v) - 6}" class="nhan-cuoi" fill="${MAU_LINE[i % 6]}">${DON_VI[doTheo].ve(v)}</text>` : ''; }).join('')}
       ${thang.map((t, i) => `<text x="${x(i)}" y="${H - 8}" class="nhan-truc giua-text">${esc(t.slice(5))}</text>`).join('')}
     </svg>
     <div class="chu-thich">${dong.map((k, i) =>
       `<span><i style="background:${MAU_LINE[i % 6]}"></i>${esc(k)}</span>`).join('')}</div>`;
+}
+
+function xuatCsv() {
+  const rows = loc();
+  const o = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const cot = ['Tháng', 'Sản phẩm', 'Dòng SP', 'Phân khúc giá', 'Loại', 'Màu', 'Kênh', 'Sản lượng', 'Doanh thu'];
+  const csv = '\uFEFF' + [cot, ...rows.map(d => [d.thang, d.sanPham, d.dongSP, d.phanKhuc,
+    d.loai, d.mau, d.kenh, d.sanLuong, d.doanhThu])].map(r => r.map(o).join(',')).join('\r\n');
+  const ten = 'san-pham-' + tu + '-den-' + den + (du.demo ? '-MINH-HOA' : '') + '.csv';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = ten; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  bao('Đã tải ' + ten + ' — ' + rows.length + ' dòng đang lọc.');
 }
 
 function ve() {
@@ -170,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('den').onchange = e => { den = e.target.value; ve(); };
   $('tim').oninput = e => { locTim = khongDau(e.target.value.trim()); ve(); };
   $('taiLai').onclick = () => nap();
+  $('xuat').onclick = xuatCsv;
   nap();
 });
 
@@ -183,6 +211,8 @@ async function nap() {
     du = await api('/api/san-pham');
     if (!du.dong.length) return bao('Bảng DOANH SỐ SẢN PHẨM trong Lark chưa có dòng nào. Chạy công cụ chuẩn hoá rồi dán dữ liệu vào.', true);
     $('noiDung').hidden = false;
+    $('bangDemo').hidden = du.demo !== true;
+    document.body.classList.toggle('che-do-demo', du.demo === true);
     dungBoLoc();
     bao(`Đã đọc ${du.tong.dong} dòng từ Lark lúc ${new Date(du.capNhat).toLocaleTimeString('vi-VN')}`
       + (du.thieuCot.length ? ` · Base thiếu cột: ${du.thieuCot.join(', ')}` : ''));
