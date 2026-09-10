@@ -415,13 +415,39 @@ module.exports = async (req, res) => {
       if (!Object.keys(va).length)
         return res.status(500).json({ ok: false, error: 'Không có cột nào hợp lệ để ghi.' });
 
+      /* Khớp tên cột với tên THẬT trong Base trước khi ghi.
+         Tên cột trong Lark hay lệch một dấu cách ("Địa điểm/ Link" vs
+         "Địa điểm / Link") — trước đây cả nút bấm hỏng chỉ vì chuyện đó.
+         Cột bắt buộc mà thiếu thì dừng hẳn; cột phụ thiếu thì bỏ qua và nói ra,
+         để một cột đóng dấu ngày không chặn được việc ghi biên bản phỏng vấn. */
+      const COT_BAT_BUOC = ['Trạng thái', 'Lịch sử'];
+      let tenThat = [];
+      try { tenThat = (await dsCot(tk, BASE, bUV.table_id)).map(c => c.field_name); } catch { /* đọc không được thì thôi */ }
+      const gonNhe = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[Đđ]/g, 'd').toLowerCase().replace(/\s+/g, '');
+      const boQua = [];
+      const vaKhop = {};
+      if (!tenThat.length) Object.assign(vaKhop, va);
+      else for (const [k, v] of Object.entries(va)) {
+        if (tenThat.includes(k)) { vaKhop[k] = v; continue; }
+        const hop = tenThat.filter(t => gonNhe(t) === gonNhe(k));
+        if (hop.length === 1) { vaKhop[hop[0]] = v; continue; }
+        if (COT_BAT_BUOC.includes(k))
+          return res.status(500).json({ ok: false,
+            error: `Bảng ỨNG VIÊN thiếu cột bắt buộc "${k}". Các cột hiện có: ${tenThat.join(' · ')}` });
+        boQua.push(k);
+      }
+      const va2 = vaKhop;
+      if (!Object.keys(va2).length)
+        return res.status(500).json({ ok: false, error: 'Không có cột nào khớp với bảng ỨNG VIÊN.' });
+
       /* LỚP 1 — địa chỉ ghi dựng từ table_id đã dò được của đúng bảng ỨNG VIÊN,
          không nhận table_id từ phía gọi. Không có đường nào trỏ sang bảng khác. */
       const r = await fetch(
         `${HOST}/open-apis/bitable/v1/apps/${BASE}/tables/${bUV.table_id}/records/${id}`,
         { method: 'PUT',
           headers: { Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({ fields: va }) });
+          body: JSON.stringify({ fields: va2 }) });
       const j = await r.json();
       if (j.code !== 0) {
         /* Lark báo lỗi tên cột bằng mã khó đoán — dịch sang câu người đọc hiểu */
@@ -455,7 +481,8 @@ module.exports = async (req, res) => {
             + `và đã thêm app vào Base với quyền "Can edit" chưa.`);
         throw new Error(`Ghi vào Lark thất bại (${j.code}): ${j.msg}`);
       }
-      return res.status(200).json({ ok: true, ten, tu: tuThat, den, dong });
+      return res.status(200).json({ ok: true, ten, tu: tuThat, den, dong,
+        ...(boQua.length ? { luuY: `Đã lưu, nhưng bảng ỨNG VIÊN chưa có cột ${boQua.map(x => '"' + x + '"').join(', ')} nên chưa đóng dấu được. Thêm cột đó (kiểu Ngày) rồi lần sau sẽ đủ.` } : {}) });
     }
 
     /* ═══════════════ ĐỌC ═══════════════ */

@@ -1524,6 +1524,7 @@ async function doiTrangThai(den, lyDo, ghiChu, them){
     if (!j.ok) { bao('err', j.error || 'Không ghi được', 6); return; }
 
     bao('ok', `${j.ten}: ${j.tu} → ${j.den}`);
+    if (j.luuY) bao('warn', j.luuY, 9);
     dongHoSo();
     await sync();
   } catch(err){
