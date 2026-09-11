@@ -38,6 +38,8 @@ textarea{min-height:74px;resize:vertical}
 .hang-doi{background:#fff;border:1px solid #e9e4e9;border-radius:10px;padding:14px}
 .hang-doi h3{font-size:15px;display:flex;align-items:center;gap:9px;margin-bottom:5px}
 .dem-tron{background:#c8102e;color:#fff;border-radius:20px;font-size:11px;padding:2px 9px;font-weight:700}
+.nhac-xac-nhan{font-size:11px;color:#a9640a;background:#fff8eb;border:1px solid #f5dfb9;border-radius:7px;padding:8px 10px;margin-top:10px;line-height:1.6}
+.nhac-xac-nhan:empty{display:none}
 .nhom-quan{margin-top:13px;border:1px solid #eee9ef;border-radius:8px;overflow:hidden}
 .nhom-quan>h4{margin:0;font-size:12px;padding:7px 11px;background:#f4f1f6;color:#5f5866;display:flex;justify-content:space-between}
 .the-don{border-top:1px solid #f0ecf1;padding:9px 11px;font-size:12px;cursor:pointer;background:#fff;width:100%;text-align:left;border-left:0;border-right:0;border-bottom:0}

@@ -86,8 +86,17 @@ function veHanhTrinh() {
 
 /* ── Bàn điều phối ──────────────────────────────────────────────────────── */
 function veHangDoi() {
-  const chuaXep = donNgay().filter(d => d.xepNguoi && !d.nguoiGiao);
+  /* Chỉ xếp được đơn ĐÃ xác nhận. Trước đó hàng đợi nhận cả đơn "Chờ xác nhận"
+     nên xếp một cái là nhảy thẳng qua khâu gọi khách chốt giờ — mất đúng bước
+     mà cả quy trình dựa vào. */
+  const ngayNay = donNgay().filter(d => d.xepNguoi && !d.nguoiGiao);
+  const chuaXacNhan = ngayNay.filter(d => d.trangThai === 'Chờ xác nhận');
+  const chuaXep = ngayNay.filter(d => d.trangThai !== 'Chờ xác nhận');
   $('demChuaXep').textContent = chuaXep.length;
+  $('nhacXacNhan').innerHTML = chuaXacNhan.length
+    ? '⚠ Còn <b>' + chuaXacNhan.length + ' đơn chưa xác nhận</b> trong ngày này. '
+      + 'Gọi khách chốt giờ ở hành trình phía trên trước, rồi mới xếp được người giao.'
+    : '';
   const theoQuan = new Map();
   for (const d of chuaXep) (theoQuan.get(d.quan) || theoQuan.set(d.quan, []).get(d.quan)).push(d);
   $('dsChuaXep').innerHTML = theoQuan.size
@@ -332,7 +341,8 @@ document.addEventListener('DOMContentLoaded', () => {
       d.loaiNguoiGiao = (du.nguoiGiao.find(n => n.ten === d.nguoiGiao) || {}).loai || '';
       d.trangThai = 'Đã xếp người';
       d.thuTu = du.don.filter(x => x.ngayGiao === d.ngayGiao && x.nguoiGiao === d.nguoiGiao && x.khungGio === d.khungGio).length;
-      chon = null; veDieuPhoi();
+      chon = null;
+      ve();   /* vẽ lại cả dải số và hành trình, không chỉ bàn điều phối */
       bao('Đã xếp trên màn hình. Bản mẫu chưa nối Lark nên tải lại trang là mất.');
       return;
     }
