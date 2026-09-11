@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><title>Giao hàng · Sakawin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/workspace/workspace.css">
+  <link rel="stylesheet" href="/assets/workspace/navigation.css">
+  <link rel="stylesheet" href="/assets/giao-hang/giao-hang.css">
+  <script src="/assets/giao-hang/giao-hang.js" defer></script>
+  <script src="/assets/workspace/navigation.js" defer></script>
+</head>
+<body class="workspace-page page-giaohang">
+  <nav class="appnav" aria-label="Điều hướng chính">
+    <a class="applogo" href="/"><span class="logo-crop"><img src="/assets/recruitment/sakawin-logo.png" alt="Sakawin" width="3508" height="2481"></span><span class="workspace-label">WORKSPACE</span></a>
+    <a class="navtab" href="/"><i class="ui-icon icon-grid" aria-hidden="true"></i><span class="nav-label">Tổng quan</span></a>
+    <a class="navtab" href="/doanh-so.html" data-right="xem_doanh_so" hidden><i class="ui-icon icon-trending-up" aria-hidden="true"></i><span class="nav-label">Doanh số &amp; Target</span></a>
+    <a class="navtab" href="/tai-chinh.html" data-right="xem_tai_chinh" hidden><i class="ui-icon icon-pie-chart" aria-hidden="true"></i><span class="nav-label">Tài chính &amp; Lãi lỗ</span></a>
+    <a class="navtab" href="/quy-luong.html" data-right="xem_luong" hidden><i class="ui-icon icon-credit-card" aria-hidden="true"></i><span class="nav-label">Quỹ lương</span></a>
+    <a class="navtab" href="/nhan-su.html" data-right="xem_nhan_su" hidden><i class="ui-icon icon-users" aria-hidden="true"></i><span class="nav-label">Nhân sự</span></a>
+    <a class="navtab" href="/tuyen-dung.html" data-right="xem_tuyen_dung" hidden><i class="ui-icon icon-user-plus" aria-hidden="true"></i><span class="nav-label">Tuyển dụng</span></a>
+    <a class="navtab" href="/order.html" data-right="xem_order" hidden><i class="ui-icon icon-order" aria-hidden="true"></i><span class="nav-label">Order Design &amp; Media</span></a>
+    <a class="navtab" href="/san-pham.html" data-right="xem_san_pham" hidden><i class="ui-icon icon-report" aria-hidden="true"></i><span class="nav-label">Sản phẩm</span></a>
+    <a class="navtab active" href="/giao-hang.html" aria-current="page"><i class="ui-icon icon-truck" aria-hidden="true"></i><span class="nav-label">Giao hàng</span></a>
+    <a class="navtab" href="/admin.html" data-right="quan_tri" hidden><i class="ui-icon icon-shield" aria-hidden="true"></i><span class="nav-label">Quản trị</span></a>
+    <button class="sidebar-toggle" id="collapseNav" aria-expanded="true" aria-label="Thu gọn menu"><i class="ui-icon icon-chevrons-left" aria-hidden="true"></i><span class="nav-label">Thu gọn menu</span></button>
+    <div class="navuser"><span class="who">Xin chào <b id="who">Đang kiểm tra phiên…</b></span><a href="/api/auth/logout"><i class="ui-icon icon-log-out" aria-hidden="true"></i><span class="nav-label">Đăng xuất</span></a></div>
+  </nav>
+
+  <main class="workspace-main">
+    <span class="workspace-watermark logo-crop" aria-hidden="true"><img src="/assets/recruitment/sakawin-logo.png" alt="" width="3508" height="2481"></span>
+
+    <header class="masthead">
+      <div class="brand"><h1>Giao hàng</h1><p>Điều phối giao lắp nội thành · đối soát COD · năng suất người giao</p></div>
+      <div class="header-actions">
+        <div class="nhom-nut" role="group" aria-label="Khu vực">
+          <button data-kv="HN" aria-pressed="true">Hà Nội</button>
+          <button data-kv="HCM" aria-pressed="false">HCM</button>
+        </div>
+        <button class="button" id="taiLai">Tải lại</button>
+      </div>
+    </header>
+
+    <div id="bangDemo" class="bang-demo" hidden><b>BẢN MẪU · DỮ LIỆU ẢO</b> — đơn, khách, số điện thoại trên trang này do máy sinh ra để anh soát giao diện. Chưa nối Lark, nên <b>bấm gì cũng không ghi đi đâu cả</b>.</div>
+    <div id="status" role="status" aria-live="polite" class="notice">Đang kiểm tra quyền và tải dữ liệu…</div>
+
+    <section id="noiDung" hidden>
+      <div class="tab-thanh" role="tablist">
+        <button role="tab" data-tab="dieuPhoi" aria-selected="true">Bàn điều phối</button>
+        <button role="tab" data-tab="nhapDon" aria-selected="false">Nhập đơn</button>
+        <button role="tab" data-tab="congNo" aria-selected="false">Sổ công nợ</button>
+        <button role="tab" data-tab="nangSuat" aria-selected="false">Năng suất</button>
+      </div>
+
+      <section id="panDieuPhoi" class="pan">
+        <div class="thanh-ngay">
+          <button class="button nho-nut" id="ngayTruoc">‹ Hôm trước</button>
+          <label class="o-loc"><span>Ngày giao</span><select id="ngay"></select></label>
+          <button class="button nho-nut" id="ngaySau">Hôm sau ›</button>
+          <span class="nho mo" id="demNgay"></span>
+        </div>
+        <div class="ban-dieu-phoi">
+          <aside class="hang-doi">
+            <h3>Chưa xếp <span class="dem-tron" id="demChuaXep">0</span></h3>
+            <p class="nho mo">Gom theo quận để nhìn ra tuyến. Bấm một đơn rồi bấm ô bên phải để xếp.</p>
+            <div id="dsChuaXep"></div>
+          </aside>
+          <div class="luoi-xep">
+            <div id="luoiXep"></div>
+            <p class="nho mo ghi-chu-luoi">Máy chỉ cảnh báo khi <b>khác quận trong cùng khung giờ</b> — còn 2 hay 5 đơn một khung là quyết định của trưởng kho.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="panNhapDon" class="pan" hidden>
+        <div class="khung-form">
+          <h3>Đơn giao hàng mới</h3>
+          <p class="nho mo">Chọn <b>phân loại đơn</b> trước — các ô bên dưới hiện theo loại đơn, không bắt điền thứ không cần.</p>
+          <form id="formDon"></form>
+        </div>
+      </section>
+
+      <section id="panCongNo" class="pan" hidden>
+        <div class="hai-so">
+          <section class="the-so">
+            <div class="dau-the"><h3>Phải THU từ người giao</h3><p class="nho mo">COD đã giao xong nhưng chưa đóng phiên</p></div>
+            <div class="cuon-bang"><table class="bang"><thead id="dauThu"></thead><tbody id="bangThu"></tbody></table></div>
+          </section>
+          <section class="the-so">
+            <div class="dau-the"><h3>Phải TRẢ đối tác</h3><p class="nho mo">Công giao theo số đơn đã giao</p></div>
+            <div class="cuon-bang"><table class="bang"><thead id="dauTra"></thead><tbody id="bangTra"></tbody></table></div>
+          </section>
+        </div>
+        <p class="canh-bao" id="ghiChuCanTru"></p>
+      </section>
+
+      <section id="panNangSuat" class="pan" hidden>
+        <div class="thanh-ngay">
+          <label class="o-loc"><span>Xem theo</span><select id="kyNangSuat"><option value="7">7 ngày gần nhất</option><option value="30" selected>30 ngày gần nhất</option></select></label>
+          <span class="nho mo">Không xem theo ngày — dưới 20 đơn/ngày chia cho vài người thì con số chỉ là nhiễu.</span>
+        </div>
+        <div class="cuon-bang"><table class="bang"><thead id="dauNS"></thead><tbody id="bangNS"></tbody></table></div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="hop"><header class="dau-hop"><h2 id="tieuDeHop"></h2><button class="icon-button" id="dongHop" aria-label="Đóng">Đóng</button></header><div id="thanHop"></div></dialog>
+</body>
+</html>

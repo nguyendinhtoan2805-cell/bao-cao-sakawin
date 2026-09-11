@@ -1,0 +1,92 @@
+*{box-sizing:border-box}
+body{margin:0;font-family:'Be Vietnam Pro',sans-serif;font-size:14px;color:#232323;line-height:1.5}
+button,input,select,textarea{font:inherit}button{cursor:pointer}[hidden]{display:none!important}
+a{color:#b7102b;text-decoration:none}h1,h2,h3,p{margin:0}
+.appnav,.navtab,.navuser{display:flex}.navtab{align-items:center;text-decoration:none}.applogo{text-decoration:none}
+.icon-truck{--icon:url('../recruitment/icons/briefcase.svg')}
+.page-giaohang .workspace-main{padding:26px 24px;min-height:100vh}
+.masthead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.page-giaohang .brand h1{font-size:clamp(23px,2.3vw,34px);font-weight:800}
+.brand p{margin-top:4px;color:#77717a}
+.header-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.button{border-radius:7px;min-height:38px;padding:8px 14px;background:#fff;color:#b7102b;border:1px solid #eed5da;font-weight:500}
+.button:hover{background:#fff2f4}.button.primary{background:#c8102e;color:#fff;border-color:#c8102e}
+.button:disabled{opacity:.45;cursor:not-allowed}.nho-nut{min-height:32px;padding:5px 10px;font-size:12px}
+.icon-button{border:1px solid #e6e2e5;background:#fff;color:#68646b;border-radius:7px;padding:7px 12px;font-size:12px}
+input,select,textarea{min-height:38px;padding:8px 10px;border:1px solid #e0dce2;border-radius:7px;background:#fff;color:#303038;max-width:100%;width:100%}
+textarea{min-height:74px;resize:vertical}
+.nhom-nut{display:flex;border:1px solid #eed5da;border-radius:7px;overflow:hidden}
+.nhom-nut button{border:0;background:#fff;color:#6e6774;padding:9px 15px;font-weight:600;font-size:12px}
+.nhom-nut button[aria-pressed=true]{background:#c8102e;color:#fff}
+.notice{background:#f8f5fa;color:#62596a;border:1px solid #ebe5ef;border-radius:7px;padding:9px 13px;font-size:12px;margin:14px 0 10px}
+.notice.error{background:#fff2f3;border-color:#f3c5cf;color:#a01026}
+.bang-demo{background:#3a2b32;color:#ffd9e0;border-radius:8px;padding:11px 15px;font-size:12px;margin-top:14px;line-height:1.7}
+.bang-demo b{color:#fff}
+.canh-bao{background:#fff8eb;border:1px solid #f5dfb9;border-radius:8px;padding:11px 14px;font-size:12px;color:#7d5f2b;line-height:1.7;margin-top:14px}
+.nho{font-size:12px}.mo{color:#7a7480}.phai{text-align:right}.giua{text-align:center}
+.trong{color:#9c94a4;font-size:12px;text-align:center;padding:24px 10px}
+
+.tab-thanh{display:flex;gap:6px;border-bottom:1px solid #e6e1e6;margin:16px 0 18px;flex-wrap:wrap}
+.tab-thanh button{min-width:140px;padding:11px 22px;font-weight:600;border:0;border-bottom:3px solid transparent;background:#f7f6f8;border-radius:8px 8px 0 0;color:#6e6774}
+.tab-thanh button[aria-selected=true]{background:#fcecef;border-bottom-color:#c8102e;color:#c8102e}
+
+.thanh-ngay{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;background:#ffffffd9;border:1px solid #e8e5e8;border-radius:10px;padding:12px 15px}
+.o-loc{display:flex;flex-direction:column;gap:5px;font-size:11px;color:#77717a;font-weight:500;min-width:150px}
+.thanh-ngay .nho{margin-left:auto}
+
+.ban-dieu-phoi{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start}
+.hang-doi{background:#fff;border:1px solid #e9e4e9;border-radius:10px;padding:14px}
+.hang-doi h3{font-size:15px;display:flex;align-items:center;gap:9px;margin-bottom:5px}
+.dem-tron{background:#c8102e;color:#fff;border-radius:20px;font-size:11px;padding:2px 9px;font-weight:700}
+.nhom-quan{margin-top:13px;border:1px solid #eee9ef;border-radius:8px;overflow:hidden}
+.nhom-quan>h4{margin:0;font-size:12px;padding:7px 11px;background:#f4f1f6;color:#5f5866;display:flex;justify-content:space-between}
+.the-don{border-top:1px solid #f0ecf1;padding:9px 11px;font-size:12px;cursor:pointer;background:#fff;width:100%;text-align:left;border-left:0;border-right:0;border-bottom:0}
+.the-don:hover{background:#fdf4f6}
+.the-don.dang-chon{background:#fcecef;box-shadow:inset 3px 0 #c8102e}
+.the-don b{display:block;font-size:12px;color:#2f2b35}
+.the-don small{color:#8a8290;display:block;margin-top:2px}
+.nhan-loai{display:inline-block;font-size:9px;padding:1px 6px;border-radius:20px;background:#eef2fb;color:#3059a8;margin-top:4px}
+.nhan-loai.lap{background:#fdf0e6;color:#a9540a}
+
+.luoi-xep{min-width:0}
+.luoi{display:grid;gap:8px;overflow-x:auto}
+.o-dau{font-size:12px;font-weight:700;color:#4a4550;padding:7px 9px;background:#f4f1f6;border-radius:7px;position:sticky;top:0}
+.o-dau small{display:block;font-weight:400;color:#8a8290;font-size:10px}
+.o-khung{font-size:11px;color:#6a6472;font-weight:600;padding:9px 6px;white-space:nowrap}
+.o-xep{border:1px dashed #ded8e2;border-radius:8px;min-height:58px;padding:5px;background:#fdfcfd}
+.o-xep.nhan-duoc{border-color:#c8102e;background:#fff6f8}
+.o-xep .xep-don{background:#fff;border:1px solid #e6e0e8;border-radius:6px;padding:6px 8px;font-size:11px;margin-bottom:4px}
+.o-xep .xep-don b{display:block;color:#2f2b35}
+.o-xep .xep-don small{color:#8a8290}
+.o-xep.lech-quan{border-color:#e8b877;border-style:solid;background:#fffaf0}
+.canh-lech{font-size:10px;color:#a9640a;font-weight:600;display:block;margin-top:3px}
+.ghi-chu-luoi{margin-top:11px;border-top:1px solid #ece7ee;padding-top:9px}
+
+.khung-form{background:#fff;border:1px solid #e9e4e9;border-radius:10px;padding:18px 20px;max-width:1020px}
+.khung-form h3{font-size:17px}
+.luoi-o{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin-top:16px}
+.o-form{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#5c5664;font-weight:500}
+.o-form.rong{grid-column:1/-1}
+.o-form .tu-tinh{background:#f6f5f7;color:#6a6472}
+.khoi-sp{margin-top:20px;border-top:1px solid #ece7ee;padding-top:16px}
+.dong-sp{display:grid;grid-template-columns:minmax(0,2fr) 130px 96px 44px;gap:10px;align-items:end;margin-bottom:10px}
+.viec-form{display:flex;gap:10px;margin-top:18px;align-items:center;flex-wrap:wrap}
+
+.hai-so{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:16px}
+.the-so{background:#fff;border:1px solid #e9e4e9;border-radius:10px;overflow:hidden}
+.dau-the{padding:14px 16px;border-bottom:1px solid #eee9ef}
+.dau-the h3{font-size:15px}
+.cuon-bang{overflow:auto;max-height:62vh}
+.bang{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
+.bang th{text-align:left;font-weight:500;background:#f6f5f7;white-space:nowrap;color:#625c67;position:sticky;top:0;z-index:2}
+.bang th,.bang td{padding:9px 12px;border-bottom:1px solid #eeebef}
+.bang tbody tr:last-child td{border-bottom:0}
+.tien{font-variant-numeric:tabular-nums;font-weight:600}
+.gio-lau{color:#c8102e;font-weight:700}
+.tot{color:#09803c;font-weight:600}
+
+@media(max-width:1100px){
+  .ban-dieu-phoi{grid-template-columns:minmax(0,1fr)}
+  .page-giaohang .workspace-main{padding:18px 12px}
+  .tab-thanh button{min-width:0;flex:1}
+}

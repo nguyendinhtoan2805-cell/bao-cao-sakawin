@@ -205,6 +205,7 @@
     <a class="navtab" id="tabTuyenDung" href="/tuyen-dung.html" style="display:none" title="Tuyển dụng"><i class="ui-icon icon-user-plus" aria-hidden="true"></i><span class="nav-label">Tuyển dụng</span></a>
     <a class="navtab" id="tabOrder" href="/order.html" style="display:none" title="Order Design &amp; Media"><i class="ui-icon" style="--icon:url('/assets/recruitment/icons/trello.svg')" aria-hidden="true"></i><span class="nav-label">Order Design &amp; Media</span></a>
     <a class="navtab" id="tabSanPham" href="/san-pham.html" style="display:none" title="Sản phẩm"><i class="ui-icon" style="--icon:url('/assets/recruitment/icons/bar-chart-2.svg')" aria-hidden="true"></i><span class="nav-label">Sản phẩm</span></a>
+    <a class="navtab" id="tabGiaoHang" href="/giao-hang.html" style="display:none" title="Giao hàng"><i class="ui-icon" style="--icon:url('/assets/recruitment/icons/briefcase.svg')" aria-hidden="true"></i><span class="nav-label">Giao hàng</span></a>
     <a class="navtab active" href="/admin.html" aria-current="page" title="Quản trị"><i class="ui-icon icon-shield" aria-hidden="true"></i><span class="nav-label">Quản trị</span></a>
     <button class="sidebar-toggle" type="button" aria-label="Thu gọn menu" aria-expanded="true"><i class="ui-icon icon-chevrons-left" aria-hidden="true"></i><span class="nav-label">Thu gọn menu</span></button>
     <span class="navuser"><span class="who" id="navWho"></span><a href="/api/auth/logout" title="Đăng xuất"><i class="ui-icon icon-log-out" aria-hidden="true"></i><span class="nav-label">Đăng xuất</span></a></span>
@@ -276,7 +277,7 @@ let DANH_MUC = [], USERS = [], ADMIN_GOC = [];
 const NHAN_NGAN = {
   xem_doanh_so:'Doanh số', xem_tai_chinh:'Tài chính', xem_luong:'Quỹ lương', xem_nhan_su:'Nhân sự', xem_ca_nhan:'TT cá nhân', xem_tuyen_dung:'Tuyển dụng', ghi_tuyen_dung:'TD ghi nhận', duyet_tuyen_dung:'TD duyệt', xem_target:'Target',
   xem_order:'Order xem', ghi_order:'Order ghi', duyet_order:'Order duyệt',
-  xem_san_pham:'Sản phẩm', xem_ads:'Ngân sách ADS', duoc_sua:'Được sửa', quan_tri:'Quản trị',
+  xem_san_pham:'Sản phẩm', xem_giao_hang:'Giao hàng', dieu_phoi:'Điều phối', dong_cong_no:'Đóng công nợ', xem_ads:'Ngân sách ADS', duoc_sua:'Được sửa', quan_tri:'Quản trị',
 };
 
 function baoTin(text, loi){
@@ -481,6 +482,7 @@ async function taiLai(){
   $('navWho').innerHTML = 'Xin chào <b>' + esc(me.ten || me.email) + '</b>';
   if($('tabOrder')) $('tabOrder').style.display = me.quyen.xem_order === true ? '' : 'none';
   if($('tabSanPham')) $('tabSanPham').style.display = me.quyen.xem_san_pham === true ? '' : 'none';
+  if($('tabGiaoHang')) $('tabGiaoHang').style.display = me.quyen.xem_giao_hang === true ? '' : 'none';
   $('tabTaiChinh').style.display = me.quyen.xem_tai_chinh ? '' : 'none';
   if($('tabTuyenDung')) $('tabTuyenDung').style.display = me.quyen.xem_tuyen_dung ? '' : 'none';
   $('tabQuyLuong').style.display = me.quyen.xem_luong ? '' : 'none';
