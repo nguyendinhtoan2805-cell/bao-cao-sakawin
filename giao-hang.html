@@ -47,13 +47,24 @@
 
     <section id="noiDung" hidden>
       <div class="tab-thanh" role="tablist">
-        <button role="tab" data-tab="dieuPhoi" aria-selected="true">Bàn điều phối</button>
+        <button role="tab" data-tab="hanhTrinh" aria-selected="true">Hành trình đơn hàng</button>
         <button role="tab" data-tab="nhapDon" aria-selected="false">Nhập đơn</button>
         <button role="tab" data-tab="congNo" aria-selected="false">Sổ công nợ</button>
         <button role="tab" data-tab="nangSuat" aria-selected="false">Năng suất</button>
       </div>
 
-      <section id="panDieuPhoi" class="pan">
+      <section id="panHanhTrinh" class="pan">
+        <div class="dai-so" id="daiSo"></div>
+
+        <div class="dau-khoi">
+          <h2>Hành trình đơn hàng</h2>
+          <p class="nho mo">Toàn bộ đơn chưa đóng công nợ, không lọc theo ngày — để không đơn nào lọt khỏi mắt.
+            Bấm vào đơn để thao tác đúng khâu nó đang ở.</p>
+        </div>
+        <div class="hanh-trinh" id="hanhTrinh"></div>
+
+        <details class="khoi-xep" id="khoiXep" open>
+          <summary><b>Bàn điều phối</b> — xếp người giao theo khung giờ</summary>
         <div class="thanh-ngay">
           <button class="button nho-nut" id="ngayTruoc">‹ Hôm trước</button>
           <label class="o-loc"><span>Ngày giao</span><select id="ngay"></select></label>
@@ -71,6 +82,7 @@
             <p class="nho mo ghi-chu-luoi">Máy chỉ cảnh báo khi <b>khác quận trong cùng khung giờ</b> — còn 2 hay 5 đơn một khung là quyết định của trưởng kho.</p>
           </div>
         </div>
+        </details>
       </section>
 
       <section id="panNhapDon" class="pan" hidden>

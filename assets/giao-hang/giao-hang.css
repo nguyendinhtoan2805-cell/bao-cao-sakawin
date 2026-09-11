@@ -62,6 +62,56 @@ textarea{min-height:74px;resize:vertical}
 .canh-lech{font-size:10px;color:#a9640a;font-weight:600;display:block;margin-top:3px}
 .ghi-chu-luoi{margin-top:11px;border-top:1px solid #ece7ee;padding-top:9px}
 
+/* Dải bốn con số trả lời "có đơn nào bị bỏ quên không" */
+.dai-so{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:20px}
+.the-so-nho{background:#fff;border:1px solid #e9e4e9;border-radius:10px;padding:14px 16px;border-left:4px solid #d8d3da}
+.the-so-nho.do{border-left-color:#c8102e;background:#fffafb}
+.the-so-nho.cam{border-left-color:#e8a33d;background:#fffdf7}
+.the-so-nho .con-so{display:block;font-size:26px;font-weight:800;letter-spacing:-.5px;color:#2d2833;line-height:1.15}
+.the-so-nho.do .con-so{color:#c8102e}.the-so-nho.cam .con-so{color:#a9640a}
+.the-so-nho .nhan-so{display:block;font-size:12px;font-weight:600;color:#4d4753;margin-top:3px}
+.the-so-nho small{display:block;font-size:10px;color:#8d8593;margin-top:2px;line-height:1.45}
+
+.dau-khoi{margin-bottom:13px;border-left:4px solid #c8102e;padding-left:12px}
+.dau-khoi h2{font-size:18px;letter-spacing:-.3px}
+
+/* Hành trình đơn hàng — bảy khâu */
+.hanh-trinh{display:grid;gap:8px;overflow-x:auto;padding-bottom:6px;align-items:start}
+.cot-khau{background:#faf8fb;border:1px solid #ece7ee;border-radius:9px;display:flex;flex-direction:column;max-height:520px}
+.dau-khau{padding:10px 11px 8px;border-bottom:1px solid #ece7ee;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
+.dau-khau h4{margin:0;font-size:12px;font-weight:700;color:#443e4b;line-height:1.3}
+.dau-khau small{grid-column:1/-1;font-size:10px;color:#8d8593}
+.than-khau{padding:7px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:54px}
+.the-hanh-trinh{background:#fff;border:1px solid #e8e2ea;border-radius:7px;padding:8px 9px;text-align:left;width:100%;font-size:11px;color:#413b48;line-height:1.5}
+.the-hanh-trinh:hover{border-color:#c8102e}
+.the-hanh-trinh.tre{border-left:3px solid #c8102e}
+.the-hanh-trinh b{display:block;font-size:11px;color:#241f29}
+.the-hanh-trinh .ten-khach{display:block;font-weight:600;color:#3a3441;margin-top:2px}
+.the-hanh-trinh .dong-phu{display:block;color:#8b8394;font-size:10px}
+.nhan-canh{display:inline-block;margin-top:4px;font-size:9px;padding:1px 6px;border-radius:20px;background:#fff4e4;color:#a9640a;font-weight:600}
+.nhan-canh.do{background:#fff0f2;color:#c8102e}
+
+.khoi-xep{margin-top:26px;border-top:1px solid #e8e1e8;padding-top:8px}
+.khoi-xep>summary{cursor:pointer;padding:10px 0;font-size:14px;color:#4d4753}
+.khoi-xep>summary b{color:#c8102e}
+
+/* Hộp thao tác một đơn */
+.khoi-xem{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:2px 18px;margin-bottom:16px}
+.hang-xem{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #f2eef3;font-size:12px}
+.hang-xem span{color:#8b8394}.hang-xem b{color:#312b38;text-align:right}
+.khoi-sp-xem{background:#faf8fb;border:1px solid #eee9ef;border-radius:8px;padding:11px 13px;font-size:12px}
+.khoi-sp-xem h4{margin:0 0 7px;font-size:12px;color:#6a6472}
+.dong-xem{padding:3px 0}
+.khoi-viec{margin-top:16px;border-top:1px solid #ece7ee;padding-top:14px}
+.khoi-viec h4{margin:0 0 10px;font-size:13px}
+.tick{display:flex;align-items:center;gap:9px;font-size:12px;padding:5px 0}
+.tick input{width:auto;min-height:auto}
+.dau-hop{display:flex;justify-content:space-between;gap:14px;padding:17px 20px;border-bottom:1px solid #e9e2e8;position:sticky;top:0;background:#fff;z-index:3}
+.dau-hop h2{font-size:17px}
+dialog{width:min(880px,94vw);max-height:90vh;padding:0;border:1px solid #e8dfe7;border-radius:12px;box-shadow:0 24px 90px #30202a35;color:#2c2730}
+dialog::backdrop{background:#21151e66}
+#thanHop{padding:18px 20px}
+
 .khung-form{background:#fff;border:1px solid #e9e4e9;border-radius:10px;padding:18px 20px;max-width:1020px}
 .khung-form h3{font-size:17px}
 .luoi-o{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin-top:16px}
