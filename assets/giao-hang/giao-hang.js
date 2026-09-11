@@ -67,9 +67,12 @@ function veHanhTrinh() {
   $('hanhTrinh').innerHTML = KHAU.map(([ten, phu]) => {
     const trong = ds.filter(d => khauCua(d) === ten)
       .sort((a, b) => a.ngayGiao < b.ngayGiao ? -1 : 1);
+    const coNutPhien = ten === 'Giao xong' && trong.length;
     return '<section class="cot-khau" data-khau="' + esc(ten) + '">'
       + '<div class="dau-khau"><h4>' + esc(ten) + '</h4><span class="dem-tron">' + trong.length + '</span>'
-      + '<small>' + esc(phu) + '</small></div>'
+      + '<small>' + esc(phu) + '</small>'
+      + (coNutPhien ? '<button class="nut-phien" data-phien-moi="1">+ Phiên đối soát</button>' : '')
+      + '</div>'
       + '<div class="than-khau">' + (trong.length ? trong.map(d => {
         const tre = d.ngayGiao < hn && d.trangThai !== 'Giao xong';
         return '<button class="the-hanh-trinh' + (tre ? ' tre' : '') + '" data-mo="' + esc(d.ma) + '">'
@@ -239,23 +242,33 @@ function noiForm() {
 function veCongNo() {
   const xong = du.don.filter(d => d.trangThai === 'Giao xong' && d.coCod && d.nguoiGiao && d.khuVuc === khuVuc);
   const chuaDong = xong.filter(d => !d.phienBanGiao);
+  /* Tiền khách CHUYỂN THẲNG về công ty thì người giao không cầm — trước đó sổ
+     cộng hết vào "đang cầm" nên ai cũng nợ oan. Chỉ tiền mặt mới là nợ thật;
+     phần chuyển khoản chỉ cần đối chiếu sao kê. */
   const theoNguoi = new Map();
   for (const d of chuaDong) {
-    const o = theoNguoi.get(d.nguoiGiao) || { don: 0, tien: 0, cuNhat: d.ngayGiao, loai: d.loaiNguoiGiao };
-    o.don++; o.tien += d.thucThu || 0;
+    const o = theoNguoi.get(d.nguoiGiao)
+      || { don: 0, tienMat: 0, daVeCty: 0, chuaKiem: 0, cuNhat: d.ngayGiao, loai: d.loaiNguoiGiao };
+    o.don++;
+    if (d.hinhThuc === 'Tiền mặt') o.tienMat += d.thucThu || 0;
+    else { o.daVeCty += d.thucThu || 0; if (!d.daKiemSaoKe) o.chuaKiem += d.thucThu || 0; }
     if (d.ngayGiao < o.cuNhat) o.cuNhat = d.ngayGiao;
     theoNguoi.set(d.nguoiGiao, o);
   }
   const homNay = new Date().toISOString().slice(0, 10);
   const soNgay = t => Math.max(0, Math.round((Date.parse(homNay) - Date.parse(t)) / NGAY));
-  $('dauThu').innerHTML = '<tr><th>Người giao</th><th>Loại</th><th class="phai">Số đơn</th><th class="phai">Đang cầm</th><th class="phai">Cầm lâu nhất</th><th></th></tr>';
-  $('bangThu').innerHTML = theoNguoi.size ? [...theoNguoi.entries()].sort((a, b) => b[1].tien - a[1].tien).map(([n, o]) => {
+  $('dauThu').innerHTML = '<tr><th>Người giao</th><th>Loại</th><th class="phai">Số đơn</th>'
+    + '<th class="phai">Tiền mặt đang cầm</th><th class="phai">Đã về công ty</th>'
+    + '<th class="phai">Cầm lâu nhất</th><th></th></tr>';
+  $('bangThu').innerHTML = theoNguoi.size ? [...theoNguoi.entries()].sort((a, b) => b[1].tienMat - a[1].tienMat).map(([n, o]) => {
     const nd = soNgay(o.cuNhat);
     return `<tr><td><b>${esc(n)}</b></td><td class="mo">${esc(o.loai)}</td>
-      <td class="phai">${o.don}</td><td class="phai tien">${tien(o.tien)}</td>
+      <td class="phai">${o.don}</td>
+      <td class="phai tien ${o.tienMat ? 'gio-lau' : ''}">${tien(o.tienMat)}</td>
+      <td class="phai tien">${tien(o.daVeCty)}${o.chuaKiem ? '<small class="chua-kiem">' + tien(o.chuaKiem) + ' chưa kiểm sao kê</small>' : ''}</td>
       <td class="phai ${nd >= 3 ? 'gio-lau' : ''}">${nd} ngày</td>
-      <td class="phai"><button class="button nho-nut" data-phien="${esc(n)}">Mở phiên bàn giao</button></td></tr>`;
-  }).join('') : '<tr><td colspan="6" class="trong">Không còn ai cầm tiền chưa nộp.</td></tr>';
+      <td class="phai"><button class="button nho-nut" data-phien="${esc(n)}">Mở phiên đối soát</button></td></tr>`;
+  }).join('') : '<tr><td colspan="7" class="trong">Không còn ai cầm tiền chưa nộp.</td></tr>';
 
   const doiTac = new Map();
   for (const d of xong.filter(d => d.loaiNguoiGiao === 'Đối tác')) {
@@ -349,8 +362,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const m = e.target.closest('[data-mo]');
     if (m) { moDon(m.dataset.mo); return; }
+    const pm = e.target.closest('[data-phien-moi]');
+    if (pm) { moPhienDoiSoat(); return; }
     const p = e.target.closest('[data-phien]');
-    if (p) { $('hop').close(); moPhien(p.dataset.phien); }
+    if (p) { $('hop').close(); moPhienDoiSoat(p.dataset.phien); }
   });
   $('formDon').addEventListener('change', e => {
     if (e.target.name === 'phanLoai') { loaiDangChon = e.target.value; veForm(); }
@@ -516,29 +531,93 @@ function moDon(ma) {
   };
 }
 
-function moPhien(nguoi) {
-  const ds = du.don.filter(d => d.nguoiGiao === nguoi && d.trangThai === 'Giao xong' && d.coCod && !d.phienBanGiao);
-  const cod = ds.reduce((s, d) => s + (d.thucThu || 0), 0);
-  const laDoiTac = (du.nguoiGiao.find(n => n.ten === nguoi) || {}).loai === 'Đối tác';
-  const cong = laDoiTac ? ds.length * CONG_GIAO : 0;
-  $('tieuDeHop').textContent = 'Phiên bàn giao · ' + nguoi;
-  $('thanHop').innerHTML = `
-    <div class="luoi-o">
-      ${['Số đơn', ds.length].map(() => '').join('')}
-      <label class="o-form"><span>Số đơn</span><input class="tu-tinh" value="${ds.length}" readonly></label>
-      <label class="o-form"><span>COD nộp về</span><input class="tu-tinh" value="${dem(cod)} đ" readonly></label>
-      <label class="o-form"><span>Công giao được trừ</span><input class="tu-tinh" value="${dem(cong)} đ" readonly></label>
-      <label class="o-form"><span>Thực nhận</span><input class="tu-tinh" value="${dem(cod - cong)} đ" readonly></label>
-      <label class="o-form"><span>Người nhận tiền</span><input value="${esc(me.ten || '')}" readonly class="tu-tinh"></label>
-      <label class="o-form rong"><span>Ảnh sao kê</span><input type="file" accept="image/*"></label>
-    </div>
-    <div class="cuon-bang" style="margin-top:14px"><table class="bang"><thead><tr><th>Mã đơn</th><th>Ngày giao</th><th>Hình thức</th><th class="phai">Thực thu</th></tr></thead><tbody>
-      ${ds.map(d => `<tr><td>${esc(d.ma)}</td><td>${esc(d.ngayGiao)}</td><td>${esc(d.hinhThuc)}</td><td class="phai tien">${tien(d.thucThu)}</td></tr>`).join('')}
-    </tbody></table></div>
-    <p class="canh-bao">Đóng phiên rồi thì <b>không sửa lùi được</b> — muốn điều chỉnh phải mở phiên mới, có dấu vết. Người thu tiền không tự xác nhận được phiên của chính mình.</p>
-    <div class="viec-form"><button class="button primary" id="chotPhien">Đóng phiên</button><small class="mo">Bản mẫu — chưa ghi Lark.</small></div>`;
+/* Số tài khoản nhận — bản thật đọc từ SETTING, ở đây là số giả. */
+const TAI_KHOAN = ['ACB · 1234567890 · SAKAWIN GLOBAL', 'Vietcombank · 0987654321 · SAKAWIN GLOBAL'];
+
+/* Phiên đối soát: chốt nhiều đơn đã giao xong của MỘT người giao thành một lần
+   bàn giao tiền. Điểm quan trọng là tách rõ tiền mặt người giao đang cầm với
+   tiền khách đã chuyển thẳng về công ty — chỉ phần tiền mặt mới là nợ phải nộp,
+   phần chuyển khoản chỉ cần đối chiếu sao kê. */
+function moPhienDoiSoat(nguoiMacDinh) {
+  const chuaDong = () => du.don.filter(d => d.khuVuc === khuVuc && d.trangThai === 'Giao xong'
+    && d.coCod && d.nguoiGiao && !d.phienBanGiao);
+  const dsNguoi = [...new Set(chuaDong().map(d => d.nguoiGiao))];
+  if (!dsNguoi.length) { bao('Không còn đơn nào đã giao xong mà chưa đóng phiên.', true); return; }
+  let nguoi = dsNguoi.includes(nguoiMacDinh) ? nguoiMacDinh : dsNguoi[0];
+
+  const veHop = () => {
+    const ds = chuaDong().filter(d => d.nguoiGiao === nguoi);
+    const laDoiTac = (du.nguoiGiao.find(n => n.ten === nguoi) || {}).loai === 'Đối tác';
+    const p = [];
+    p.push('<div class="luoi-o"><label class="o-form"><span>Người giao / đối tác</span><select id="phienNguoi">'
+      + dsNguoi.map(n => '<option' + (n === nguoi ? ' selected' : '') + '>' + esc(n) + '</option>').join('')
+      + '</select></label></div>');
+
+    p.push('<div class="cuon-bang" style="margin-top:14px;max-height:34vh"><table class="bang"><thead><tr>'
+      + '<th style="width:34px"></th><th>Mã đơn</th><th>Ngày giao</th><th>Khách</th>'
+      + '<th>Hình thức</th><th class="phai">Thực thu</th></tr></thead><tbody>'
+      + ds.map(d => '<tr><td><input type="checkbox" class="tick-don" data-ma="' + esc(d.ma) + '" checked></td>'
+        + '<td><b>' + esc(d.ma) + '</b></td><td>' + esc(d.ngayGiao) + '</td>'
+        + '<td>' + esc(d.tenKhach) + '</td>'
+        + '<td>' + esc(d.hinhThuc || '—')
+        + (d.hinhThuc !== 'Tiền mặt' && !d.daKiemSaoKe ? ' <span class="nhan-canh">chưa kiểm sao kê</span>' : '')
+        + '</td><td class="phai tien">' + dem(d.thucThu) + '</td></tr>').join('')
+      + '</tbody></table></div>');
+
+    p.push('<div id="tongPhien" class="tong-phien"></div>');
+
+    p.push('<div class="luoi-o" style="margin-top:14px">'
+      + '<label class="o-form"><span>Nộp bằng</span><select id="phienHinhThuc">'
+      + '<option>Chuyển khoản</option><option>Tiền mặt</option></select></label>'
+      + '<label class="o-form"><span>Số tài khoản nhận</span><select id="phienTaiKhoan">'
+      + TAI_KHOAN.map(t => '<option>' + esc(t) + '</option>').join('') + '</select></label>'
+      + '<label class="o-form rong"><span>Ảnh sao kê / biên nhận</span><input type="file" accept="image/*"></label>'
+      + '</div>');
+
+    p.push('<p class="canh-bao">Đóng phiên rồi thì <b>không sửa lùi được</b> — muốn điều chỉnh phải mở phiên mới, '
+      + 'có dấu vết. Người nộp tiền không tự xác nhận được phiên của chính mình.</p>');
+    p.push('<div class="viec-form"><button class="button primary" id="taoPhien">Tạo phiên đối soát</button>'
+      + '<small class="mo">Bản mẫu — chưa ghi Lark.</small></div>');
+
+    $('tieuDeHop').innerHTML = 'Phiên đối soát công nợ<span class="nhan-khau">' + esc(nguoi) + '</span>';
+    $('thanHop').innerHTML = p.join('');
+
+    const tinhTong = () => {
+      const chonMa = new Set([...document.querySelectorAll('.tick-don:checked')].map(x => x.dataset.ma));
+      const co = ds.filter(d => chonMa.has(d.ma));
+      const tienMat = co.filter(d => d.hinhThuc === 'Tiền mặt').reduce((t, d) => t + (d.thucThu || 0), 0);
+      const veCty = co.filter(d => d.hinhThuc !== 'Tiền mặt').reduce((t, d) => t + (d.thucThu || 0), 0);
+      const chuaKiem = co.filter(d => d.hinhThuc !== 'Tiền mặt' && !d.daKiemSaoKe).length;
+      const cong = laDoiTac ? co.length * CONG_GIAO : 0;
+      const d = (nhan, gt, kieu) => '<div class="dong-tong ' + (kieu || '') + '"><span>' + nhan + '</span><b>' + gt + '</b></div>';
+      $('tongPhien').innerHTML =
+        d('Số đơn trong phiên', co.length + ' / ' + ds.length + ' đơn')
+        + d('Tổng COD đã thu', dem(tienMat + veCty) + ' đ')
+        + d('· Tiền mặt — người giao đang cầm', dem(tienMat) + ' đ', 'nhan-manh')
+        + d('· Khách đã chuyển về công ty', dem(veCty) + ' đ'
+            + (chuaKiem ? ' <span class="nhan-canh">' + chuaKiem + ' đơn chưa kiểm sao kê</span>' : ''))
+        + (laDoiTac ? d('Công giao được trừ (' + dem(CONG_GIAO) + ' đ × ' + co.length + ')', '− ' + dem(cong) + ' đ') : '')
+        + d('THỰC NHẬN TRONG PHIÊN', dem(tienMat - cong) + ' đ', 'tong-cuoi');
+      $('taoPhien').disabled = !co.length;
+    };
+    $('thanHop').addEventListener('change', e => {
+      if (e.target.id === 'phienNguoi') { nguoi = e.target.value; veHop(); return; }
+      if (e.target.classList.contains('tick-don')) tinhTong();
+    });
+    $('taoPhien').onclick = () => {
+      const chonMa = new Set([...document.querySelectorAll('.tick-don:checked')].map(x => x.dataset.ma));
+      if (!chonMa.size) return bao('Chưa chọn đơn nào.', true);
+      const ma = 'PH-' + new Date().toISOString().slice(2, 7).replace('-', '') + '-'
+        + String(new Set(du.don.map(x => x.phienBanGiao).filter(Boolean)).size + 1).padStart(2, '0');
+      for (const d of du.don) if (chonMa.has(d.ma) && d.nguoiGiao === nguoi) d.phienBanGiao = ma;
+      $('hop').close(); ve();
+      bao('Đã tạo phiên ' + ma + ' cho ' + chonMa.size + ' đơn. Bản mẫu chưa ghi Lark nên tải lại trang là mất.');
+    };
+    tinhTong();
+  };
+
+  veHop();
   $('hop').showModal();
-  $('chotPhien').onclick = () => { $('hop').close(); bao('Bản mẫu — phiên chưa được ghi vào Lark.', true); };
 }
 
 async function nap() {
