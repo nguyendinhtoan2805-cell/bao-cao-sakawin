@@ -64,11 +64,11 @@ function veHanhTrinh() {
   const ds = du.don.filter(d => d.khuVuc === khuVuc);
   const hn = homNayVN();
   $('hanhTrinh').style.gridTemplateColumns = 'repeat(' + KHAU.length + ', minmax(178px, 1fr))';
-  $('hanhTrinh').innerHTML = KHAU.map(([ten, phu]) => {
+  $('hanhTrinh').innerHTML = KHAU.map(([ten, phu], iKhau) => {
     const trong = ds.filter(d => khauCua(d) === ten)
       .sort((a, b) => a.ngayGiao < b.ngayGiao ? -1 : 1);
     const coNutPhien = ten === 'Giao xong' && trong.length;
-    return '<section class="cot-khau" data-khau="' + esc(ten) + '">'
+    return '<section class="cot-khau" data-i="' + iKhau + '" data-khau="' + esc(ten) + '">'
       + '<div class="dau-khau"><h4>' + esc(ten) + '</h4><span class="dem-tron">' + trong.length + '</span>'
       + '<small>' + esc(phu) + '</small>'
       + (coNutPhien ? '<button class="nut-phien" data-phien-moi="1">+ Phiên đối soát</button>' : '')
@@ -77,7 +77,9 @@ function veHanhTrinh() {
         const tre = d.ngayGiao < hn && d.trangThai !== 'Giao xong';
         return '<button class="the-hanh-trinh' + (tre ? ' tre' : '') + '" data-mo="' + esc(d.ma) + '">'
           + '<b>' + esc(d.ma) + '</b>'
-          + '<span class="ten-khach">' + esc(d.tenKhach) + ' · ' + esc(d.quan || 'lấy tại kho') + '</span>'
+          + '<span class="ten-khach">' + esc(d.tenKhach) + '</span>'
+          + '<span class="nhan-vi-tri' + (d.quan ? '' : ' tai-kho') + '">'
+          + esc(d.quan || 'khách lấy tại kho') + '</span>'
           + '<span class="dong-phu">' + esc(d.ngayGiao) + (d.khungGio ? ' · ' + esc(d.khungGio) : '') + '</span>'
           + '<span class="dong-phu">' + (d.coCod ? 'COD ' + tien(d.codPhaiThu) : 'không COD')
           + (d.nguoiGiao ? ' · ' + esc(d.nguoiGiao) : '') + '</span>'
@@ -284,9 +286,54 @@ function veCongNo() {
       <td class="phai tien ${o.cod - cong < 0 ? 'gio-lau' : 'tot'}">${tien(o.cod - cong)}</td></tr>`;
   }).join('') : '<tr><td colspan="5" class="trong">Khu vực này chưa có đối tác nào giao đơn.</td></tr>';
 
+  vePhien();
   $('ghiChuCanTru').innerHTML = `<b>Cấn trừ với đối tác:</b> họ cầm COD của khách, công ty lại nợ họ công giao — `
     + `nên phiên bàn giao ghi cả ba con số <b>COD nộp về · công giao được trừ · thực nhận</b>. `
     + `Công giao ${dem(CONG_GIAO)} đ/đơn ở đây là số giả; bản thật đọc từ bảng SETTING theo từng đối tác.`;
+}
+
+function vePhien() {
+  const ds = (du.phien || []).filter(p => p.khuVuc === khuVuc).sort((a, b) => a.ma < b.ma ? 1 : -1);
+  $('dauPhien').innerHTML = '<tr><th>Mã phiên</th><th>Ngày</th><th>Người nộp</th><th>Loại</th>'
+    + '<th class="phai">Số đơn</th><th class="phai">Tiền mặt nộp</th><th class="phai">Công giao trừ</th>'
+    + '<th class="phai">Thực nhận</th><th>Nộp bằng</th><th></th></tr>';
+  $('bangPhien').innerHTML = ds.length ? ds.map(p =>
+    `<tr><td><b>${esc(p.ma)}</b></td><td>${esc(p.ngay)}</td><td>${esc(p.nguoi)}</td>
+      <td class="mo">${esc(p.loai)}</td><td class="phai">${p.soDon}</td>
+      <td class="phai tien">${tien(p.tienMat)}</td>
+      <td class="phai tien">${p.congGiao ? '− ' + tien(p.congGiao) : '—'}</td>
+      <td class="phai tien ${p.thucNhan >= 0 ? 'tot' : 'gio-lau'}">${p.thucNhan >= 0 ? tien(p.thucNhan) : 'phải trả ' + tien(-p.thucNhan)}</td>
+      <td class="nho mo">${esc(p.hinhThucNop)}<br>${esc(p.taiKhoan)}</td>
+      <td class="phai"><button class="button nho-nut" data-xem-phien="${esc(p.ma)}">Xem đơn</button></td></tr>`
+  ).join('') : '<tr><td colspan="10" class="trong">Chưa có phiên nào được đóng ở khu vực này.</td></tr>';
+}
+
+function moXemPhien(ma) {
+  const p = (du.phien || []).find(x => x.ma === ma);
+  const ds = du.don.filter(d => d.phienBanGiao === ma);
+  if (!p) return;
+  const h = (nhan, gt) => '<div class="hang-xem"><span>' + nhan + '</span><b>' + esc(gt) + '</b></div>';
+  $('tieuDeHop').innerHTML = 'Phiên ' + esc(ma) + '<span class="nhan-khau">đã đóng</span>';
+  $('thanHop').innerHTML = '<div class="hai-cot-xem">'
+    + '<section class="cot-tin"><h4>Phiên</h4>'
+    + h('Ngày', p.ngay) + h('Người nộp', p.nguoi + ' · ' + p.loai)
+    + h('Người nhận tiền', p.nguoiNhan || '—')
+    + h('Nộp bằng', p.hinhThucNop) + h('Tài khoản nhận', p.taiKhoan) + '</section>'
+    + '<section class="cot-tin"><h4>Tiền</h4>'
+    + h('Số đơn', p.soDon + ' đơn') + h('Tiền mặt nộp', dem(p.tienMat) + ' đ')
+    + h('Khách đã chuyển về công ty', dem(p.veCty || 0) + ' đ')
+    + (p.congGiao ? h('Công giao được trừ', '− ' + dem(p.congGiao) + ' đ') : '')
+    + (p.thucNhan >= 0 ? h('Thực nhận', dem(p.thucNhan) + ' đ')
+        : h('Công ty phải trả thêm', dem(-p.thucNhan) + ' đ')) + '</section></div>'
+    + '<div class="cuon-bang" style="margin-top:16px"><table class="bang"><thead><tr>'
+    + '<th>Mã đơn</th><th>Ngày giao</th><th>Khách</th><th>Vị trí</th><th>Hình thức</th><th class="phai">Thực thu</th>'
+    + '</tr></thead><tbody>'
+    + ds.map(d => '<tr><td><b>' + esc(d.ma) + '</b></td><td>' + esc(d.ngayGiao) + '</td>'
+      + '<td>' + esc(d.tenKhach) + '</td><td>' + esc(d.quan || 'lấy tại kho') + '</td>'
+      + '<td>' + esc(d.hinhThuc || '—') + '</td><td class="phai tien">' + dem(d.thucThu) + '</td></tr>').join('')
+    + '</tbody></table></div>'
+    + '<p class="canh-bao">Phiên đã đóng — không sửa lùi được. Muốn điều chỉnh phải mở phiên mới.</p>';
+  $('hop').showModal();
 }
 
 /* ── Năng suất ──────────────────────────────────────────────────────────── */
@@ -321,7 +368,7 @@ function ve() {
   for (const b of document.querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', b.dataset.tab === tab);
   for (const p of document.querySelectorAll('.pan')) p.hidden = true;
   $('pan' + tab[0].toUpperCase() + tab.slice(1)).hidden = false;
-  for (const b of document.querySelectorAll('[data-kv]')) b.setAttribute('aria-pressed', b.dataset.kv === khuVuc);
+  for (const b of document.querySelectorAll('[data-kv]')) b.setAttribute('aria-selected', b.dataset.kv === khuVuc);
   if (tab === 'hanhTrinh') { veDaiSo(); veHanhTrinh(); veDieuPhoi(); }
   else if (tab === 'nhapDon') veForm();
   else if (tab === 'congNo') veCongNo();
@@ -362,6 +409,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const m = e.target.closest('[data-mo]');
     if (m) { moDon(m.dataset.mo); return; }
+    const xp = e.target.closest('[data-xem-phien]');
+    if (xp) { moXemPhien(xp.dataset.xemPhien); return; }
     const pm = e.target.closest('[data-phien-moi]');
     if (pm) { moPhienDoiSoat(); return; }
     const p = e.target.closest('[data-phien]');
@@ -597,7 +646,12 @@ function moPhienDoiSoat(nguoiMacDinh) {
         + d('· Khách đã chuyển về công ty', dem(veCty) + ' đ'
             + (chuaKiem ? ' <span class="nhan-canh">' + chuaKiem + ' đơn chưa kiểm sao kê</span>' : ''))
         + (laDoiTac ? d('Công giao được trừ (' + dem(CONG_GIAO) + ' đ × ' + co.length + ')', '− ' + dem(cong) + ' đ') : '')
-        + d('THỰC NHẬN TRONG PHIÊN', dem(tienMat - cong) + ' đ', 'tong-cuoi');
+        + (tienMat - cong >= 0
+            ? d('THỰC NHẬN TRONG PHIÊN', dem(tienMat - cong) + ' đ', 'tong-cuoi')
+            /* Âm nghĩa là khách đã chuyển khoản hết nên đối tác không cầm tiền mặt,
+               mà công ty vẫn nợ họ công giao — ghi "thực nhận −100.000" thì dễ đọc
+               sai thành thu được tiền. Đảo nhãn cho khỏi nhầm. */
+            : d('CÔNG TY PHẢI TRẢ THÊM', dem(cong - tienMat) + ' đ', 'tong-cuoi phai-tra'));
       $('taoPhien').disabled = !co.length;
     };
     $('thanHop').addEventListener('change', e => {
@@ -609,9 +663,22 @@ function moPhienDoiSoat(nguoiMacDinh) {
       if (!chonMa.size) return bao('Chưa chọn đơn nào.', true);
       const ma = 'PH-' + new Date().toISOString().slice(2, 7).replace('-', '') + '-'
         + String(new Set(du.don.map(x => x.phienBanGiao).filter(Boolean)).size + 1).padStart(2, '0');
+      const co = ds.filter(d => chonMa.has(d.ma));
+      const tienMat = co.filter(d => d.hinhThuc === 'Tiền mặt').reduce((t, d) => t + (d.thucThu || 0), 0);
+      const veCty = co.filter(d => d.hinhThuc !== 'Tiền mặt').reduce((t, d) => t + (d.thucThu || 0), 0);
+      const cong = laDoiTac ? co.length * CONG_GIAO : 0;
+      du.phien = du.phien || [];
+      du.phien.push({
+        ma, ngay: new Date(Date.now() + 7 * 36e5).toISOString().slice(0, 10),
+        nguoi, loai: laDoiTac ? 'Đối tác' : 'Nội bộ', khuVuc,
+        soDon: co.length, tienMat, veCty, congGiao: cong, thucNhan: tienMat - cong,
+        hinhThucNop: $('phienHinhThuc').value, taiKhoan: $('phienTaiKhoan').value,
+        nguoiNhan: me.ten || '',
+      });
       for (const d of du.don) if (chonMa.has(d.ma) && d.nguoiGiao === nguoi) d.phienBanGiao = ma;
       $('hop').close(); ve();
-      bao('Đã tạo phiên ' + ma + ' cho ' + chonMa.size + ' đơn. Bản mẫu chưa ghi Lark nên tải lại trang là mất.');
+      tab = 'congNo'; ve();
+      bao('Đã tạo phiên ' + ma + ' cho ' + chonMa.size + ' đơn — xem ở bảng "Phiên đối soát đã đóng" bên dưới. Bản mẫu chưa ghi Lark nên tải lại trang là mất.');
     };
     tinhTong();
   };

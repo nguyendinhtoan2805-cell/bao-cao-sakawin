@@ -34,16 +34,17 @@
     <header class="masthead">
       <div class="brand"><h1>Giao hàng</h1><p>Điều phối giao lắp nội thành · đối soát COD · năng suất người giao</p></div>
       <div class="header-actions">
-        <div class="nhom-nut" role="group" aria-label="Khu vực">
-          <button data-kv="HN" aria-pressed="true">Hà Nội</button>
-          <button data-kv="HCM" aria-pressed="false">HCM</button>
-        </div>
         <button class="button" id="taiLai">Tải lại</button>
       </div>
     </header>
 
     <div id="bangDemo" class="bang-demo" hidden><b>BẢN MẪU · DỮ LIỆU ẢO</b> — đơn, khách, số điện thoại trên trang này do máy sinh ra để anh soát giao diện. Chưa nối Lark, nên <b>bấm gì cũng không ghi đi đâu cả</b>.</div>
     <div id="status" role="status" aria-live="polite" class="notice">Đang kiểm tra quyền và tải dữ liệu…</div>
+
+    <div class="tab-khu-vuc" role="tablist" aria-label="Khu vực kho">
+      <button role="tab" data-kv="HN" aria-selected="true">Hà Nội</button>
+      <button role="tab" data-kv="HCM" aria-selected="false">HCM</button>
+    </div>
 
     <section id="noiDung" hidden>
       <div class="tab-thanh" role="tablist">
@@ -106,6 +107,12 @@
           </section>
         </div>
         <p class="canh-bao" id="ghiChuCanTru"></p>
+
+        <section class="the-so" style="margin-top:18px">
+          <div class="dau-the"><h3>Phiên đối soát đã đóng</h3>
+            <p class="nho mo">Mỗi phiên là một lần bàn giao tiền. Bấm để xem những đơn nào nằm trong phiên.</p></div>
+          <div class="cuon-bang"><table class="bang"><thead id="dauPhien"></thead><tbody id="bangPhien"></tbody></table></div>
+        </section>
       </section>
 
       <section id="panNangSuat" class="pan" hidden>

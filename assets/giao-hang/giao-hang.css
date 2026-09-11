@@ -26,6 +26,14 @@ textarea{min-height:74px;resize:vertical}
 .nho{font-size:12px}.mo{color:#7a7480}.phai{text-align:right}.giua{text-align:center}
 .trong{color:#9c94a4;font-size:12px;text-align:center;padding:24px 10px}
 
+/* Tab khu vực — to và nổi bật như tab Design/Media ở trang Order, vì đổi
+   khu vực là đổi toàn bộ dữ liệu đang xem, không phải một bộ lọc nhỏ. */
+.tab-khu-vuc{display:flex;gap:8px;border-bottom:2px solid #e6e1e6;margin:6px 0 4px}
+.tab-khu-vuc button{min-width:190px;padding:15px 34px;font-size:16px;font-weight:700;border:0;
+  border-bottom:4px solid transparent;background:#f7f6f8;border-radius:10px 10px 0 0;color:#6e6774;letter-spacing:-.2px}
+.tab-khu-vuc button:hover{background:#f1eff3}
+.tab-khu-vuc button[aria-selected=true]{background:#fcecef;border-bottom-color:#c8102e;color:#c8102e}
+
 .tab-thanh{display:flex;gap:6px;border-bottom:1px solid #e6e1e6;margin:16px 0 18px;flex-wrap:wrap}
 .tab-thanh button{min-width:140px;padding:11px 22px;font-weight:600;border:0;border-bottom:3px solid transparent;background:#f7f6f8;border-radius:8px 8px 0 0;color:#6e6774}
 .tab-thanh button[aria-selected=true]{background:#fcecef;border-bottom-color:#c8102e;color:#c8102e}
@@ -79,14 +87,28 @@ textarea{min-height:74px;resize:vertical}
 
 /* Hành trình đơn hàng — bảy khâu */
 .hanh-trinh{display:grid;gap:8px;overflow-x:auto;padding-bottom:6px;align-items:start}
-.cot-khau{background:#faf8fb;border:1px solid #ece7ee;border-radius:9px;display:flex;flex-direction:column;max-height:520px}
-.dau-khau{padding:10px 11px 8px;border-bottom:1px solid #ece7ee;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
-.dau-khau h4{margin:0;font-size:12px;font-weight:700;color:#443e4b;line-height:1.3}
+/* Mỗi khâu một màu, đọc từ trái sang phải là thấy đơn đang đi tới đâu.
+   "Giao xong" cố ý màu hổ phách vì tiền còn ở ngoài — chưa phải màu xanh. */
+.cot-khau{background:var(--nen);border:1px solid var(--vien);border-radius:9px;display:flex;
+  flex-direction:column;max-height:540px;--dam:#7545dd;--nen:#f7f3ff;--vien:#e4d5ff}
+.cot-khau[data-i="1"]{--dam:#0f766e;--nen:#f0fbfa;--vien:#c6e9e4}
+.cot-khau[data-i="2"]{--dam:#c2410c;--nen:#fff6f1;--vien:#f8d4bd}
+.cot-khau[data-i="3"]{--dam:#2b68d6;--nen:#f2f7ff;--vien:#d3e4ff}
+.cot-khau[data-i="4"]{--dam:#b6700d;--nen:#fff9f1;--vien:#f7e2bf}
+.cot-khau[data-i="5"]{--dam:#168844;--nen:#f0fbf5;--vien:#cdeddb}
+.dau-khau{padding:11px 12px 9px;border-bottom:1px solid var(--vien);display:grid;
+  grid-template-columns:1fr auto;gap:6px;align-items:center;background:#ffffff6b;border-radius:8px 8px 0 0}
+.dau-khau h4{margin:0;font-size:13px;font-weight:800;color:var(--dam);line-height:1.3;letter-spacing:-.2px}
 .dau-khau small{grid-column:1/-1;font-size:10px;color:#8d8593}
+.dau-khau .dem-tron{background:var(--dam)}
 .than-khau{padding:7px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:54px}
-.the-hanh-trinh{background:#fff;border:1px solid #e8e2ea;border-radius:7px;padding:8px 9px;text-align:left;width:100%;font-size:11px;color:#413b48;line-height:1.5}
-.the-hanh-trinh:hover{border-color:#c8102e}
+.the-hanh-trinh{background:#fff;border:1px solid var(--vien);border-radius:7px;padding:9px 10px;text-align:left;width:100%;font-size:11px;color:#413b48;line-height:1.5}
+.the-hanh-trinh:hover{border-color:var(--dam);box-shadow:0 2px 8px #2a1f3312}
 .the-hanh-trinh.tre{border-left:3px solid #c8102e}
+/* Vị trí đơn là thứ trưởng kho tìm bằng mắt trước tiên — cho nó màu riêng. */
+.nhan-vi-tri{display:inline-block;margin:4px 0 2px;font-size:10px;font-weight:700;padding:2px 8px;
+  border-radius:5px;background:var(--dam);color:#fff;letter-spacing:.2px}
+.nhan-vi-tri.tai-kho{background:#8b8394}
 .the-hanh-trinh b{display:block;font-size:11px;color:#241f29}
 .the-hanh-trinh .ten-khach{display:block;font-weight:600;color:#3a3441;margin-top:2px}
 .the-hanh-trinh .dong-phu{display:block;color:#8b8394;font-size:10px}
@@ -106,6 +128,8 @@ textarea{min-height:74px;resize:vertical}
 .dong-tong.tong-cuoi{border-top:2px solid #e6dfe8;margin-top:3px;padding-top:12px}
 .dong-tong.tong-cuoi span{font-weight:700;color:#3a3441;letter-spacing:.3px}
 .dong-tong.tong-cuoi b{font-size:19px;font-weight:800;color:#09803c}
+.dong-tong.phai-tra b{color:#c8102e}
+.dong-tong.phai-tra span{color:#c8102e}
 .tick-don{width:auto;min-height:auto}
 
 .khoi-xep{margin-top:26px;border-top:1px solid #e8e1e8;padding-top:8px}
@@ -138,9 +162,11 @@ dialog{width:min(1180px,96vw);max-height:92vh;padding:0;border:1px solid #e8dfe7
 dialog::backdrop{background:#21151e66}
 #thanHop{padding:18px 20px}
 
-.khung-form{background:#fff;border:1px solid #e9e4e9;border-radius:10px;padding:18px 20px;max-width:1020px}
+.khung-form{background:#fff;border:1px solid #e9e4e9;border-radius:10px;padding:22px 26px}
 .khung-form h3{font-size:17px}
-.luoi-o{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin-top:16px}
+.luoi-o{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:16px;margin-top:18px}
+#panNhapDon .luoi-o{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+#panNhapDon .dong-sp{grid-template-columns:minmax(0,3fr) 170px 120px 54px}
 .o-form{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#5c5664;font-weight:500}
 .o-form.rong{grid-column:1/-1}
 .o-form .tu-tinh{background:#f6f5f7;color:#6a6472}
