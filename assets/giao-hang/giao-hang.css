@@ -63,6 +63,7 @@ textarea{min-height:74px;resize:vertical}
 .o-dau{font-size:12px;font-weight:700;color:#4a4550;padding:7px 9px;background:#f4f1f6;border-radius:7px;position:sticky;top:0}
 .o-dau small{display:block;font-weight:400;color:#8a8290;font-size:10px}
 .o-khung{font-size:11px;color:#6a6472;font-weight:600;padding:9px 6px;white-space:nowrap}
+.o-khung.khong-gio{color:#8d8593;font-style:italic;font-weight:500;white-space:normal;line-height:1.3}
 .o-xep{border:1px dashed #ded8e2;border-radius:8px;min-height:58px;padding:5px;background:#fdfcfd}
 .o-xep.nhan-duoc{border-color:#c8102e;background:#fff6f8}
 .o-xep .xep-don{background:#fff;border:1px solid #e6e0e8;border-radius:6px;padding:6px 8px;font-size:11px;margin-bottom:4px}

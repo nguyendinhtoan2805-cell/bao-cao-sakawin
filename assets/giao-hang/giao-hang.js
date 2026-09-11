@@ -111,7 +111,7 @@ function veHangDoi() {
         `<button class="the-don ${chon === d.ma ? 'dang-chon' : ''}" data-ma="${esc(d.ma)}">
            <b>${esc(d.ma)} · ${esc(d.tenKhach)}</b>
            <small>${esc(d.diaChi)}</small>
-           <small>${esc(d.gioSaleHen || 'chưa có khung giờ')} · COD ${tien(d.codPhaiThu)}</small>
+           <small>${esc(d.canGio ? (d.gioSaleHen || 'chưa có khung giờ') : 'không hẹn giờ với khách')} · ${d.coCod ? 'COD ' + tien(d.codPhaiThu) : 'không COD'}</small>
            <span class="nhan-loai ${/LẮP/.test(d.phanLoai) ? 'lap' : ''}">${esc(d.phanLoai)}</span>
          </button>`).join('')}</section>`).join('')
     : '<p class="trong">Hết đơn chờ xếp cho ngày này.</p>';
@@ -129,10 +129,16 @@ function veLuoi() {
     const tongNgay = trong.filter(d => d.nguoiGiao === n.ten).length;
     return `<div class="o-dau">${esc(n.ten)}<small>${esc(n.loai)} · ${tongNgay} đơn hôm nay</small></div>`;
   }).join('');
-  for (const k of khung) {
-    h += `<div class="o-khung">${esc(k)}</div>`;
+  /* Đơn không hẹn giờ với khách (hàng trưng bày, chuyển phát) vẫn phải xếp
+     người chở. Thiếu hàng này thì chúng biến mất khỏi lưới — xếp rồi mà không
+     nhìn thấy ở đâu cả. */
+  const KHONG_GIO = 'Không cần khung giờ';
+  for (const k of khung.concat([KHONG_GIO])) {
+    h += `<div class="o-khung${k === KHONG_GIO ? ' khong-gio' : ''}">${esc(k)}</div>`;
     for (const n of nguoi) {
-      const ds = oCua(n.ten, k);
+      const ds = k === KHONG_GIO
+        ? trong.filter(d => d.nguoiGiao === n.ten && !d.khungGio)
+        : oCua(n.ten, k);
       const quan = [...new Set(ds.map(d => d.quan))];
       const lech = quan.length > 1;
       h += `<div class="o-xep ${lech ? 'lech-quan' : ''} ${chon ? 'nhan-duoc' : ''}"
@@ -433,7 +439,7 @@ function moDon(ma) {
 
   const hang = (nhan, gt, dam) =>
     '<div class="hang-xem"><span>' + nhan + '</span><b' + (dam ? ' class="to"' : '') + '>' + esc(gt) + '</b></div>';
-  const oChonNguoi = () => '<label class="o-form"><span>Người giao</span><select id="chonNguoi">'
+  const oChonNguoi = () => '<label class="o-form"><span>Người giao / đơn vị vận chuyển</span><select id="chonNguoi">'
     + '<option value="">— chọn người giao —</option>'
     + nguoiKhu.map(n => '<option' + (n.ten === d.nguoiGiao ? ' selected' : '') + '>' + esc(n.ten) + ' (' + esc(n.loai) + ')</option>').join('')
     + '</select></label>';
@@ -494,10 +500,10 @@ function moDon(ma) {
     nut.push(['xacNhan', 'Xác nhận đơn', true]);
   } else if (khau === 'Đã xác nhận') {
     if (d.xepNguoi) {
-      p.push('<div class="khoi-viec"><h4>Xếp người giao</h4>'
+      p.push('<div class="khoi-viec"><h4>Sắp xếp vận chuyển</h4>'
         + '<div class="luoi-o">' + oChonNguoi() + (d.canGio ? oChonKhung() : '') + '</div>'
         + '<p class="nho mo" style="margin-top:9px">Hoặc xếp ở bàn điều phối bên dưới để nhìn được cả tuyến theo quận.</p></div>');
-      nut.push(['xepNguoi', 'Xếp người giao', true]);
+      nut.push(['xepNguoi', 'Sắp xếp vận chuyển', true]);
     } else {
       p.push('<div class="khoi-viec"><h4>Khách đến kho lấy hàng</h4>'
         + '<p class="nho mo">Đơn này không cần người giao. Khách nhận hàng xong thì bấm bên dưới.</p></div>');
