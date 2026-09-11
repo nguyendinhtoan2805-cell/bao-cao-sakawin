@@ -98,19 +98,28 @@ textarea{min-height:74px;resize:vertical}
 .khoi-xep>summary b{color:#c8102e}
 
 /* Hộp thao tác một đơn */
-.khoi-xem{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:2px 18px;margin-bottom:16px}
-.hang-xem{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #f2eef3;font-size:12px}
-.hang-xem span{color:#8b8394}.hang-xem b{color:#312b38;text-align:right}
-.khoi-sp-xem{background:#faf8fb;border:1px solid #eee9ef;border-radius:8px;padding:11px 13px;font-size:12px}
-.khoi-sp-xem h4{margin:0 0 7px;font-size:12px;color:#6a6472}
-.dong-xem{padding:3px 0}
-.khoi-viec{margin-top:16px;border-top:1px solid #ece7ee;padding-top:14px}
-.khoi-viec h4{margin:0 0 10px;font-size:13px}
+.hai-cot-xem{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:20px}
+.cot-tin{background:#faf8fb;border:1px solid #eee9ef;border-radius:9px;padding:14px 16px}
+.cot-tin h4{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#a1949f}
+.hang-xem{display:grid;grid-template-columns:118px minmax(0,1fr);gap:14px;padding:7px 0;border-bottom:1px solid #efeaf0;font-size:13px;align-items:baseline}
+.hang-xem:last-child{border-bottom:0}
+.hang-xem span{color:#8b8394;font-size:12px}
+.hang-xem b{color:#2b2532;font-weight:600;overflow-wrap:anywhere}
+.hang-xem b.to{font-size:14px;color:#191521}
+.dong-xem{padding:5px 0;font-size:13px;border-bottom:1px solid #efeaf0}
+.dong-xem:last-child{border-bottom:0}
+.dong-xem b{font-weight:600;color:#2b2532}
+.ghi-chu-don{margin-top:12px;background:#fff8eb;border:1px solid #f5dfb9;border-radius:7px;padding:9px 11px;font-size:12px;color:#7d5f2b;line-height:1.6}
+.nhan-khau{display:inline-block;margin-left:12px;font-size:11px;font-weight:600;padding:3px 11px;border-radius:20px;background:#fcecef;color:#c8102e;vertical-align:middle}
+.khoi-viec{margin-top:20px;border-top:1px solid #ece7ee;padding-top:16px}
+.khoi-viec h4{margin:0 0 11px;font-size:14px;color:#c8102e}
+.khoi-viec summary{cursor:pointer;color:#7a7480}
+#thanHop .viec-form .button{min-height:42px;padding:10px 20px;font-weight:600}
 .tick{display:flex;align-items:center;gap:9px;font-size:12px;padding:5px 0}
 .tick input{width:auto;min-height:auto}
 .dau-hop{display:flex;justify-content:space-between;gap:14px;padding:17px 20px;border-bottom:1px solid #e9e2e8;position:sticky;top:0;background:#fff;z-index:3}
 .dau-hop h2{font-size:17px}
-dialog{width:min(880px,94vw);max-height:90vh;padding:0;border:1px solid #e8dfe7;border-radius:12px;box-shadow:0 24px 90px #30202a35;color:#2c2730}
+dialog{width:min(1180px,96vw);max-height:92vh;padding:0;border:1px solid #e8dfe7;border-radius:13px;box-shadow:0 26px 100px #30202a38;color:#2c2730}
 dialog::backdrop{background:#21151e66}
 #thanHop{padding:18px 20px}
 

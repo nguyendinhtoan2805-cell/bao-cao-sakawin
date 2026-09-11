@@ -12,12 +12,13 @@ const CONG_GIAO = 50000;   /* bản thật đọc từ SETTING/Đối tác vận
 
 /* Bảy khâu — đúng luồng đã chốt. Khâu cuối suy ra từ việc đơn đã có phiên bàn
    giao hay chưa, vì "giao xong" mà tiền còn ở người giao thì chưa xong hẳn. */
+/* Sáu khâu. Bỏ "Chờ xuất kho" theo ý Toàn: xếp người xong là bàn giao hàng
+   cho người giao rồi đi luôn, không cần một khâu trung gian chỉ để chờ. */
 const KHAU = [
   ['Chờ xác nhận', 'kho gọi khách, chốt giờ'],
   ['Đã xác nhận', 'đã chốt giờ, chờ xếp người'],
-  ['Đã xếp người', 'có người giao'],
-  ['Chờ xuất kho', 'chờ lấy hàng ra'],
-  ['Đang giao', 'đang trên đường'],
+  ['Đã xếp người', 'có người giao, chờ bàn giao hàng'],
+  ['Đang giao', 'đã bàn giao, đang trên đường'],
   ['Giao xong', 'tiền còn ở người giao'],
   ['Đã đóng công nợ', 'xong hẳn'],
 ];
@@ -364,64 +365,114 @@ function moDon(ma) {
   const d = du.don.find(x => x.ma === ma);
   if (!d) return;
   const khau = khauCua(d);
+  const nguoiKhu = du.nguoiGiao.filter(n => n.khuVuc === khuVuc);
+
+  const hang = (nhan, gt, dam) =>
+    '<div class="hang-xem"><span>' + nhan + '</span><b' + (dam ? ' class="to"' : '') + '>' + esc(gt) + '</b></div>';
+  const oChonNguoi = () => '<label class="o-form"><span>Người giao</span><select id="chonNguoi">'
+    + '<option value="">— chọn người giao —</option>'
+    + nguoiKhu.map(n => '<option' + (n.ten === d.nguoiGiao ? ' selected' : '') + '>' + esc(n.ten) + ' (' + esc(n.loai) + ')</option>').join('')
+    + '</select></label>';
+  const oChonKhung = () => '<label class="o-form"><span>Khung giờ</span><select id="chonKhung">'
+    + du.khungGio.map(k => '<option' + (k === (d.khungGio || d.gioSaleHen) ? ' selected' : '') + '>' + esc(k) + '</option>').join('')
+    + '</select></label>';
+
   const p = [];
-  const hang = (nhan, gt) => '<div class="hang-xem"><span>' + nhan + '</span><b>' + esc(gt) + '</b></div>';
+  p.push('<div class="hai-cot-xem">');
 
-  p.push('<div class="khoi-xem">');
-  p.push(hang('Khâu hiện tại', khau));
-  p.push(hang('Phân loại', d.phanLoai));
-  p.push(hang('Khách', d.tenKhach + ' · ' + d.sdt));
-  if (d.quan) p.push(hang('Địa chỉ', d.diaChi + ', ' + d.quan));
-  p.push(hang('Ngày giao', d.ngayGiao + (d.khungGio ? ' · ' + d.khungGio : '')));
-  if (d.gioSaleHen) p.push(hang('Giờ sale hẹn', d.gioSaleHen + (d.khungGio && d.khungGio !== d.gioSaleHen ? '  → kho chốt lại: ' + d.khungGio : '')));
-  p.push(hang('Tổng đơn', dem(d.tongDon) + ' đ · cọc ' + dem(d.coc)));
-  if (d.coCod) p.push(hang('COD phải thu', dem(d.codPhaiThu) + ' đ'));
-  if (d.nguoiGiao) p.push(hang('Người giao', d.nguoiGiao + ' (' + d.loaiNguoiGiao + ')'));
+  /* Cột trái — thông tin đơn, đủ hết, không phải rê chuột đoán */
+  p.push('<section class="cot-tin"><h4>Thông tin đơn</h4>');
+  p.push(hang('Khâu hiện tại', khau, true));
+  p.push(hang('Phân loại', d.phanLoai, true));
+  p.push(hang('Kho xuất', d.khoXuat));
+  p.push(hang('Kênh · Shop', d.kenh + ' · ' + d.shop));
+  p.push(hang('Sale chốt đơn', d.sale));
+  p.push(hang('Khách', d.tenKhach));
+  p.push(hang('Số điện thoại', d.sdt, true));
+  if (d.diaChi) p.push(hang('Địa chỉ', d.diaChi + ', ' + d.quan));
+  else p.push(hang('Địa chỉ', 'khách tự đến kho lấy'));
+  p.push(hang('Ngày giao', d.ngayGiao, true));
+  if (d.canGio) {
+    p.push(hang('Giờ sale hẹn', d.gioSaleHen || '—'));
+    p.push(hang('Giờ kho chốt', d.khungGio || 'chưa chốt', !!d.khungGio));
+  }
+  if (d.nguoiGiao) p.push(hang('Người giao', d.nguoiGiao + ' · ' + d.loaiNguoiGiao, true));
   if (d.soHenLai) p.push(hang('Đã hẹn lại', d.soHenLai + ' lần · ' + d.lyDoHenLai));
-  if (d.ghiChu) p.push(hang('Ghi chú', d.ghiChu));
-  p.push('</div>');
+  if (d.phienBanGiao) p.push(hang('Phiên bàn giao', d.phienBanGiao));
+  p.push('</section>');
 
-  p.push('<div class="khoi-sp-xem"><h4>Sản phẩm</h4>'
-    + d.sanPham.map(x => '<div class="dong-xem">' + esc(x.ten) + ' <span class="mo">' + esc(x.ma) + '</span> × ' + x.soLuong + '</div>').join('')
-    + '</div>');
+  /* Cột phải — tiền và sản phẩm */
+  p.push('<section class="cot-tin"><h4>Tiền</h4>');
+  p.push(hang('Tổng đơn', dem(d.tongDon) + ' đ', true));
+  p.push(hang('Cọc đã nhận', dem(d.coc) + ' đ'));
+  if (d.coCod) p.push(hang('COD phải thu', dem(d.codPhaiThu) + ' đ', true));
+  else p.push(hang('COD', 'đơn này không thu tiền'));
+  if (d.thucThu != null) {
+    p.push(hang('Thực thu', dem(d.thucThu) + ' đ', true));
+    p.push(hang('Hình thức', d.hinhThuc || '—'));
+    if (d.hinhThuc === 'Chuyển khoản về công ty')
+      p.push(hang('Đã kiểm sao kê', d.daKiemSaoKe ? 'đã kiểm' : 'CHƯA KIỂM', true));
+  }
+  p.push('<h4 style="margin-top:16px">Sản phẩm</h4>');
+  p.push(d.sanPham.map(x => '<div class="dong-xem"><b>' + esc(x.ten) + '</b>'
+    + '<span class="mo"> ' + esc(x.ma) + '</span> × ' + x.soLuong + '</div>').join(''));
+  if (d.ghiChu) p.push('<div class="ghi-chu-don"><b>Ghi chú:</b> ' + esc(d.ghiChu) + '</div>');
+  p.push('</section></div>');
 
-  /* Việc của từng khâu */
+  /* Việc của từng khâu — mỗi khâu đúng một việc chính */
+  const nut = [];
   if (khau === 'Chờ xác nhận') {
-    p.push('<div class="khoi-viec"><h4>Xác nhận đơn</h4>'
+    p.push('<div class="khoi-viec"><h4>Xác nhận đơn với khách</h4>'
       + '<label class="tick"><input type="checkbox" id="tickGoi"> Đã gọi khách xác nhận</label>'
       + '<label class="tick"><input type="checkbox" id="tickHang"> Đủ hàng trong kho</label>'
-      + '<div class="luoi-o" style="margin-top:12px">'
-      + '<label class="o-form"><span>Giờ chốt với khách</span><select id="gioChot">'
-      + du.khungGio.map(k => '<option' + (k === d.gioSaleHen ? ' selected' : '') + '>' + esc(k) + '</option>').join('')
-      + '</select></label>'
-      + (d.xepNguoi ? '<label class="o-form"><span>Người giao</span><select id="chonNguoi"><option value="">— chọn sau ở bàn điều phối —</option>'
-          + du.nguoiGiao.filter(n => n.khuVuc === khuVuc).map(n => '<option>' + esc(n.ten) + '</option>').join('')
-          + '</select></label>' : '')
-      + '</div>'
-      + '<div class="viec-form"><button class="button primary" data-lam="xacNhan">Xác nhận đơn</button>'
-      + '<small class="mo">Tích đủ hai ô trên mới xác nhận được.</small></div></div>');
-  } else if (['Đã xác nhận', 'Đã xếp người', 'Chờ xuất kho'].includes(khau)) {
-    p.push('<div class="khoi-viec"><div class="viec-form">'
-      + (khau === 'Chờ xuất kho'
-        ? '<button class="button primary" data-lam="batDauGiao">Bắt đầu giao</button>'
-        : '<button class="button primary" data-lam="xuatKho">Xuất kho</button>')
-      + '<button class="button" data-lam="henLai">Hẹn lại giờ</button></div></div>');
+      + (d.canGio ? '<div class="luoi-o" style="margin-top:12px">' + oChonKhung() + '</div>' : '')
+      + '</div>');
+    nut.push(['xacNhan', 'Xác nhận đơn', true]);
+  } else if (khau === 'Đã xác nhận') {
+    if (d.xepNguoi) {
+      p.push('<div class="khoi-viec"><h4>Xếp người giao</h4>'
+        + '<div class="luoi-o">' + oChonNguoi() + (d.canGio ? oChonKhung() : '') + '</div>'
+        + '<p class="nho mo" style="margin-top:9px">Hoặc xếp ở bàn điều phối bên dưới để nhìn được cả tuyến theo quận.</p></div>');
+      nut.push(['xepNguoi', 'Xếp người giao', true]);
+    } else {
+      p.push('<div class="khoi-viec"><h4>Khách đến kho lấy hàng</h4>'
+        + '<p class="nho mo">Đơn này không cần người giao. Khách nhận hàng xong thì bấm bên dưới.</p></div>');
+      nut.push(['khachNhan', 'Khách đã nhận hàng', true]);
+    }
+    if (d.canGio) nut.push(['henLai', 'Hẹn lại giờ', false]);
+  } else if (khau === 'Đã xếp người') {
+    p.push('<div class="khoi-viec"><h4>Bàn giao hàng cho người giao</h4>'
+      + '<p class="nho mo">Bấm khi hàng đã ra khỏi kho và người giao đã cầm hàng — đơn nhảy sang <b>Đang giao</b>.</p>'
+      + '<details style="margin-top:11px"><summary class="nho">Đổi người giao / đổi khung giờ</summary>'
+      + '<div class="luoi-o" style="margin-top:10px">' + oChonNguoi() + (d.canGio ? oChonKhung() : '') + '</div>'
+      + '<button class="button nho-nut" data-lam="xepNguoi" style="margin-top:9px">Lưu người giao mới</button>'
+      + '</details></div>');
+    nut.push(['banGiao', 'BÀN GIAO HÀNG', true]);
+    if (d.canGio) nut.push(['henLai', 'Hẹn lại giờ', false]);
   } else if (khau === 'Đang giao') {
     p.push('<div class="khoi-viec"><h4>Giao xong</h4><div class="luoi-o">'
       + (d.coCod ? '<label class="o-form"><span>Thực thu (VNĐ)</span><input id="thucThu" type="number" value="' + d.codPhaiThu + '"></label>'
-        + '<label class="o-form"><span>Hình thức</span><select id="hinhThuc"><option>Tiền mặt</option><option>Chuyển khoản về công ty</option><option>Quét QR</option></select></label>' : '')
+        + '<label class="o-form"><span>Hình thức khách trả</span><select id="hinhThuc">'
+        + '<option>Tiền mặt</option><option>Chuyển khoản về công ty</option><option>Quét QR</option></select></label>' : '')
       + '<label class="o-form rong"><span>Ảnh xác nhận đã giao / đã lắp</span><input type="file" accept="image/*"></label>'
-      + '</div><div class="viec-form"><button class="button primary" data-lam="giaoXong">Giao xong</button>'
-      + '<button class="button" data-lam="henLai">Hẹn lại giờ</button></div></div>');
+      + '</div></div>');
+    nut.push(['giaoXong', 'Giao xong', true]);
+    if (d.canGio) nut.push(['henLai', 'Hẹn lại giờ', false]);
   } else if (khau === 'Giao xong') {
-    p.push('<div class="khoi-viec"><p class="nho mo">Đã giao, tiền còn ở '
-      + esc(d.nguoiGiao || 'người giao') + '. Đóng công nợ ở tab Sổ công nợ để chốt theo phiên nhiều đơn một lúc.</p>'
-      + '<div class="viec-form"><button class="button" data-phien="' + esc(d.nguoiGiao) + '">Mở phiên bàn giao</button></div></div>');
+    p.push('<div class="khoi-viec"><p class="nho mo">Đã giao, tiền còn ở <b>' + esc(d.nguoiGiao || 'kho') + '</b>. '
+      + 'Đóng công nợ theo phiên để chốt nhiều đơn một lúc.</p>'
+      + (d.nguoiGiao ? '<div class="viec-form"><button class="button" data-phien="' + esc(d.nguoiGiao) + '">Mở phiên bàn giao</button></div>' : '')
+      + '</div>');
   } else {
     p.push('<div class="khoi-viec"><p class="nho mo">Đơn đã đóng công nợ ở phiên <b>' + esc(d.phienBanGiao) + '</b> — không sửa lùi được.</p></div>');
   }
 
-  $('tieuDeHop').textContent = d.ma + ' · ' + d.tenKhach;
+  if (nut.length) p.push('<div class="viec-form">'
+    + nut.map(([v, t, chinh]) => '<button class="button' + (chinh ? ' primary' : '') + '" data-lam="' + v + '">' + t + '</button>').join('')
+    + '<small class="mo">Bản mẫu — chưa nối Lark, tải lại trang là mất.</small></div>');
+
+  $('tieuDeHop').innerHTML = esc(d.ma) + ' · ' + esc(d.tenKhach)
+    + '<span class="nhan-khau">' + esc(khau) + '</span>';
   $('thanHop').innerHTML = p.join('');
   $('hop').showModal();
 
@@ -432,15 +483,22 @@ function moDon(ma) {
     if (viec === 'xacNhan') {
       if (!$('tickGoi').checked || !$('tickHang').checked)
         return bao('Chưa tích đủ: cần gọi khách xác nhận và kiểm đủ hàng.', true);
-      d.khungGio = $('gioChot').value;
-      const n = $('chonNguoi') ? $('chonNguoi').value : '';
-      if (n) { d.nguoiGiao = n; d.loaiNguoiGiao = (du.nguoiGiao.find(x => x.ten === n) || {}).loai || ''; }
-      d.trangThai = !d.xepNguoi ? 'Đã xác nhận' : (n ? 'Đã xếp người' : 'Đã xác nhận');
-    } else if (viec === 'xuatKho') {
-      if (d.xepNguoi && !d.nguoiGiao) return bao('Chưa có người giao — xếp ở bàn điều phối bên dưới trước.', true);
-      d.trangThai = 'Chờ xuất kho';
-    } else if (viec === 'batDauGiao') {
+      if ($('chonKhung')) d.khungGio = $('chonKhung').value;
+      d.trangThai = 'Đã xác nhận';
+    } else if (viec === 'xepNguoi') {
+      const n = $('chonNguoi').value.replace(/ \(.*\)$/, '');
+      if (!n) return bao('Chưa chọn người giao.', true);
+      d.nguoiGiao = n;
+      d.loaiNguoiGiao = (du.nguoiGiao.find(x => x.ten === n) || {}).loai || '';
+      if ($('chonKhung')) d.khungGio = $('chonKhung').value;
+      d.thuTu = du.don.filter(x => x.ngayGiao === d.ngayGiao && x.nguoiGiao === n && x.khungGio === d.khungGio).length;
+      d.trangThai = 'Đã xếp người';
+    } else if (viec === 'banGiao') {
       d.trangThai = 'Đang giao';
+    } else if (viec === 'khachNhan') {
+      d.thucThu = d.coCod ? d.codPhaiThu : 0;
+      d.hinhThuc = d.coCod ? 'Tiền mặt' : '';
+      d.trangThai = 'Giao xong';
     } else if (viec === 'giaoXong') {
       d.thucThu = d.coCod ? Number($('thucThu').value || 0) : 0;
       d.hinhThuc = d.coCod ? $('hinhThuc').value : '';
@@ -450,7 +508,7 @@ function moDon(ma) {
       if (!ly) return;
       d.lyDoHenLai = ({ '1': 'Khách đổi giờ', '2': 'Kho thiếu hàng', '3': 'Shipper không kịp' })[ly.trim()] || 'Khách đổi giờ';
       d.soHenLai = (d.soHenLai || 0) + 1;
-      d.trangThai = 'Đã xác nhận';
+      d.trangThai = d.nguoiGiao ? 'Đã xếp người' : 'Đã xác nhận';
     }
     $('hop').close();
     ve();
